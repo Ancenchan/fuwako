@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的日语学习小样 ✨</title>
+    <style>
+        /* --- 整体可爱风格设定 --- */
+        :root {
+            --primary-pink: #ffafcc;
+            --soft-blue: #a2d2ff;
+            --light-yellow: #fff1e6;
+            --text-color: #5d5d5d;
+        }
+
+        body {
+            background-color: #fefae0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: #fb6f92;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px #fff;
+        }
+
+        /* --- 卡片容器 --- */
+        .container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 800px;
+        }
+
+        /* --- 单词卡片样式 --- */
+        .card {
+            background: white;
+            border: 4px solid var(--primary-pink);
+            border-radius: 25px;
+            padding: 20px;
+            width: 150px;
+            text-align: center;
+            transition: transform 0.3s ease;
+            cursor: pointer;
+            box-shadow: 0 8px 0 var(--primary-pink);
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            background-color: var(--light-yellow);
+        }
+
+        .card:active {
+            transform: translateY(2px);
+            box-shadow: 0 4px 0 var(--primary-pink);
+        }
+
+        .kana {
+            font-size: 2.5rem;
+            font-weight: bold;
+            display: block;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .romaji {
+            color: var(--soft-blue);
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        /* --- 底部激励语 --- */
+        footer {
+            margin-top: 50px;
+            padding: 15px;
+            border-radius: 15px;
+            background: white;
+            border: 2px dashed var(--primary-pink);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🌸 日本語を学びましょう 🌸</h1>
+        <p>点击小卡片，听听看（或者只是看它们跳动）！</p>
+    </header>
+
+    <div class="container">
+        <div class="card" onclick="playEffect('あ')">
+            <span class="kana">あ</span>
+            <span class="romaji">a</span>
+        </div>
+
+        <div class="card" onclick="playEffect('い')">
+            <span class="kana">い</span>
+            <span class="romaji">i</span>
+        </div>
+
+        <div class="card" onclick="playEffect('う')">
+            <span class="kana">う</span>
+            <span class="romaji">u</span>
+        </div>
+
+        <div class="card" onclick="playEffect('え')">
+            <span class="kana">え</span>
+            <span class="romaji">e</span>
+        </div>
+
+        <div class="card" onclick="playEffect('お')">
+            <span class="kana">お</span>
+            <span class="romaji">o</span>
+        </div>
+    </div>
+
+    <footer>
+        加油！学习是一场浪漫的旅行 🍡
+    </footer>
+
+    <script>
+        // 一个简单的交互：点击时弹出控制台消息或改变颜色
+        function playEffect(kana) {
+            console.log("你点击了：" + kana);
+            // 如果你想让它更有趣，可以尝试调用浏览器的语音合成
+            const uttr = new SpeechSynthesisUtterance(kana);
+            uttr.lang = 'ja-JP';
+            speechSynthesis.speak(uttr);
+        }
+    </script>
+</body>
+</html>
