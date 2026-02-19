@@ -2,158 +2,169 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>ふわり・大図書室 ☁️</title>
+    <title>ふわり・万能精読館 ☁️</title>
     <style>
         :root {
             --f-pink: #ffdee9;
-            --f-blue: #b5e2ff;
-            --f-green: #e0f2f1;
+            --f-blue: #caf0f8;
+            --f-purple: #efd3ff;
             --text: #5e548e;
-            --glass: rgba(255, 255, 255, 0.7);
+            --glass: rgba(255, 255, 255, 0.75);
         }
 
         body {
             background: linear-gradient(135deg, #fdfcfb 0%, #e2d1c3 100%);
-            min-height: 100vh; font-family: "Hiragino Mincho ProN", serif;
+            min-height: 100vh; font-family: "PingFang SC", "YuMincho", serif;
             margin: 0; display: flex; flex-direction: column; align-items: center; color: var(--text);
+            padding: 20px;
         }
 
         .glass-card {
-            background: var(--glass); backdrop-filter: blur(20px);
-            border-radius: 40px; padding: 40px; width: 90%; max-width: 800px;
-            margin: 40px 0; border: 1px solid rgba(255, 255, 255, 0.5);
-            box-shadow: 0 15px 35px rgba(0,0,0,0.05);
+            background: var(--glass); backdrop-filter: blur(25px);
+            border-radius: 40px; padding: 40px; width: 90%; max-width: 850px;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.05);
+            margin-top: 20px;
         }
 
-        /* 顶部控制栏 */
-        .controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-        
-        /* 句子显示 */
-        .sentence-area { font-size: 2rem; line-height: 1.6; text-align: center; margin-bottom: 10px; color: #333; }
-        .translation-area { font-size: 1.1rem; color: #888; text-align: center; margin-bottom: 30px; }
+        /* 句子展示区 */
+        .sentence-main { font-size: 2.2rem; line-height: 1.5; text-align: center; color: #333; margin-bottom: 10px; font-weight: 500; }
+        .translation-sub { font-size: 1.2rem; color: #888; text-align: center; margin-bottom: 40px; }
 
-        /* 解析区 */
-        .analysis-box { background: rgba(255,255,255,0.4); border-radius: 25px; padding: 25px; margin-top: 20px; }
-        .box-title { font-weight: bold; color: #b5838d; margin-bottom: 15px; font-size: 1rem; }
+        /* 语法分析区 */
+        .analysis-container { display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; }
+        .box-title { font-weight: bold; color: #b5838d; margin-bottom: 15px; font-size: 1.1rem; display: flex; align-items: center; }
+        .box-title::before { content: "✨"; margin-right: 8px; }
 
-        /* 语法树 */
-        .tree-line { font-family: monospace; white-space: pre; line-height: 1.8; color: #444; margin-bottom: 20px; font-size: 1.1rem; }
-        .node { color: #b5838d; font-weight: bold; }
-
-        /* 单词点击区 */
-        .word-tag {
-            display: inline-block; background: white; padding: 5px 12px; border-radius: 10px;
-            margin: 5px; font-size: 0.9rem; border: 1px solid var(--f-blue); cursor: pointer;
-            transition: 0.3s;
+        /* 语法树：核心逻辑展示 */
+        .syntax-tree {
+            background: rgba(255,255,255,0.5); border-radius: 20px; padding: 20px;
+            font-family: "Consolas", monospace; line-height: 2; font-size: 1.1rem;
+            border: 1px solid var(--f-pink); white-space: pre-wrap;
         }
-        .word-tag:hover { background: var(--f-blue); color: white; transform: translateY(-2px); }
+        .particle { color: #d63384; font-weight: bold; background: #fff0f6; padding: 2px 4px; border-radius: 4px; }
 
-        /* 按钮 */
-        .btn-fancy {
-            background: var(--f-pink); color: white; border: none; padding: 12px 30px;
-            border-radius: 50px; cursor: pointer; font-size: 1rem; transition: 0.3s;
-            box-shadow: 0 10px 20px rgba(255, 194, 209, 0.4);
+        /* 单词解释 */
+        .vocab-item {
+            background: white; padding: 10px 15px; border-radius: 12px; margin-bottom: 8px;
+            border-left: 4px solid var(--f-blue); font-size: 0.95rem; cursor: pointer;
+            transition: 0.2s;
         }
-        .btn-fancy:hover { transform: scale(1.05); filter: brightness(1.05); }
+        .vocab-item:hover { transform: translateX(5px); background: var(--f-blue); }
 
-        /* 动画 */
-        .fade-in { animation: fadeIn 0.8s; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        /* 底部按钮 */
+        .footer-btns { display: flex; justify-content: center; gap: 20px; margin-top: 30px; }
+        .btn-fuwari {
+            background: var(--f-pink); color: #884d5d; border: none; padding: 15px 40px;
+            border-radius: 50px; cursor: pointer; font-size: 1.1rem; font-weight: bold;
+            box-shadow: 0 10px 20px rgba(255, 194, 209, 0.4); transition: 0.3s;
+        }
+        .btn-fuwari:hover { transform: scale(1.05); box-shadow: 0 15px 25px rgba(255, 194, 209, 0.6); }
+
+        .loading-tag { font-size: 0.8rem; opacity: 0.5; margin-top: 10px; }
     </style>
 </head>
 <body>
 
+    <h1 style="font-weight: 200; letter-spacing: 8px; color: #b5838d;">FUWARI STUDY</h1>
+
     <div class="glass-card">
-        <div class="controls">
-            <h2 style="font-weight: 300; margin: 0;">☁️ ふわり・学習</h2>
-            <button class="btn-fancy" onclick="getRandomSentence()">下一句 (Next) ✨</button>
-        </div>
+        <div id="display-content">
+            <div class="sentence-main" id="ja-text">読み込み中...</div>
+            <div class="translation-sub" id="zh-text">正在从大图书馆检索句子...</div>
 
-        <div id="content" class="fade-in">
-            <div class="sentence-area" id="jp-text">正在从大图书馆搬运例句...</div>
-            <div class="translation-area" id="cn-text"></div>
-
-            <div class="analysis-box">
-                <div class="box-title">📊 结构自动透视 (Structure Tree)</div>
-                <div id="structure-tree" class="tree-line"></div>
-                
-                <div class="box-title">📖 重点词汇 (点击跳转字典)</div>
-                <div id="vocabulary-list"></div>
+            <div class="analysis-container">
+                <div class="analysis-left">
+                    <div class="box-title">整句结构拆解</div>
+                    <div class="syntax-tree" id="syntax-tree"></div>
+                </div>
+                <div class="analysis-right">
+                    <div class="box-title">重点单词解释</div>
+                    <div id="vocab-list"></div>
+                </div>
             </div>
         </div>
+
+        <div class="footer-btns">
+            <button class="btn-fuwari" onclick="nextSentence()">下一句学习 ✨</button>
+        </div>
+        <div id="status" class="loading-tag">正在连接远程库...</div>
     </div>
 
     <script>
-        // 这是一个托管在 GitHub 上的开源日语句库镜像 (包含 5000+ 高质量例句)
-        const DATA_URL = "https://raw.githubusercontent.com/Mistuha/Japanese-Sentences-Database/master/sentences.json";
-        let sentenceLibrary = [];
+        // 使用 CDN 加速链接，更稳定
+        const REMOTE_URL = "https://cdn.jsdelivr.net/gh/Mistuha/Japanese-Sentences-Database@master/sentences.json";
+        
+        // 万一网络还是炸了，这里的【本地保底库】会启动
+        const OFFLINE_DB = [
+            {ja: "希望を捨てない限り、道は必ず開ける。", zh: "只要不放弃希望，道路就一定会开启。"},
+            {ja: "努力した結果がどうであれ、後悔はしていない。", zh: "无论努力的结果如何，我都不后悔。"},
+            {ja: "彼は日本語を勉強するために、日本へ行くことにした。", zh: "他为了学习日语，决定去日本。"}
+        ];
 
-        // 初始化：抓取大库
-        async function initLibrary() {
+        let library = [];
+
+        async function init() {
             try {
-                const response = await fetch(DATA_URL);
-                sentenceLibrary = await response.json();
-                getRandomSentence();
-            } catch (err) {
-                document.getElementById('jp-text').innerText = "大图书馆连接失败，请检查网络喵~";
+                const res = await fetch(REMOTE_URL);
+                if(!res.ok) throw new Error();
+                library = await res.json();
+                document.getElementById('status').innerText = "☁️ 已成功连接大图书馆 (5000+ 句子已就绪)";
+            } catch (e) {
+                library = OFFLINE_DB;
+                document.getElementById('status').innerText = "📍 远程连接受阻，已启用本地精品库";
             }
+            nextSentence();
         }
 
-        function getRandomSentence() {
-            if (sentenceLibrary.length === 0) return;
-            const item = sentenceLibrary[Math.floor(Math.random() * sentenceLibrary.length)];
+        function nextSentence() {
+            const item = library[Math.floor(Math.random() * library.length)];
+            document.getElementById('ja-text').innerText = item.ja;
+            document.getElementById('zh-text').innerText = item.zh;
             
-            const jp = item.ja;
-            const cn = item.zh || "暂无翻译";
-
-            document.getElementById('jp-text').innerText = jp;
-            document.getElementById('cn-text').innerText = cn;
-
-            analyzeSentence(jp);
-            speak(jp);
+            analyze(item.ja);
+            speak(item.ja);
         }
 
-        // 核心解析逻辑：利用助词进行「伪 NLP」语法树分析
-        function analyzeSentence(text) {
-            // 1. 生成语法树
-            // 将句子按主要的助词进行分行，模拟结构关系
-            const particles = /([はがをにへとでも])/g;
+        function analyze(text) {
+            // 1. 语法树分析逻辑：基于助词层级拆解
+            // 核心助词：用于识别句子的节点
+            const particles = /([はがをにへとでも]/g; 
+            const pList = ["は", "が", "を", "に", "へ", "と", "で", "も", "から", "より", "だけ", "ほど"];
+            
             let treeHtml = "";
-            let segments = text.split(particles);
+            let currentText = text;
             
-            let currentIndent = "";
-            for (let i = 0; i < segments.length; i++) {
-                if (segments[i].match(particles)) {
-                    treeHtml += `<span class="node">${segments[i]}</span>\n${currentIndent} └ `;
-                    currentIndent += "  ";
-                } else {
-                    treeHtml += segments[i];
-                }
-            }
-            document.getElementById('structure-tree').innerHTML = treeHtml;
+            // 简单的结构化算法：遇到助词就切分并缩进
+            pList.forEach(p => {
+                const regex = new RegExp(`(${p})`, 'g');
+                currentText = currentText.replace(regex, `<span class="particle">$1</span>\n └ `);
+            });
 
-            // 2. 提取词汇（提取连续汉字词组）
-            const kanjiMatches = text.match(/[\u4e00-\u9faf]{2,}/g) || [];
-            const vocabList = document.getElementById('vocabulary-list');
-            vocabList.innerHTML = '';
-            
-            [...new Set(kanjiMatches)].forEach(word => {
-                const tag = document.createElement('span');
-                tag.className = 'word-tag';
-                tag.innerText = word;
-                tag.onclick = () => window.open(`https://dict.hjenglish.com/jp/jc/${word}`);
-                vocabList.appendChild(tag);
+            document.getElementById('syntax-tree').innerHTML = "句子主干：\n" + currentText;
+
+            // 2. 单词解释逻辑：提取汉字并查词
+            const kanjiGroups = text.match(/[\u4e00-\u9faf]{2,}/g) || [];
+            const vocabDiv = document.getElementById('vocab-list');
+            vocabDiv.innerHTML = '';
+
+            [...new Set(kanjiGroups)].forEach(word => {
+                const div = document.createElement('div');
+                div.className = 'vocab-item';
+                div.innerHTML = `<strong>${word}</strong> <small>(点击查询)</small>`;
+                div.onclick = () => window.open(`https://dict.hjenglish.com/jp/jc/${word}`);
+                vocabDiv.appendChild(div);
             });
         }
 
-        function speak(text) {
-            const uttr = new SpeechSynthesisUtterance(text);
-            uttr.lang = 'ja-JP';
-            uttr.rate = 0.85;
-            window.speechSynthesis.speak(uttr);
+        function speak(t) {
+            const u = new SpeechSynthesisUtterance(t);
+            u.lang = 'ja-JP';
+            u.rate = 0.9;
+            window.speechSynthesis.speak(u);
         }
 
-        initLibrary();
+        init();
     </script>
 </body>
 </html>
