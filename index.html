@@ -2,165 +2,210 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ふわり学習手帳 ☁️</title>
+    <title>ふわり・自動学習手帳 ☁️</title>
     <style>
-        /* --- Fuwari 核心美学 --- */
         :root {
             --f-pink: #ffdee9;
             --f-blue: #b5e2ff;
             --f-purple: #efd3ff;
             --text: #6d597a;
-            --glass: rgba(255, 255, 255, 0.6);
+            --glass: rgba(255, 255, 255, 0.7);
         }
 
         body {
             background: linear-gradient(135deg, #fdfcfb 0%, #e2d1c3 100%);
             min-height: 100vh;
-            font-family: 'Segoe UI', "Hiragino Sans", "Microsoft YaHei", sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            font-family: "Hiragino Mincho ProN", serif;
             margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             color: var(--text);
-            padding-bottom: 50px;
+            overflow-x: hidden;
         }
 
-        /* 磨砂玻璃容器 */
-        .glass-container {
+        /* 飘动的云朵装饰 */
+        .cloud {
+            position: absolute;
+            background: white;
+            border-radius: 50px;
+            opacity: 0.4;
+            filter: blur(20px);
+            z-index: -1;
+            animation: float 20s infinite linear;
+        }
+
+        @keyframes float {
+            from { transform: translateX(-100vw); }
+            to { transform: translateX(100vw); }
+        }
+
+        .glass-card {
             background: var(--glass);
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(20px);
             border-radius: 40px;
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.03);
-            width: 90%;
+            padding: 40px;
+            width: 85%;
             max-width: 800px;
-            margin-top: 40px;
-            padding: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.05);
+        }
+
+        /* 句子显示区 */
+        .sentence-box {
+            font-size: 1.8rem;
+            line-height: 1.6;
             text-align: center;
+            margin: 20px 0;
+            min-height: 100px;
+            color: #333;
+            transition: 0.5s;
         }
 
-        h1 { font-weight: 300; letter-spacing: 5px; color: #b5838d; }
-
-        /* 选项卡按钮 */
-        .tabs { display: flex; justify-content: center; gap: 10px; margin-bottom: 25px; }
-        .tab-btn {
-            background: white; border: none; padding: 10px 20px; border-radius: 20px;
-            cursor: pointer; transition: 0.3s; color: var(--text); box-shadow: 0 4px 0 var(--f-pink);
-        }
-        .tab-btn.active { background: var(--f-pink); color: white; transform: translateY(2px); box-shadow: none; }
-
-        /* 单词卡片展示区 */
-        .card-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-            gap: 15px;
-            display: none; /* 默认隐藏，由JS控制显示 */
-        }
-        .card-grid.active { display: grid; }
-
-        .kawaii-card {
-            background: white; border-radius: 25px; padding: 15px;
-            border: 2px solid var(--f-blue); transition: 0.3s; cursor: pointer;
-        }
-        .kawaii-card:hover { transform: scale(1.05); background: var(--f-blue); color: white; }
-
-        /* 阅读解析区（手动粘贴版） */
-        .reader-area { text-align: left; line-height: 2; }
-        textarea {
-            width: 100%; height: 100px; border-radius: 20px; border: 2px solid var(--f-purple);
-            padding: 15px; outline: none; margin-bottom: 10px; resize: none;
-        }
-        .quick-links a {
-            color: #b5838d; text-decoration: none; font-size: 0.9rem; margin-right: 15px; border-bottom: 1px dashed;
+        .translation {
+            font-size: 1.1rem;
+            color: #888;
+            text-align: center;
+            margin-bottom: 30px;
         }
 
-        /* 气泡装饰 */
-        .bubble { position: fixed; border-radius: 50%; background: white; opacity: 0.3; z-index: -1; animation: float 10s infinite; }
-        @keyframes float { 0% { transform: translateY(0); } 50% { transform: translateY(-20px); } 100% { transform: translateY(0); } }
+        /* 自动生成的解析区 */
+        .section {
+            margin-top: 25px;
+            padding: 20px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 20px;
+            border: 1px solid var(--f-pink);
+        }
+
+        .section-title {
+            font-weight: bold;
+            color: #b5838d;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .word-badge {
+            display: inline-block;
+            background: white;
+            padding: 6px 15px;
+            border-radius: 12px;
+            margin: 5px;
+            border: 1px solid var(--f-blue);
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .word-badge:hover { background: var(--f-blue); color: white; }
+
+        .tree-line {
+            font-family: monospace;
+            white-space: pre-wrap;
+            line-height: 1.8;
+            color: #555;
+        }
+
+        /* 按钮 */
+        .btn-refresh {
+            display: block;
+            width: 200px;
+            margin: 30px auto 0;
+            padding: 15px;
+            background: var(--f-pink);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            box-shadow: 0 10px 20px rgba(255, 222, 233, 0.5);
+            transition: 0.3s;
+        }
+
+        .btn-refresh:hover { transform: translateY(-3px); filter: brightness(1.05); }
+
+        .loading { opacity: 0.5; filter: blur(2px); }
     </style>
 </head>
 <body>
 
-    <div class="bubble" style="width: 100px; height: 100px; top: 10%; left: 5%;"></div>
-    <div class="bubble" style="width: 150px; height: 150px; bottom: 15%; right: 10%;"></div>
+    <div class="cloud" style="width: 200px; height: 60px; top: 10%; animation-duration: 25s;"></div>
+    <div class="cloud" style="width: 300px; height: 100px; top: 40%; animation-duration: 40s;"></div>
 
-    <div class="glass-container">
-        <h1>☁️ ふわり・学習手帳</h1>
-        <p style="font-size: 0.9rem; opacity: 0.8;">无需 API，最轻盈的日语学习空间</p>
+    <div class="container">
+        <div class="glass-card">
+            <h1 style="text-align: center; font-weight: 300;">☁️ 今日の日本語</h1>
+            
+            <div id="sentence" class="sentence-box">API 连接中...</div>
+            <div id="translation" class="translation"></div>
 
-        <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab('syllabary')">五十音</button>
-            <button class="tab-btn" onclick="switchTab('phrases')">常用句</button>
-            <button class="tab-btn" onclick="switchTab('reader')">阅读辅助</button>
-        </div>
-
-        <div id="syllabary" class="card-grid active">
-            <div class="kawaii-card" onclick="speak('あ')">あ <br> <small>a</small></div>
-            <div class="kawaii-card" onclick="speak('い')">い <br> <small>i</small></div>
-            <div class="kawaii-card" onclick="speak('う')">う <br> <small>u</small></div>
-            <div class="kawaii-card" onclick="speak('え')">え <br> <small>e</small></div>
-            <div class="kawaii-card" onclick="speak('お')">お <br> <small>o</small></div>
+            <div class="section">
+                <div class="section-title">✨ 结构逻辑分析 (Structure)</div>
+                <div id="structure" class="tree-line">正在分析句子主干...</div>
             </div>
 
-        <div id="phrases" class="card-grid">
-            <div class="kawaii-card" style="grid-column: span 2;" onclick="speak('お元気ですか')">お元気ですか<br><small>你好吗？</small></div>
-            <div class="kawaii-card" style="grid-column: span 2;" onclick="speak('日本語を勉強しています')">日本語を勉強しています<br><small>正在学日语</small></div>
-            <div class="kawaii-card" style="grid-column: span 2;" onclick="speak('美味しいですね')">美味しいですね<br><small>很好吃呢</small></div>
-        </div>
+            <div class="section">
+                <div class="section-title">📖 重点词汇 (Vocabulary)</div>
+                <div id="words"></div>
+            </div>
 
-        <div id="reader" class="reader-area" style="display: none;">
-            <p>粘贴一段你不懂的日语：</p>
-            <textarea id="read-input" placeholder="ここに入力してください..."></textarea>
-            <div class="quick-links">
-                <span>🔍 快速跳转查词：</span>
-                <a href="#" onclick="searchIn('jisho')">Jisho (英日)</a>
-                <a href="#" onclick="searchIn('hj')">沪江小D (中日)</a>
-                <a href="#" onclick="speakInput()">🔊 听读音</a>
-            </div>
-            <div id="word-break-area" style="margin-top: 20px; color: #888; font-size: 0.9rem;">
-                * 提示：点击“听读音”可以调用系统语音帮助记忆。
-            </div>
+            <button class="btn-refresh" onclick="fetchNewSentence()">换一句学习 ✨</button>
         </div>
     </div>
 
     <script>
-        function switchTab(id) {
-            // 切换按钮
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+        async function fetchNewSentence() {
+            const sBox = document.getElementById('sentence');
+            const tBox = document.getElementById('translation');
+            const wBox = document.getElementById('words');
+            const stBox = document.getElementById('structure');
 
-            // 切换内容
-            document.getElementById('syllabary').style.display = 'none';
-            document.getElementById('phrases').style.display = 'none';
-            document.getElementById('reader').style.display = 'none';
-
-            const target = document.getElementById(id);
-            if (id === 'reader') target.style.display = 'block';
-            else target.style.display = 'grid';
-        }
-
-        function speak(text) {
-            const uttr = new SpeechSynthesisUtterance(text);
-            uttr.lang = 'ja-JP';
-            window.speechSynthesis.speak(uttr);
-        }
-
-        function speakInput() {
-            const val = document.getElementById('read-input').value;
-            if(val) speak(val);
-        }
-
-        function searchIn(site) {
-            const val = document.getElementById('read-input').value;
-            if(!val) return alert("请先输入内容喵！");
+            sBox.classList.add('loading');
             
-            let url = '';
-            if(site === 'jisho') url = `https://jisho.org/search/${val}`;
-            if(site === 'hj') url = `https://dict.hjenglish.com/jp/jc/${val}`;
-            
-            window.open(url, '_blank');
+            try {
+                // 调用 Hitokoto API 抓取日文段落 (类别：动画、文学、原创)
+                const response = await fetch('https://v1.hitokoto.cn/?c=a&c=b&c=d');
+                const data = await response.json();
+                
+                // 这里的 API 返回的是名言。我们尝试用简单的正则拆分单词
+                const text = data.hitokoto;
+                sBox.innerText = text;
+                tBox.innerText = "出处：" + (data.from || "未知");
+                sBox.classList.remove('loading');
+
+                // 1. 自动提取汉字词组 (模拟单词解释)
+                const words = text.match(/[\u4e00-\u9faf]{2,}/g) || [];
+                wBox.innerHTML = '';
+                words.forEach(w => {
+                    const span = document.createElement('span');
+                    span.className = 'word-badge';
+                    span.innerText = w;
+                    span.onclick = () => window.open(`https://dict.hjenglish.com/jp/jc/${w}`);
+                    wBox.appendChild(span);
+                });
+
+                // 2. 模拟结构分析 (基于标点符号和助词的简单逻辑)
+                // 真正的深度语法分析需要 NLP 服务器，前端通过识别「は/が/を/に」来辅助阅读
+                let structure = text.replace(/([はがをにへとで]) /g, "$1\n └ ");
+                stBox.innerText = "句子骨架参考：\n" + structure;
+
+                // 3. 朗读
+                speak(text);
+
+            } catch (error) {
+                sBox.innerText = "加载失败，请检查网络喵~";
+            }
         }
+
+        function speak(t) {
+            const u = new SpeechSynthesisUtterance(t);
+            u.lang = 'ja-JP';
+            u.rate = 0.9;
+            speechSynthesis.speak(u);
+        }
+
+        // 初始化加载
+        fetchNewSentence();
     </script>
 </body>
 </html>
