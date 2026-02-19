@@ -1,170 +1,230 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>ふわり・万能精読館 ☁️</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ふわり学習帳 | 日语学习手账</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/build/kuromoji.js"></script>
     <style>
         :root {
-            --f-pink: #ffdee9;
-            --f-blue: #caf0f8;
-            --f-purple: #efd3ff;
-            --text: #5e548e;
-            --glass: rgba(255, 255, 255, 0.75);
+            --fuwari-pink: #fff0f3;
+            --fuwari-blue: #e0f2fe;
+            --fuwari-accent: #ffb7c5;
+            --text-color: #5a5a5a;
+            --card-bg: rgba(255, 255, 255, 0.8);
         }
 
         body {
-            background: linear-gradient(135deg, #fdfcfb 0%, #e2d1c3 100%);
-            min-height: 100vh; font-family: "PingFang SC", "YuMincho", serif;
-            margin: 0; display: flex; flex-direction: column; align-items: center; color: var(--text);
+            margin: 0;
             padding: 20px;
+            font-family: 'Kosugi Maru', 'Noto Sans SC', sans-serif;
+            background: linear-gradient(135deg, var(--fuwari-pink) 0%, var(--fuwari-blue) 100%);
+            min-height: 100vh;
+            color: var(--text-color);
         }
 
-        .glass-card {
-            background: var(--glass); backdrop-filter: blur(25px);
-            border-radius: 40px; padding: 40px; width: 90%; max-width: 850px;
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            box-shadow: 0 20px 60px rgba(0,0,0,0.05);
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-weight: 300;
+            letter-spacing: 2px;
+            color: var(--text-color);
+        }
+
+        /* 输入区 */
+        .input-card {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 24px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            backdrop-filter: blur(10px);
+            margin-bottom: 20px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 100px;
+            border: none;
+            background: transparent;
+            font-size: 1.1rem;
+            resize: none;
+            outline: none;
+            color: var(--text-color);
+        }
+
+        button {
+            background-color: var(--fuwari-accent);
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-size: 1rem;
+            display: block;
+            margin-left: auto;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 183, 197, 0.4);
+        }
+
+        /* 结果展示区 (拆解效果) */
+        .analysis-result {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
             margin-top: 20px;
         }
 
-        /* 句子展示区 */
-        .sentence-main { font-size: 2.2rem; line-height: 1.5; text-align: center; color: #333; margin-bottom: 10px; font-weight: 500; }
-        .translation-sub { font-size: 1.2rem; color: #888; text-align: center; margin-bottom: 40px; }
-
-        /* 语法分析区 */
-        .analysis-container { display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; }
-        .box-title { font-weight: bold; color: #b5838d; margin-bottom: 15px; font-size: 1.1rem; display: flex; align-items: center; }
-        .box-title::before { content: "✨"; margin-right: 8px; }
-
-        /* 语法树：核心逻辑展示 */
-        .syntax-tree {
-            background: rgba(255,255,255,0.5); border-radius: 20px; padding: 20px;
-            font-family: "Consolas", monospace; line-height: 2; font-size: 1.1rem;
-            border: 1px solid var(--f-pink); white-space: pre-wrap;
+        .word-bubble {
+            background: white;
+            padding: 8px 15px;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
         }
-        .particle { color: #d63384; font-weight: bold; background: #fff0f6; padding: 2px 4px; border-radius: 4px; }
 
-        /* 单词解释 */
-        .vocab-item {
-            background: white; padding: 10px 15px; border-radius: 12px; margin-bottom: 8px;
-            border-left: 4px solid var(--f-blue); font-size: 0.95rem; cursor: pointer;
-            transition: 0.2s;
+        .word-bubble:hover {
+            border-color: var(--fuwari-accent);
+            transform: scale(1.05);
         }
-        .vocab-item:hover { transform: translateX(5px); background: var(--f-blue); }
 
-        /* 底部按钮 */
-        .footer-btns { display: flex; justify-content: center; gap: 20px; margin-top: 30px; }
-        .btn-fuwari {
-            background: var(--f-pink); color: #884d5d; border: none; padding: 15px 40px;
-            border-radius: 50px; cursor: pointer; font-size: 1.1rem; font-weight: bold;
-            box-shadow: 0 10px 20px rgba(255, 194, 209, 0.4); transition: 0.3s;
+        .pos-tag {
+            font-size: 0.7rem;
+            color: #999;
+            display: block;
+            margin-bottom: 2px;
         }
-        .btn-fuwari:hover { transform: scale(1.05); box-shadow: 0 15px 25px rgba(255, 194, 209, 0.6); }
 
-        .loading-tag { font-size: 0.8rem; opacity: 0.5; margin-top: 10px; }
+        /* 词典详情弹窗 */
+        #detail-panel {
+            margin-top: 30px;
+            display: none;
+            animation: fadeInUp 0.5s;
+        }
+
+        .detail-card {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 24px;
+            border-left: 8px solid var(--fuwari-accent);
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .example-list {
+            margin-top: 15px;
+            font-size: 0.9rem;
+            background: rgba(255,255,255,0.5);
+            padding: 15px;
+            border-radius: 12px;
+        }
     </style>
 </head>
 <body>
 
-    <h1 style="font-weight: 200; letter-spacing: 8px; color: #b5838d;">FUWARI STUDY</h1>
+<div class="container">
+    <header>
+        <h1>ふわり学習帳</h1>
+    </header>
 
-    <div class="glass-card">
-        <div id="display-content">
-            <div class="sentence-main" id="ja-text">読み込み中...</div>
-            <div class="translation-sub" id="zh-text">正在从大图书馆检索句子...</div>
-
-            <div class="analysis-container">
-                <div class="analysis-left">
-                    <div class="box-title">整句结构拆解</div>
-                    <div class="syntax-tree" id="syntax-tree"></div>
-                </div>
-                <div class="analysis-right">
-                    <div class="box-title">重点单词解释</div>
-                    <div id="vocab-list"></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="footer-btns">
-            <button class="btn-fuwari" onclick="nextSentence()">下一句学习 ✨</button>
-        </div>
-        <div id="status" class="loading-tag">正在连接远程库...</div>
+    <div class="input-card">
+        <textarea id="inputText" placeholder="在这里输入想要拆解的长难句..."></textarea>
+        <button onclick="analyzeText()">开始拆解</button>
     </div>
 
-    <script>
-        // 使用 CDN 加速链接，更稳定
-        const REMOTE_URL = "https://cdn.jsdelivr.net/gh/Mistuha/Japanese-Sentences-Database@master/sentences.json";
-        
-        // 万一网络还是炸了，这里的【本地保底库】会启动
-        const OFFLINE_DB = [
-            {ja: "希望を捨てない限り、道は必ず開ける。", zh: "只要不放弃希望，道路就一定会开启。"},
-            {ja: "努力した結果がどうであれ、後悔はしていない。", zh: "无论努力的结果如何，我都不后悔。"},
-            {ja: "彼は日本語を勉強するために、日本へ行くことにした。", zh: "他为了学习日语，决定去日本。"}
-        ];
+    <div id="analysisArea" class="analysis-result">
+        </div>
 
-        let library = [];
+    <div id="detail-panel">
+        <div class="detail-card">
+            <h3 id="target-word">单词</h3>
+            <p id="word-reading" style="color:#888"></p>
+            <hr style="border:0; border-top:1px solid #eee; margin:15px 0;">
+            <strong>外部例句库 (Jisho):</strong>
+            <div id="example-content" class="example-list">
+                正在检索例句...
+            </div>
+        </div>
+    </div>
+</div>
 
-        async function init() {
-            try {
-                const res = await fetch(REMOTE_URL);
-                if(!res.ok) throw new Error();
-                library = await res.json();
-                document.getElementById('status').innerText = "☁️ 已成功连接大图书馆 (5000+ 句子已就绪)";
-            } catch (e) {
-                library = OFFLINE_DB;
-                document.getElementById('status').innerText = "📍 远程连接受阻，已启用本地精品库";
+<script>
+    let tokenizer = null;
+
+    // 初始化 Kuromoji
+    kuromoji.builder({ dicPath: "https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/" }).build((err, _tokenizer) => {
+        if (err) {
+            console.error("分词器加载失败", err);
+        } else {
+            tokenizer = _tokenizer;
+            console.log("分词器已就绪");
+        }
+    });
+
+    async function analyzeText() {
+        const text = document.getElementById('inputText').value;
+        if (!text || !tokenizer) return;
+
+        const tokens = tokenizer.tokenize(text);
+        const analysisArea = document.getElementById('analysisArea');
+        analysisArea.innerHTML = '';
+
+        tokens.forEach(token => {
+            const bubble = document.createElement('div');
+            bubble.className = 'word-bubble';
+            bubble.innerHTML = `
+                <span class="pos-tag">${token.pos}</span>
+                <span class="word-text">${token.surface_form}</span>
+            `;
+            bubble.onclick = () => showDetail(token.surface_form, token.reading);
+            analysisArea.appendChild(bubble);
+        });
+    }
+
+    async function showDetail(word, reading) {
+        document.getElementById('detail-panel').style.display = 'block';
+        document.getElementById('target-word').innerText = word;
+        document.getElementById('word-reading').innerText = reading || '';
+        document.getElementById('example-content').innerText = '正在从 Jisho 获取例句...';
+
+        try {
+            // 使用 Jisho 的 API (注意：直接前端调用可能存在跨域问题，这里使用了官方API格式)
+            // 稳定的方案通常是连接 Jisho 或者使用公开的 Tatoeba 镜像
+            const response = await fetch(`https://jisho.org/api/v1/search/words?keyword=${word}`);
+            const data = await response.json();
+            
+            if (data.data && data.data.length > 0) {
+                const senses = data.data[0].senses;
+                const defs = senses.map(s => s.english_definitions.join(', ')).slice(0, 3);
+                document.getElementById('example-content').innerHTML = `
+                    <p><b>释义:</b> ${defs.join('; ')}</p>
+                    <p style="font-size:0.8rem; color: #666;">更多例句请访问: <a href="https://jisho.org/search/${word}%23sentences" target="_blank">Jisho 例句库</a></p>
+                `;
+            } else {
+                document.getElementById('example-content').innerText = '未找到详细释义。';
             }
-            nextSentence();
+        } catch (e) {
+            document.getElementById('example-content').innerText = 'API 连接受限。';
         }
+    }
+</script>
 
-        function nextSentence() {
-            const item = library[Math.floor(Math.random() * library.length)];
-            document.getElementById('ja-text').innerText = item.ja;
-            document.getElementById('zh-text').innerText = item.zh;
-            
-            analyze(item.ja);
-            speak(item.ja);
-        }
-
-        function analyze(text) {
-            // 1. 语法树分析逻辑：基于助词层级拆解
-            // 核心助词：用于识别句子的节点
-            const particles = /([はがをにへとでも]/g; 
-            const pList = ["は", "が", "を", "に", "へ", "と", "で", "も", "から", "より", "だけ", "ほど"];
-            
-            let treeHtml = "";
-            let currentText = text;
-            
-            // 简单的结构化算法：遇到助词就切分并缩进
-            pList.forEach(p => {
-                const regex = new RegExp(`(${p})`, 'g');
-                currentText = currentText.replace(regex, `<span class="particle">$1</span>\n └ `);
-            });
-
-            document.getElementById('syntax-tree').innerHTML = "句子主干：\n" + currentText;
-
-            // 2. 单词解释逻辑：提取汉字并查词
-            const kanjiGroups = text.match(/[\u4e00-\u9faf]{2,}/g) || [];
-            const vocabDiv = document.getElementById('vocab-list');
-            vocabDiv.innerHTML = '';
-
-            [...new Set(kanjiGroups)].forEach(word => {
-                const div = document.createElement('div');
-                div.className = 'vocab-item';
-                div.innerHTML = `<strong>${word}</strong> <small>(点击查询)</small>`;
-                div.onclick = () => window.open(`https://dict.hjenglish.com/jp/jc/${word}`);
-                vocabDiv.appendChild(div);
-            });
-        }
-
-        function speak(t) {
-            const u = new SpeechSynthesisUtterance(t);
-            u.lang = 'ja-JP';
-            u.rate = 0.9;
-            window.speechSynthesis.speak(u);
-        }
-
-        init();
-    </script>
 </body>
 </html>
