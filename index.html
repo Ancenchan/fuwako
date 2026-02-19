@@ -2,210 +2,227 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>ふわり・自動学習手帳 ☁️</title>
+    <title>ふわり・構造解析手帳 ☁️</title>
     <style>
         :root {
             --f-pink: #ffdee9;
-            --f-blue: #b5e2ff;
+            --f-blue: #caf0f8;
             --f-purple: #efd3ff;
-            --text: #6d597a;
-            --glass: rgba(255, 255, 255, 0.7);
+            --text: #5e548e;
+            --glass: rgba(255, 255, 255, 0.75);
         }
 
         body {
             background: linear-gradient(135deg, #fdfcfb 0%, #e2d1c3 100%);
             min-height: 100vh;
-            font-family: "Hiragino Mincho ProN", serif;
+            font-family: "PingFang SC", "YuMincho", serif;
             margin: 0;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
             color: var(--text);
-            overflow-x: hidden;
+            padding: 20px;
         }
 
-        /* 飘动的云朵装饰 */
-        .cloud {
-            position: absolute;
-            background: white;
-            border-radius: 50px;
-            opacity: 0.4;
-            filter: blur(20px);
-            z-index: -1;
-            animation: float 20s infinite linear;
-        }
-
-        @keyframes float {
-            from { transform: translateX(-100vw); }
-            to { transform: translateX(100vw); }
-        }
-
-        .glass-card {
+        /* 磨砂玻璃主面板 */
+        .main-panel {
             background: var(--glass);
             backdrop-filter: blur(20px);
             border-radius: 40px;
-            padding: 40px;
-            width: 85%;
-            max-width: 800px;
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            box-shadow: 0 15px 35px rgba(0,0,0,0.05);
+            width: 95%;
+            max-width: 1000px;
+            display: flex;
+            height: 85vh;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.5);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.1);
         }
 
-        /* 句子显示区 */
-        .sentence-box {
-            font-size: 1.8rem;
-            line-height: 1.6;
-            text-align: center;
-            margin: 20px 0;
-            min-height: 100px;
-            color: #333;
-            transition: 0.5s;
-        }
-
-        .translation {
-            font-size: 1.1rem;
-            color: #888;
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        /* 自动生成的解析区 */
-        .section {
-            margin-top: 25px;
-            padding: 20px;
+        /* 左侧列表：选句子 */
+        .sidebar {
+            width: 300px;
             background: rgba(255,255,255,0.3);
-            border-radius: 20px;
-            border: 1px solid var(--f-pink);
+            border-right: 1px dashed var(--f-pink);
+            display: flex;
+            flex-direction: column;
         }
+
+        .level-tabs {
+            display: flex;
+            padding: 15px;
+            gap: 5px;
+            background: rgba(255,255,255,0.5);
+        }
+
+        .level-btn {
+            flex: 1; border: none; padding: 5px; border-radius: 10px;
+            background: white; cursor: pointer; font-size: 0.8rem;
+            transition: 0.3s; color: var(--text);
+        }
+
+        .level-btn.active { background: var(--f-pink); color: white; }
+
+        .sentence-list {
+            overflow-y: auto; flex: 1; padding: 10px;
+        }
+
+        .sentence-item {
+            padding: 15px; background: white; border-radius: 15px;
+            margin-bottom: 10px; cursor: pointer; transition: 0.3s;
+            font-size: 0.9rem; border: 1px solid transparent;
+        }
+
+        .sentence-item:hover { border-color: var(--f-blue); transform: translateX(5px); }
+        .sentence-item.active { background: var(--f-blue); color: #0077b6; }
+
+        /* 右侧展示：看解析 */
+        .display-area {
+            flex: 1; padding: 40px; overflow-y: auto; scroll-behavior: smooth;
+        }
+
+        .hero-sentence { font-size: 2rem; color: #333; margin-bottom: 10px; line-height: 1.4; }
+        .translation { font-size: 1.1rem; color: #888; margin-bottom: 30px; }
 
         .section-title {
-            font-weight: bold;
-            color: #b5838d;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
+            font-weight: bold; color: #b5838d; margin: 25px 0 10px;
+            display: flex; align-items: center; font-size: 1.1rem;
+        }
+        .section-title::before { content: "☁️"; margin-right: 10px; }
+
+        .content-card {
+            background: white; border-radius: 20px; padding: 20px;
+            line-height: 1.8; white-space: pre-wrap; font-size: 1rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.02);
         }
 
-        .word-badge {
-            display: inline-block;
-            background: white;
-            padding: 6px 15px;
-            border-radius: 12px;
-            margin: 5px;
-            border: 1px solid var(--f-blue);
-            cursor: pointer;
-            transition: 0.2s;
+        .word-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px;
+        }
+        .word-item {
+            background: white; padding: 10px; border-radius: 12px;
+            border-left: 4px solid var(--f-pink); font-size: 0.9rem;
         }
 
-        .word-badge:hover { background: var(--f-blue); color: white; }
-
-        .tree-line {
-            font-family: monospace;
-            white-space: pre-wrap;
-            line-height: 1.8;
-            color: #555;
-        }
-
-        /* 按钮 */
-        .btn-refresh {
-            display: block;
-            width: 200px;
-            margin: 30px auto 0;
-            padding: 15px;
-            background: var(--f-pink);
-            color: white;
-            border: none;
-            border-radius: 50px;
-            font-size: 1.1rem;
-            cursor: pointer;
-            box-shadow: 0 10px 20px rgba(255, 222, 233, 0.5);
-            transition: 0.3s;
-        }
-
-        .btn-refresh:hover { transform: translateY(-3px); filter: brightness(1.05); }
-
-        .loading { opacity: 0.5; filter: blur(2px); }
+        /* 隐藏滚动条 */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: var(--f-pink); border-radius: 10px; }
     </style>
 </head>
 <body>
 
-    <div class="cloud" style="width: 200px; height: 60px; top: 10%; animation-duration: 25s;"></div>
-    <div class="cloud" style="width: 300px; height: 100px; top: 40%; animation-duration: 40s;"></div>
+    <h1 style="font-weight: 200; letter-spacing: 5px;">ふわり・精読手帳</h1>
 
-    <div class="container">
-        <div class="glass-card">
-            <h1 style="text-align: center; font-weight: 300;">☁️ 今日の日本語</h1>
-            
-            <div id="sentence" class="sentence-box">API 连接中...</div>
-            <div id="translation" class="translation"></div>
-
-            <div class="section">
-                <div class="section-title">✨ 结构逻辑分析 (Structure)</div>
-                <div id="structure" class="tree-line">正在分析句子主干...</div>
+    <div class="main-panel">
+        <aside class="sidebar">
+            <div class="level-tabs">
+                <button class="level-btn active" onclick="switchLevel('N5')">N5-N4</button>
+                <button class="level-btn" onclick="switchLevel('N3')">N3-N2</button>
+                <button class="level-btn" onclick="switchLevel('N1')">N1特级</button>
             </div>
+            <div class="sentence-list" id="sentence-list">
+                </div>
+        </aside>
 
-            <div class="section">
-                <div class="section-title">📖 重点词汇 (Vocabulary)</div>
-                <div id="words"></div>
+        <main class="display-area" id="display-area">
+            <div id="welcome-msg" style="text-align:center; margin-top:100px; opacity:0.5;">
+                ☁️ 请从左侧选择一个句子开始学习
             </div>
+            <div id="analysis-content" style="display:none;">
+                <div class="hero-sentence" id="m-sentence"></div>
+                <div class="translation" id="m-translation"></div>
 
-            <button class="btn-refresh" onclick="fetchNewSentence()">换一句学习 ✨</button>
-        </div>
+                <div class="section-title">句子结构解析 (Structure Tree)</div>
+                <div class="content-card" id="m-structure" style="font-family: monospace;"></div>
+
+                <div class="section-title">重点词汇整理 (Vocabulary)</div>
+                <div class="word-grid" id="m-words"></div>
+
+                <div class="section-title">语法要点说明 (Grammar)</div>
+                <div class="content-card" id="m-grammar"></div>
+            </div>
+        </main>
     </div>
 
     <script>
-        async function fetchNewSentence() {
-            const sBox = document.getElementById('sentence');
-            const tBox = document.getElementById('translation');
-            const wBox = document.getElementById('words');
-            const stBox = document.getElementById('structure');
+        // 核心句库（这里你可以无限添加）
+        const sentenceDB = {
+            N5: [
+                {
+                    text: "私は毎日、公園を散歩することにしています。",
+                    trans: "我决定每天都在公园散步。",
+                    struct: "私は (主语)\n └ 毎日 (时间状语)\n └ 公園を (场所宾语)\n     └ 散歩することに (动作内容)\n         └ しています (习惯/决定)",
+                    words: ["毎日[まいにち]：每天", "散歩[さんぽ]：散步", "公園[こうえん]：公园"],
+                    grammar: "1. ～を散步する：在...散步（移动动词离开点使用を）。\n2. ～ことにしている：表示自己定下的习惯或规定。"
+                },
+                {
+                    text: "雨が降っているから、傘を持って行ったほうがいいですよ。",
+                    trans: "因为正在下雨，还是带上伞比较好哦。",
+                    struct: "雨が降っている (原因从句)\n └ から (接续助词)\n └ 傘を (宾语)\n     └ 持って行った (动作)\n         └ ほうがいい (建议)",
+                    words: ["降る[ふる]：下雨", "傘[かさ]：伞", "持つ[もつ]：拿/带"],
+                    grammar: "1. ～から：表示主观原因。\n2. ～たほうがいい：表示建议，接动词た形。"
+                }
+            ],
+            N3: [
+                {
+                    text: "日本に来て以来、自分の国の料理が恋しくてたまらない。",
+                    trans: "来到日本以来，变得特别想念家乡菜。",
+                    struct: "日本に来て (动作)\n └ 以来 (自从...以来)\n └ 自分の国の料理が (主语/对象)\n     └ 恋しくて (形容词连用)\n         └ たまらない (非常/受不了)",
+                    words: ["以来[いらい]：自从", "料理[りょうり]：料理", "恋しい[こいしい]：想念"],
+                    grammar: "1. ～て以来：自从某事发生后一直状态持续。\n2. ～てたまらない：表示某种感情或感觉达到了无法忍受的程度。"
+                }
+            ],
+            N1: [
+                {
+                    text: "いかなる逆境にあってすら、希望を失わない強さが求められる。",
+                    trans: "即使处于任何逆境之中，也需要不失去希望的坚强。",
+                    struct: "いかなる逆境 (定语)\n └ にあって (处于...状态)\n     └ すら (即使/甚至)\n └ 希望を失わない強さが (大主语)\n     └ 求められる (被动/需求)",
+                    words: ["逆境[ぎゃっきょう]：逆境", "失う[うしなう]：失去", "求める[もとめる]：追求/需要"],
+                    grammar: "1. ～にあって：处于某种特殊的地位、状态或场合。\n2. ～すら：极端的强调，相当于「さえ」。"
+                }
+            ]
+        };
 
-            sBox.classList.add('loading');
-            
-            try {
-                // 调用 Hitokoto API 抓取日文段落 (类别：动画、文学、原创)
-                const response = await fetch('https://v1.hitokoto.cn/?c=a&c=b&c=d');
-                const data = await response.json();
-                
-                // 这里的 API 返回的是名言。我们尝试用简单的正则拆分单词
-                const text = data.hitokoto;
-                sBox.innerText = text;
-                tBox.innerText = "出处：" + (data.from || "未知");
-                sBox.classList.remove('loading');
+        let currentLevel = 'N5';
 
-                // 1. 自动提取汉字词组 (模拟单词解释)
-                const words = text.match(/[\u4e00-\u9faf]{2,}/g) || [];
-                wBox.innerHTML = '';
-                words.forEach(w => {
-                    const span = document.createElement('span');
-                    span.className = 'word-badge';
-                    span.innerText = w;
-                    span.onclick = () => window.open(`https://dict.hjenglish.com/jp/jc/${w}`);
-                    wBox.appendChild(span);
-                });
-
-                // 2. 模拟结构分析 (基于标点符号和助词的简单逻辑)
-                // 真正的深度语法分析需要 NLP 服务器，前端通过识别「は/が/を/に」来辅助阅读
-                let structure = text.replace(/([はがをにへとで]) /g, "$1\n └ ");
-                stBox.innerText = "句子骨架参考：\n" + structure;
-
-                // 3. 朗读
-                speak(text);
-
-            } catch (error) {
-                sBox.innerText = "加载失败，请检查网络喵~";
-            }
+        function switchLevel(lvl) {
+            currentLevel = lvl;
+            document.querySelectorAll('.level-btn').forEach(b => b.classList.toggle('active', b.innerText.includes(lvl)));
+            renderList();
         }
 
-        function speak(t) {
-            const u = new SpeechSynthesisUtterance(t);
-            u.lang = 'ja-JP';
-            u.rate = 0.9;
-            speechSynthesis.speak(u);
+        function renderList() {
+            const list = document.getElementById('sentence-list');
+            list.innerHTML = '';
+            sentenceDB[currentLevel].forEach((item, idx) => {
+                const div = document.createElement('div');
+                div.className = 'sentence-item';
+                div.innerText = item.text.substring(0, 20) + (item.text.length > 20 ? '...' : '');
+                div.onclick = () => showAnalysis(idx);
+                list.appendChild(div);
+            });
         }
 
-        // 初始化加载
-        fetchNewSentence();
+        function showAnalysis(idx) {
+            const data = sentenceDB[currentLevel][idx];
+            document.getElementById('welcome-msg').style.display = 'none';
+            document.getElementById('analysis-content').style.display = 'block';
+
+            document.getElementById('m-sentence').innerText = data.text;
+            document.getElementById('m-translation').innerText = data.trans;
+            document.getElementById('m-structure').innerText = data.struct;
+            document.getElementById('m-grammar').innerText = data.grammar;
+
+            const wGrid = document.getElementById('m-words');
+            wGrid.innerHTML = data.words.map(w => `<div class="word-item">${w}</div>`).join('');
+
+            // 自动朗读
+            const uttr = new SpeechSynthesisUtterance(data.text);
+            uttr.lang = 'ja-JP';
+            speechSynthesis.speak(uttr);
+        }
+
+        // 初始化
+        switchLevel('N5');
     </script>
 </body>
 </html>
