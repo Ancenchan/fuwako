@@ -2,193 +2,82 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的日语达人之路 🍡</title>
+    <title>萌萌日语学习终端 🌸</title>
     <style>
-        :root {
-            --bg: #fffcf2;
-            --primary: #ff85a1;
-            --secondary: #fbb1bd;
-            --accent: #7dd3fc;
-            --text: #4a4e69;
-        }
-
-        body {
-            background-color: var(--bg);
-            font-family: 'Hiragino Sans', 'Microsoft YaHei', sans-serif;
-            color: var(--text);
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        /* --- 导航栏 --- */
-        nav {
-            background: white;
-            width: 100%;
-            padding: 15px 0;
-            box-shadow: 0 4px 15px rgba(255,133,161,0.1);
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        nav button {
-            background: none;
-            border: 2px solid var(--primary);
-            color: var(--primary);
-            padding: 8px 20px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: 0.3s;
-        }
-
-        nav button.active {
-            background: var(--primary);
-            color: white;
-        }
-
-        /* --- 内容容器 --- */
-        .content-section {
-            display: none;
-            width: 90%;
-            max-width: 1000px;
-            padding: 20px;
-            animation: fadeIn 0.5s;
-        }
-
-        .content-section.active { display: block; }
-
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-        /* --- N5/N4 单词卡片网格 --- */
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 15px;
-        }
-
+        /* 复用之前的可爱风格，增加一个加载动画 */
+        :root { --p-pink: #ffc2d1; --p-purple: #e2afff; --bg: #fff5f8; }
+        body { background: var(--bg); font-family: 'Arial', sans-serif; text-align: center; color: #555; }
+        
+        .container { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 20px; padding: 20px; }
+        
+        /* 动态生成的卡片样式 */
         .word-card {
             background: white;
-            border-radius: 15px;
-            padding: 15px;
-            border-bottom: 5px solid var(--secondary);
-            text-align: center;
-            transition: transform 0.2s;
-        }
-
-        .word-card:hover { transform: scale(1.05); }
-
-        .word-card .kanji { font-size: 1.5rem; color: var(--primary); display: block; }
-        .word-card .reading { font-size: 0.9rem; color: #999; }
-        .word-card .meaning { margin-top: 8px; font-size: 1rem; }
-
-        /* --- 语法条目 --- */
-        .grammar-item {
-            background: #fff;
-            margin-bottom: 15px;
+            border-radius: 20px;
             padding: 20px;
-            border-radius: 15px;
-            border-left: 8px solid var(--accent);
+            border: 3px solid var(--p-pink);
+            box-shadow: 5px 5px 0px var(--p-pink);
+            transition: 0.3s;
         }
+        .word-card:hover { transform: translateY(-5px); box-shadow: 8px 8px 0px var(--p-purple); border-color: var(--p-purple); }
+        
+        .kanji { font-size: 1.8rem; display: block; color: #ff5d8f; }
+        .kana { font-size: 1rem; color: #999; margin: 5px 0; }
+        .meaning { font-size: 0.95rem; font-weight: bold; border-top: 1px dashed #eee; pt: 5px; }
 
-        .grammar-title { font-weight: bold; font-size: 1.2rem; color: #0369a1; }
-        .example { background: #f0f9ff; padding: 10px; border-radius: 8px; margin-top: 10px; font-style: italic; }
-
-        footer { margin: 40px; color: var(--secondary); font-size: 0.9rem; }
+        #loading { font-size: 1.5rem; margin-top: 50px; color: var(--p-pink); }
     </style>
 </head>
 <body>
 
-    <header style="text-align:center; padding: 40px;">
-        <h1 style="margin:0;">✨ 日语学习手账 ✨</h1>
-        <p>目标：N5 ➡ N4 达成！加油喵！</p>
-    </header>
+    <h1>✨ N5 单词实验室 ✨</h1>
+    <p>正在从云端调取你的学习资料...</p>
 
-    <nav id="mainNav">
-        <button onclick="showSection('n5')" class="active">N5 基础</button>
-        <button onclick="showSection('n4')">N4 进阶</button>
-        <button onclick="showSection('quiz')">每日一练</button>
-    </nav>
-
-    <section id="n5" class="content-section active">
-        <h2>🌸 N5 核心单词与语法</h2>
-        <div class="grid">
-            <div class="word-card">
-                <span class="kanji">食べる</span>
-                <span class="reading">たべる / taberu</span>
-                <div class="meaning">吃</div>
-            </div>
-            <div class="word-card">
-                <span class="kanji">水</span>
-                <span class="reading">みず / mizu</span>
-                <div class="meaning">水</div>
-            </div>
-            </div>
-
-        <h3>💡 N5 重点语法</h3>
-        <div class="grammar-item">
-            <div class="grammar-title">～は ～です</div>
-            <div>表示“某物是某物”。</div>
-            <div class="example">私は学生です。(我是学生。)</div>
+    <div id="loading">📡 正在努力连接日本卫星...</div>
+    <div class="container" id="word-list">
         </div>
-    </section>
-
-    <section id="n4" class="content-section">
-        <h2>🌟 N4 进阶内容</h2>
-        <div class="grid">
-            <div class="word-card">
-                <span class="kanji">準備</span>
-                <span class="reading">じゅんび / junbi</span>
-                <div class="meaning">准备</div>
-            </div>
-            </div>
-
-        <h3>💡 N4 重点语法</h3>
-        <div class="grammar-item">
-            <div class="grammar-title">～ほうがいいです</div>
-            <div>表示建议：“还是...比较好”。</div>
-            <div class="example">薬を飲んだほうがいいです。(还是吃药比较好。)</div>
-        </div>
-    </section>
-
-    <section id="quiz" class="content-section">
-        <h2>🎮 单词挑战</h2>
-        <div style="background: white; padding: 30px; border-radius: 20px; text-align: center;">
-            <p id="quiz-question" style="font-size: 2rem;">点击开始测试</p>
-            <button onclick="nextQuiz()" style="background: var(--accent); color:white; border:none; padding:10px 30px; border-radius:10px; cursor:pointer;">下一个</button>
-        </div>
-    </section>
-
-    <footer>Designed with ❤️ for your Japanese journey</footer>
 
     <script>
-        function showSection(id) {
-            // 切换标签页显示
-            document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-            
-            // 切换按钮样式
-            document.querySelectorAll('#mainNav button').forEach(b => b.classList.remove('active'));
-            event.target.classList.add('active');
+        // 这是一个公开的 JLPT 词库 API 示例 (GitHub Gist 或 Open Data)
+        // 这里我们使用一个模拟的 API 逻辑，你可以替换为真实的 JSON 链接
+        const API_URL = 'https://raw.githubusercontent.com/jasonmorganson/jlpt-vocabulary/master/n5.json';
+
+        async function fetchWords() {
+            try {
+                const response = await fetch(API_URL);
+                const data = await response.json();
+                
+                // 隐藏加载提示
+                document.getElementById('loading').style.display = 'none';
+                
+                // 渲染前 30 个单词作为示例 (N5 全部有几百个)
+                const list = document.getElementById('word-list');
+                data.slice(0, 30).forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'word-card';
+                    card.innerHTML = `
+                        <span class="kanji">${item.word || item.kanji}</span>
+                        <div class="kana">${item.furigana || item.kana}</div>
+                        <div class="meaning">${item.meaning}</div>
+                    `;
+                    // 给卡片加个点击发音功能
+                    card.onclick = () => speak(`${item.furigana || item.kana}`);
+                    list.appendChild(card);
+                });
+            } catch (error) {
+                document.getElementById('loading').innerText = "❌ 糟糕，网络开小差了喵！";
+                console.error("加载失败:", error);
+            }
         }
 
-        const words = [
-            {k: '猫', r: 'ねこ', m: '猫'},
-            {k: '先生', r: 'せんせい', m: '老师'},
-            {k: '美味しい', r: 'おいしい', m: '好吃'}
-        ];
-
-        function nextQuiz() {
-            const rand = words[Math.floor(Math.random() * words.length)];
-            document.getElementById('quiz-question').innerHTML = 
-                `${rand.k}<br><span style="font-size:1rem; color:#aaa;">(意思是：${rand.m})</span>`;
+        function speak(text) {
+            const uttr = new SpeechSynthesisUtterance(text);
+            uttr.lang = 'ja-JP';
+            window.speechSynthesis.speak(uttr);
         }
+
+        // 页面加载时执行
+        fetchWords();
     </script>
 </body>
 </html>
