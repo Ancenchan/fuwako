@@ -136,63 +136,87 @@
         }
         window.addEventListener('DOMContentLoaded', initSystem);
 
-        // 1. 更新后的核心解析逻辑
-async function startAIAnalysis() {
-    const text = document.getElementById('inputArea').value.trim();
+  async function startAIAnalysis() {
+    const fullText = document.getElementById('inputArea').value.trim();
     const apiKey = localStorage.getItem('gemini_api_key')?.trim().replace(/\s+/g, '');
     
     if (!apiKey) return toggleSettings();
-    if (!text) return;
+    if (!fullText) return;
 
-    // 本地渲染假名
-    const tokens = await analyzer.parse(text);
-    renderLyrics(tokens);
-    document.getElementById('resultCard').classList.remove('hidden');
+    // 1. 将整首歌词按行切分，过滤掉空行
+    const lines = fullText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
 
+    // 2. 清空侧边栏并准备显示区域
+    const aiBox = document.getElementById('aiAnalysisBox');
     const placeholder = document.getElementById('aiPlaceholder');
     const contentBox = document.getElementById('aiContent');
     
-    placeholder.innerHTML = `<div class="animate-pulse text-fw-pink">🌸 正在整理笔记...</div>`;
-    placeholder.classList.remove('hidden');
-    contentBox.classList.add('hidden');
+    placeholder.classList.add('hidden');
+    contentBox.classList.remove('hidden');
+    contentBox.innerHTML = ""; // 清空旧内容
+    
+    // 显示总进度
+    const progressHeader = document.createElement('div');
+    progressHeader.className = "text-[10px] text-fw-pink mb-4 font-bold border-b pb-2";
+    contentBox.appendChild(progressHeader);
 
-    try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-        
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ 
-                    parts: [{ 
-                        text: `你是一位专业的日语速记老师。请对“${text}”进行精细解析。
-                        
-                        要求：
-                        1. 严禁开场白、严禁表格、严禁多余空行。
-                        2. 采用【词汇解析】格式：使用“● 单词(读音)：含义 [词性] ➔ 语法作用”这种单行描述。
-                        3. 采用【逻辑拆解】格式：用简洁的文字描述全句结构，不要换行。
-                        4. 保持紧凑，让文本像段落一样流出。` 
-                    }] 
-                }]
-            })
-        });
+    // 3. 循环逐行处理
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        progressHeader.innerText = `🌸 正在分析第 ${i + 1} / ${lines.length} 行...`;
 
-        if (!response.ok) throw new Error(`请求失败`);
+        // 创建这一行的专属笔记卡片
+        const lineCard = document.createElement('div');
+        lineCard.className = "mb-6 p-4 bg-fw-bg/50 rounded-xl border-l-4 border-fw-pink animate-slide-up";
+        lineCard.innerHTML = `
+            <div class="text-xs font-bold text-slate-400 mb-2">LINE ${i + 1}</div>
+            <div class="text-sm font-black mb-3 text-fw-text">${line}</div>
+            <div class="line-ai-result text-[13px] leading-relaxed opacity-60">正在思考...</div>
+        `;
+        contentBox.appendChild(lineCard);
+        const resultTarget = lineCard.querySelector('.line-ai-result');
 
-        const data = await response.json();
-        let aiResult = data.candidates[0].content.parts[0].text;
+        try {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+            
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ 
+                        parts: [{ 
+                            text: `你是一位专业的日语速记老师。请对歌词“${line}”进行精简解析。
+                            要求：
+                            1. 严禁开场白、严禁表格、严禁空行。
+                            2. 格式：● 单词(读音)：含义 [词性] ➔ 语法作用。
+                            3. 最后用一句话总结结构。保持紧凑。` 
+                        }] 
+                    }]
+                })
+            });
 
-        // 渲染处理
-        placeholder.classList.add('hidden');
-        contentBox.classList.remove('hidden');
-        
-        // 过滤掉 AI 习惯性加的加粗星号和多余空行
-        contentBox.innerText = aiResult.replace(/\n\s*\n/g, '\n').trim();
-        contentBox.classList.add('animate-slide-up');
+            if (!response.ok) throw new Error("API Limit");
 
-    } catch (e) {
-        placeholder.innerHTML = `<div class="text-red-400 text-xs">解析中断: ${e.message}</div>`;
+            const data = await response.json();
+            const aiResult = data.candidates[0].content.parts[0].text;
+
+            // 更新当前卡片的内容
+            resultTarget.innerText = aiResult.replace(/\n\s*\n/g, '\n').trim();
+            resultTarget.classList.remove('opacity-60');
+            
+            // 滚动到当前正在分析的行（可选，增加交互感）
+            lineCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        } catch (e) {
+            resultTarget.innerText = "⚠️ 这一行解析跳过了（可能是频率太快）";
+            resultTarget.classList.add('text-red-300');
+        }
+
+        // 稍微停顿一下（200ms），防止请求太快触发 Google 的频率限制
+        await new Promise(resolve => setTimeout(resolve, 200));
     }
+
+    progressHeader.innerText = `✨ 全曲解析完成！共 ${lines.length} 行`;
 }
 
         function renderLyrics(tokens) {
