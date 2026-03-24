@@ -81,64 +81,70 @@
 
 async function startAIAnalysis() {
     const text = document.getElementById('inputArea').value.trim();
+    if (!text) return;
+
     const rawKey = localStorage.getItem('gemini_api_key') || "";
     const apiKey = rawKey.trim().replace(/[\r\n\s]/g, '');
     
     const aiBox = document.getElementById('aiAnalysisBox');
-    aiBox.innerHTML = `<div class="p-6 bg-fw-cream/30 rounded-2xl animate-pulse text-center text-fw-pink font-bold">🌸 AI 老师正在切换稳定版接口...</div>`;
+    aiBox.innerHTML = `<div class="p-6 bg-fw-cream/30 rounded-2xl animate-pulse text-center text-fw-pink font-bold">🚀 正在调用 Gemini 2.5 Flash 深度解析...</div>`;
 
-    // 2026年最稳妥的“长效”模型别名列表
-    const modelCandidates = [
-        "gemini-1.5-flash-latest", // 官方推荐的长效别名
-        "gemini-1.5-flash",        // 标准名
-        "gemini-pro"               // 万能备选
-    ];
+    try {
+        // 【核心修改】直接使用你 ListModels 返回的精确路径
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+        
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ 
+                    parts: [{ 
+                        text: `你是一位专业的日语老师。请对以下歌词进行【极其精细】的逐词解析和语法结构分析。
+                        
+                        要求：
+                        1. 逐词解析：列出词汇、假名、词性、含义。
+                        2. 语法重点：深入解释助词（如に、は、けれど）在本句中的具体语法功能。
+                        3. 结构总结：拆解整句的主谓关系和逻辑转折。
+                        
+                        歌词内容：${text}` 
+                    }] 
+                }],
+                generationConfig: {
+                    temperature: 1,
+                    topP: 0.95,
+                    maxOutputTokens: 2048
+                }
+            })
+        });
 
-    let successData = null;
-    let lastError = "";
-
-    for (const modelName of modelCandidates) {
-        try {
-            // 注意：这里尝试 v1 稳定版路径，而不是 v1beta
-            const url = `https://generativelanguage.googleapis.com/v1/models/${modelName}:generateContent?key=${apiKey}`;
-            
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: `你是一位精通日语语法和歌词意境的老师。请对以下歌词进行极其精细的逐词解析（词性、含义）和语法结构分析（特别是助词的用法）。歌词内容：${text}` }] }]
-                })
-            });
-
-            if (response.ok) {
-                successData = await response.json();
-                break; 
-            } else {
-                const err = await response.json();
-                lastError = err.error?.message || "未知错误";
-            }
-        } catch (e) {
-            lastError = e.message;
+        if (!response.ok) {
+            const errData = await response.json();
+            throw new Error(errData.error?.message || `状态码: ${response.status}`);
         }
-    }
 
-    if (successData) {
-        const result = successData.candidates[0].content.parts[0].text;
-        aiBox.style.whiteSpace = "pre-wrap";
-        aiBox.className = "ai-note text-sm leading-relaxed text-fw-text p-2 animate-fade-in";
-        aiBox.innerText = result;
+        const data = await response.json();
+        
+        if (data.candidates && data.candidates[0].content) {
+            const result = data.candidates[0].content.parts[0].text;
+            
+            // 渲染结果
+            aiBox.style.whiteSpace = "pre-wrap";
+            aiBox.className = "ai-note text-sm leading-relaxed text-fw-text p-2 animate-slide-up";
+            aiBox.innerText = result;
 
-        const tokens = await analyzer.parse(text);
-        renderTokens(tokens);
-        document.getElementById('resultCard').classList.remove('hidden');
-    } else {
+            // 同步渲染本地假名
+            const tokens = await analyzer.parse(text);
+            renderTokens(tokens);
+            document.getElementById('resultCard').classList.remove('hidden');
+        }
+
+    } catch (e) {
+        console.error("Gemini 2.5 Error:", e);
         aiBox.innerHTML = `
             <div class="p-4 bg-red-50 text-red-500 rounded-xl text-xs">
-                <strong>❌ 接口拒绝连接 (404/403)</strong><br>
-                报错：${lastError}<br><br>
-                <p class="font-bold">✨ 终极排查建议：</p>
-                1. 检查你的梯子节点：如果是【香港/大陆/俄罗斯】，API 会报 404 (假象)。<br>
-                2. 尝试换成【美国/日本/新加坡/台湾】节点后刷新页面。
+                <strong>❌ Gemini 2.5 调用失败</strong><br>
+                报错：${e.message}<br><br>
+                提示：既然 ListModels 能看到 2.5，说明 Key 没问题。请确认请求时【不要】使用香港节点。
             </div>`;
     }
 }
