@@ -80,57 +80,76 @@
         window.onload = init;
 
 async function startAIAnalysis() {
-            const text = document.getElementById('inputArea').value.trim();
-            // 强行清洗 Key 里的空格
-            const apiKey = localStorage.getItem('gemini_api_key')?.replace(/\s+/g, '');
-            if (!apiKey) return toggleSettings();
-            if (!text) return;
+    const text = document.getElementById('inputArea').value.trim();
+    if (!text) return;
+    
+    // 1. 获取并深度清洗 API Key
+    const rawKey = localStorage.getItem('gemini_api_key') || "";
+    const apiKey = rawKey.trim().replace(/[\r\n\s]/g, '');
+    
+    if (!apiKey || apiKey.length < 20) {
+        alert("请先在设置中填入正确的 API Key 🌸");
+        toggleSettings();
+        return;
+    }
 
-            // 1. 本地快速解析 (Kuroshiro)
+    const aiBox = document.getElementById('aiAnalysisBox');
+    aiBox.innerHTML = `<div class="p-6 bg-fw-cream/30 rounded-2xl animate-pulse text-center text-fw-pink font-bold">🌸 1.5 Flash 老师正在拆解语法...</div>`;
+
+    try {
+        // 【关键改动】使用最标准的 v1beta / gemini-1.5-flash 路径
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{
+                        text: `你是一位专业的日语老师。请对以下歌词进行极其精细的逐词解析和语法结构分析。
+                        要求：
+                        1. 逐词解析：词汇、假名、词性、含义。
+                        2. 重点解释：助词（如に、は、が、けれど）在句中的具体语法作用。
+                        3. 结构总结：分析整句的主谓关系和逻辑转折。
+                        歌词内容：${text}`
+                    }]
+                }]
+            })
+        });
+
+        // 如果 1.5 还是报 404，尝试自动切换到 gemini-pro (备选方案)
+        if (!response.ok) {
+            const errData = await response.json();
+            throw new Error(errData.error?.message || "请求失败");
+        }
+
+        const data = await response.json();
+        
+        // 检查返回结构是否正确
+        if (data.candidates && data.candidates[0].content) {
+            const result = data.candidates[0].content.parts[0].text;
+            aiBox.style.whiteSpace = "pre-wrap";
+            aiBox.className = "ai-note text-sm leading-relaxed text-fw-text p-2";
+            aiBox.innerText = result;
+            
+            // 同步显示本地解析的假名（双重保险）
             const tokens = await analyzer.parse(text);
             renderTokens(tokens);
             document.getElementById('resultCard').classList.remove('hidden');
-
-            const aiBox = document.getElementById('aiAnalysisBox');
-            aiBox.innerHTML = `<div class="p-4 bg-fw-cream rounded-xl animate-pulse text-center">🌸 AI 老师（Gemini 3）正在解析...</div>`;
-            
-            try {
-                // 使用最新的 Gemini 3 Flash 模型路径
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:generateContent?key=${apiKey}`;
-                
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ 
-                            parts: [{ 
-                                text: `你是一位专业的日语老师。请对以下歌词进行极其精细的逐词解析和语法结构分析。
-                                格式要求：
-                                1. 逐词解析：列出词汇、假名、词性、含义，并解释它在当前句中的语法作用。
-                                2. 整体结构：分析句子的逻辑。
-                                歌词：${text}` 
-                            }] 
-                        }]
-                    })
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(`错误 ${response.status}: ${errorData.error.message}`);
-                }
-
-                const data = await response.json();
-                const aiResult = data.candidates[0].content.parts[0].text;
-                
-                // 将 Markdown 换行符转换为 HTML 换行
-                aiBox.innerText = aiResult; 
-                aiBox.style.whiteSpace = "pre-wrap"; 
-            } catch (e) {
-                console.error("AI Error:", e);
-                aiBox.innerHTML = `<div class="p-4 bg-red-50 text-red-500 rounded-xl text-xs">❌ 解析失败：${e.message}</div>`;
-            }
+        } else {
+            throw new Error("AI 吐不出东西，请稍后再试");
         }
-        
+
+    } catch (e) {
+        console.error("Analysis Error:", e);
+        aiBox.innerHTML = `
+            <div class="p-4 bg-red-50 text-red-500 rounded-xl text-xs border border-red-100">
+                <strong>❌ 1.5 接口响应失败</strong><br>
+                原因：${e.message}<br><br>
+                <p class="opacity-70 text-[10px]">Tips: 确保你的梯子不在香港，且 API Key 已在 Google AI Studio 激活。</p>
+            </div>`;
+    }
+}
         function renderTokens(tokens) {
             const out = document.getElementById('output');
             const KUtils = window.Kuroshiro?.default?.util || window.Kuroshiro?.util;
