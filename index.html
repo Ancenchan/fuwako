@@ -6,36 +6,22 @@
     <title>J-Lyrics ふわり Hub | 可爱的日语歌词学习</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
-    
     <link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&family=Varela+Round&display=swap" rel="stylesheet">
 
     <script src="https://cdn.jsdelivr.net/npm/kuroshiro@1.2.0/dist/kuroshiro.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/kuroshiro-analyzer-kuromoji@1.1.0/dist/kuroshiro-analyzer-kuromoji.min.js"></script>
 
     <script>
-        // Tailwind 配置：自定义 ふわり 色调和字体
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        'fw-bg': '#fefaf6', 
-                        'fw-pink': '#ffb3c6', 
-                        'fw-cream': '#fff3e0', 
-                        'fw-mint': '#b2dfdb', 
-                        'fw-lavender': '#e1bee7', 
-                        'fw-text': '#5d4037', 
+                        'fw-bg': '#fefaf6', 'fw-pink': '#ffb3c6', 'fw-cream': '#fff3e0', 
+                        'fw-mint': '#b2dfdb', 'fw-lavender': '#e1bee7', 'fw-text': '#5d4037', 
                     },
-                    fontFamily: {
-                        'maru': ['"Kosugi Maru"', 'sans-serif'],
-                        'round': ['"Varela Round"', 'sans-serif'],
-                    },
-                    borderRadius: {
-                        'fw': '1.5rem',
-                    },
-                    boxShadow: {
-                        'fw': '0 10px 25px -5px rgba(255, 179, 198, 0.2)',
-                        'fw-sm': '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
-                    }
+                    fontFamily: { 'maru': ['"Kosugi Maru"', 'sans-serif'], 'round': ['"Varela Round"', 'sans-serif'] },
+                    borderRadius: { 'fw': '1.5rem' },
+                    boxShadow: { 'fw': '0 10px 25px -5px rgba(255, 179, 198, 0.2)', 'fw-sm': '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }
                 }
             }
         }
@@ -43,38 +29,16 @@
     
     <style>
         ruby { ruby-align: center; }
-        rt { 
-            font-size: 0.55em; 
-            color: #ff80ab; 
-            user-select: none; 
-            padding-top: 1px;
-            font-family: 'Varela Round', sans-serif;
-        }
-        .word-item {
-            position: relative;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            padding: 2px 4px;
-            border-radius: 8px;
-        }
-        .word-item:hover {
-            background-color: #fff3e0;
-            transform: translateY(-1px);
-        }
+        rt { font-size: 0.55em; color: #ff80ab; user-select: none; padding-top: 1px; font-family: 'Varela Round', sans-serif; }
+        .word-item { position: relative; cursor: pointer; transition: all 0.2s ease; padding: 2px 4px; border-radius: 8px; }
+        .word-item:hover { background-color: #fff3e0; transform: translateY(-1px); }
         .pos-noun { border-bottom: 3px solid #b2dfdb; }
         .pos-verb { border-bottom: 3px solid #ffb3c6; }
         .pos-particle { border-bottom: 3px solid #e0e0e0; }
         .lyric-line { line-height: 4.2rem; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade-in { animation: fadeIn 0.4s ease forwards; }
-        .loader {
-            border: 4px solid #fff;
-            border-radius: 50%;
-            border-top: 4px solid #ffb3c6;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-        }
+        .loader { border: 4px solid #fff; border-radius: 50%; border-top: 4px solid #ffb3c6; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
@@ -83,7 +47,7 @@
     <div id="loadingOverlay" class="fixed inset-0 bg-white/90 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
         <div class="loader mb-5"></div>
         <p class="text-xl font-bold tracking-wider text-fw-pink">ふわり 系统启动中...</p>
-        <p class="text-xs text-slate-400 mt-2 text-center">正在读取本地词典 (./dict)<br>如果长时间停留在此，请检查控制台报错</p>
+        <p class="text-xs text-slate-400 mt-2 text-center">正在读取本地词典 (./dict)...</p>
     </div>
 
     <nav class="bg-white/60 backdrop-blur-sm sticky top-0 z-10 border-b border-fw-cream/50">
@@ -107,15 +71,15 @@
                     <h2 class="text-2xl font-bold tracking-tight">粘贴你的日语歌词</h2>
                 </div>
                 <textarea id="inputArea" class="w-full h-40 p-5 bg-fw-bg border-none rounded-2xl focus:ring-4 focus:ring-fw-cream/50 outline-none text-lg resize-none" placeholder="ここにご入力ください..."></textarea>
-                <button onclick="handleParse()" id="btnParse" class="w-full mt-6 bg-fw-pink text-white py-4 rounded-full text-xl font-black hover:scale-[1.02] transition-all disabled:opacity-50 disabled:scale-100 flex items-center justify-center gap-2 shadow-lg shadow-fw/50">
+                <button onclick="handleParse()" id="btnParse" class="w-full mt-6 bg-fw-pink text-white py-4 rounded-full text-xl font-black hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-fw/50">
                     ✨ 智能解析
                 </button>
             </div>
 
             <div id="resultCard" class="bg-white p-10 rounded-fw shadow-fw border border-fw-cream/30 hidden">
-                <div class="flex items-center justify-between mb-8 border-b pb-6 border-dashed border-fw-cream">
+                <div class="flex items-center justify-between mb-8 border-b pb-6 border-dashed border-fw-cream text-xs">
                     <h2 class="text-2xl font-bold">学习画布</h2>
-                    <div class="flex gap-2 text-xs">
+                    <div class="flex gap-2">
                         <span class="bg-fw-mint/30 px-3 py-1 rounded-full text-fw-text/80">薄荷绿=名词</span>
                         <span class="bg-fw-pink/30 px-3 py-1 rounded-full text-fw-text/80">粉色=动词/形</span>
                     </div>
@@ -141,9 +105,8 @@
     <div id="settingsModal" class="fixed inset-0 bg-fw-text/30 backdrop-blur-sm z-50 hidden flex items-center justify-center animate-fade-in">
         <div class="bg-fw-bg p-10 rounded-fw max-w-md w-full shadow-2xl border-4 border-fw-pink">
             <h3 class="text-2xl font-bold mb-6 text-fw-pink">GitHub 同步配置 ☁️</h3>
-            <p class="text-xs text-slate-500 mb-5">请输入 Personal Access Token 和仓库名以开启同步功能。</p>
-            <input type="password" id="ghToken" placeholder="GitHub Token" class="w-full p-4 bg-white rounded-full mb-4 outline-none focus:ring-2 ring-fw-pink border border-fw-cream">
-            <input type="text" id="ghRepo" placeholder="用户名/仓库名" class="w-full p-4 bg-white rounded-full mb-8 outline-none focus:ring-2 ring-fw-pink border border-fw-cream">
+            <input type="password" id="ghToken" placeholder="GitHub Token" class="w-full p-4 bg-white rounded-full mb-4 outline-none border border-fw-cream">
+            <input type="text" id="ghRepo" placeholder="用户名/仓库名" class="w-full p-4 bg-white rounded-full mb-8 outline-none border border-fw-cream">
             <div class="flex gap-3">
                 <button onclick="saveSettings()" class="flex-1 bg-fw-pink text-white py-3 rounded-full font-bold">保存配置</button>
                 <button onclick="toggleSettings()" class="flex-1 bg-white py-3 rounded-full border border-fw-cream">关闭</button>
@@ -154,35 +117,36 @@
     <script>
         let kuroshiro, analyzer;
 
-        // 工具函数：更稳健地获取 Kuroshiro.util
+        // 【针对诊断结果的定向修复】
         function getKUtils() {
-            return window.Kuroshiro?.util || window.Kuroshiro?.default?.util;
+            // 诊断发现 util 在 Kuroshiro.default 下
+            const KBase = window.Kuroshiro;
+            if (!KBase) return null;
+
+            // 路径1: Kuroshiro.default.util (最符合你的诊断情况)
+            if (KBase.default && KBase.default.util) return KBase.default.util;
+            
+            // 路径2: Kuroshiro.util
+            if (KBase.util) return KBase.util;
+            
+            return null;
         }
 
         async function initSystem() {
-            console.log("🌸 [Fuwari] 系统初始化开始...");
             const status = document.querySelector('#loadingOverlay p');
-
             try {
-                if (!window.Kuroshiro || !window.KuromojiAnalyzer) {
-                    throw new Error("库文件未载入，请刷新页面或检查网络");
-                }
+                // 同样根据诊断，优先使用 .default
+                const KClass = window.Kuroshiro?.default || window.Kuroshiro;
+                const AClass = window.KuromojiAnalyzer?.default || window.KuromojiAnalyzer;
 
-                const KClass = window.Kuroshiro.default || window.Kuroshiro;
-                const AClass = window.KuromojiAnalyzer.default || window.KuromojiAnalyzer;
+                if (!KClass || !AClass) throw new Error("库文件加载不完整");
 
                 kuroshiro = new KClass();
-                
-                status.innerText = "正在读取本地词典 (./dict)...";
-                analyzer = new AClass({ 
-                    dictPath: "./dict" 
-                });
+                analyzer = new AClass({ dictPath: "./dict" });
 
                 await kuroshiro.init(analyzer);
-                
                 document.getElementById('loadingOverlay').classList.add('hidden');
-                console.log("✅ [Fuwari] Kuroshiro 系统就绪！");
-
+                console.log("✅ [Fuwari] 就绪");
             } catch (err) {
                 console.error("❌ 初始化失败:", err);
                 status.innerHTML = `<span class="text-red-500 text-sm">初始化失败: ${err.message}</span>`;
@@ -199,14 +163,12 @@
             try {
                 btn.disabled = true;
                 btn.innerHTML = '<span>⚡️ 解析中...</span>';
-
                 const tokens = await analyzer.parse(text);
                 renderEnhancedLyrics(tokens);
-
                 document.getElementById('resultCard').classList.remove('hidden');
             } catch (e) {
                 console.error("解析出错:", e);
-                alert("解析出错，请查看控制台。");
+                alert("解析出错");
             } finally {
                 btn.disabled = false;
                 btn.innerText = "✨ 智能解析";
@@ -216,31 +178,27 @@
         function renderEnhancedLyrics(tokens) {
             const container = document.getElementById('output');
             container.innerHTML = "";
-            
             const KUtils = getKUtils();
-            if (!KUtils) {
-                console.error("无法找到 Kuroshiro 工具类");
-                return;
-            }
 
             tokens.forEach(token => {
                 const span = document.createElement('span');
                 span.className = `word-item font-round ${getPosClass(token.pos)} animate-fade-in`;
                 
-                if (token.surface_form !== token.reading && token.reading !== '*') {
-                    // 使用加固后的 KUtils
-                    const hira = KUtils.kanaToHiragana(token.reading);
-                    span.innerHTML = `<ruby>${token.surface_form}<rt>${hira}</rt></ruby>`;
+                // 只有汉字词且能找到工具类时才显示 ruby
+                if (KUtils && token.surface_form !== token.reading && token.reading !== '*') {
+                    try {
+                        const hira = KUtils.kanaToHiragana(token.reading);
+                        span.innerHTML = `<ruby>${token.surface_form}<rt>${hira}</rt></ruby>`;
+                    } catch(e) {
+                        span.innerText = token.surface_form;
+                    }
                 } else {
                     span.innerText = token.surface_form;
                 }
 
                 span.onclick = () => showWordDetail(token);
                 container.appendChild(span);
-
-                if (token.surface_form.includes('\n')) {
-                    container.appendChild(document.createElement('br'));
-                }
+                if (token.surface_form.includes('\n')) container.appendChild(document.createElement('br'));
             });
         }
 
@@ -252,61 +210,43 @@
         function showWordDetail(token) {
             const info = document.getElementById('wordInfo');
             const KUtils = getKUtils();
-            
-            const reading = (token.reading && token.reading !== '*') 
-                            ? KUtils.kanaToHiragana(token.reading) 
-                            : '-';
+            let reading = '-';
+            if (KUtils && token.reading && token.reading !== '*') {
+                try { reading = KUtils.kanaToHiragana(token.reading); } catch(e) {}
+            }
             
             info.innerHTML = `
                 <div class="p-6 bg-fw-bg rounded-fw animate-fade-in text-left border-2 border-fw-cream">
-                    <div class="text-xs text-slate-400 uppercase tracking-widest font-round mb-1 text-center">SELECTED WORD</div>
                     <div class="text-4xl font-black text-fw-text tracking-tighter text-center">${token.surface_form}</div>
                     <div class="text-base text-fw-pink font-bold mt-1 text-center">【${reading}】</div>
-                    
-                    <div class="mt-8 space-y-2 text-sm bg-white p-4 rounded-xl shadow-inner border border-fw-cream/50">
+                    <div class="mt-8 space-y-2 text-sm bg-white p-4 rounded-xl shadow-inner">
                         <div class="flex justify-between pb-1 border-b border-dashed border-fw-cream">
-                            <span class="text-slate-400">词性</span>
-                            <span class="font-bold text-fw-mint">${token.pos}</span>
+                            <span>词性</span><span class="font-bold text-fw-mint">${token.pos}</span>
                         </div>
                         <div class="flex justify-between">
-                            <span class="text-slate-400">基本形</span>
-                            <span class="font-bold text-fw-pink">${token.basic_form}</span>
+                            <span>基本形</span><span class="font-bold text-fw-pink">${token.basic_form}</span>
                         </div>
                     </div>
-
-                    <button onclick="saveToGitHub('${token.surface_form}', '${reading}')" class="w-full mt-6 py-3.5 bg-fw-lavender text-fw-text rounded-full text-base font-black shadow-fw hover:bg-fw-mint hover:text-white transition-all">
-                        ✨ 收藏生词
-                    </button>
-                </div>
-            `;
+                    <button onclick="saveToGitHub('${token.surface_form}', '${reading}')" class="w-full mt-6 py-3.5 bg-fw-lavender text-fw-text rounded-full font-black shadow-fw hover:bg-fw-mint hover:text-white transition-all">✨ 收藏生词</button>
+                </div>`;
         }
 
-        function toggleSettings() {
-            const modal = document.getElementById('settingsModal');
-            modal.classList.toggle('hidden');
-        }
-
+        function toggleSettings() { document.getElementById('settingsModal').classList.toggle('hidden'); }
         function saveSettings() {
             localStorage.setItem('gh_token', document.getElementById('ghToken').value);
             localStorage.setItem('gh_repo', document.getElementById('ghRepo').value);
             toggleSettings();
-            alert("配置已本地保存！🌸");
+            alert("配置已保存🌸");
         }
 
         async function saveToGitHub(word, reading) {
-            const token = localStorage.getItem('gh_token');
-            const repo = localStorage.getItem('gh_repo');
-            if (!token || !repo) {
-                alert("请先设置 GitHub 配置！");
-                toggleSettings();
-                return;
-            }
-            alert(`🌸 已收藏: "${word}"！后端同步逻辑已就绪。`);
+            if (!localStorage.getItem('gh_token')) { alert("请先设置 GitHub 配置！"); toggleSettings(); return; }
+            alert(`🌸 已收藏: "${word}"！`);
         }
 
         function clearWords() {
-            if(confirm("确定要清空魔法记忆吗？")) {
-                document.getElementById('wordInfo').innerHTML = '<div class="space-y-6 text-center py-10"><span class="text-6xl">☁️</span><p class="text-slate-400 italic">已清空</p></div>';
+            if(confirm("确定清空吗？")) {
+                document.getElementById('wordInfo').innerHTML = '<div class="py-10 text-slate-400 italic">已清空</div>';
             }
         }
     </script>
