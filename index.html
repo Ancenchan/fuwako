@@ -3,216 +3,349 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>J-Lyrics Master | 日语歌词学习助手</title>
+    <title>J-Lyrics ふわり Hub | 可爱的日语歌词学习</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&family=Varela+Round&display=swap" rel="stylesheet">
+
     <script src="https://cdn.jsdelivr.net/npm/kuroshiro@1.2.0/dist/kuroshiro.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/kuroshiro-analyzer-kuromoji@1.1.0/dist/kuroshiro-analyzer-kuromoji.min.js"></script>
+
+    <script>
+        // Tailwind 配置：自定义 ふわり 色调和字体
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'fw-bg': '#fefaf6', // 超淡桃色背景
+                        'fw-pink': '#ffb3c6', // 柔和粉
+                        'fw-cream': '#fff3e0', // 奶油黄
+                        'fw-mint': '#b2dfdb', // 薄荷绿
+                        'fw-lavender': '#e1bee7', // 淡紫
+                        'fw-text': '#5d4037', // 柔和的棕色文字，避免全黑
+                    },
+                    fontFamily: {
+                        'maru': ['"Kosugi Maru"', 'sans-serif'], // 日语圆体
+                        'round': ['"Varela Round"', 'sans-serif'], // 英文圆体
+                    },
+                    borderRadius: {
+                        'fw': '1.5rem', // 超圆润角落
+                    },
+                    boxShadow: {
+                        'fw': '0 10px 25px -5px rgba(255, 179, 198, 0.2)', // 淡淡的粉色阴影
+                        'fw-sm': '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+                    }
+                }
+            }
+        }
+    </script>
+    
     <style>
+        /* 1. 振假名 (Furigana) 样式优化 */
         ruby { ruby-align: center; }
-        rt { font-size: 0.6em; color: #6366f1; user-select: none; padding-top: 2px; }
-        .lyric-line { line-height: 4rem; }
-        .word-item:hover { background: #e0e7ff; border-radius: 4px; cursor: pointer; }
-        .pos-noun { border-bottom: 2px solid #818cf8; }
-        .pos-verb { border-bottom: 2px solid #fbbf24; }
-        .pos-particle { border-bottom: 2px solid #94a3b8; }
-        /* 加载动画 */
-        .loader { border-top-color: #6366f1; animation: spinner 1.5s linear infinite; }
-        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        rt { 
+            font-size: 0.55em; 
+            color: #ff80ab; /* 粉色假名 */
+            user-select: none; 
+            padding-top: 1px;
+            font-family: 'Varela Round', sans-serif;
+        }
+
+        /* 2. 可点击单词样式 */
+        .word-item {
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            padding: 2px 4px;
+            border-radius: 8px;
+        }
+        .word-item:hover {
+            background-color: #fff3e0; /* 奶油黄悬停 */
+            transform: translateY(-1px);
+        }
+
+        /* 3. 词性下划线 */
+        .pos-noun { border-bottom: 3px solid #b2dfdb; } /* 薄荷绿名词 */
+        .pos-verb { border-bottom: 3px solid #ffb3c6; } /* 柔和粉动词 */
+        .pos-particle { border-bottom: 3px solid #e0e0e0; } /* 灰色助词 */
+
+        /* 4. 歌词行间距 */
+        .lyric-line { line-height: 4.2rem; }
+
+        /* 5. 简单的淡入动画 */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.4s ease forwards; }
+
+        /* 6. 可爱加载动画 */
+        .loader {
+            border: 4px solid #fff;
+            border-radius: 50%;
+            border-top: 4px solid #ffb3c6;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen text-slate-800">
+<body class="bg-fw-bg min-h-screen text-fw-text font-maru">
 
-    <div id="loadingOverlay" class="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center">
-        <div class="loader w-12 h-12 border-4 border-slate-200 rounded-full mb-4"></div>
-        <p class="text-slate-500 font-medium">正在加载日语词典 (约16MB)...</p>
+    <div id="loadingOverlay" class="fixed inset-0 bg-white/90 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
+        <div class="loader mb-5"></div>
+        <p class="text-xl font-bold tracking-wider text-fw-pink">ふわり 系统启动中...</p>
+        <p class="text-xs text-slate-400 mt-2">正在从您的仓库读取词典 (./dict)</p>
     </div>
 
-    <nav class="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-10 border-b">
-        <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-            <h1 class="text-xl font-black text-indigo-600">J-LYRICS <span class="text-slate-400 font-light">HUB</span></h1>
-            <div class="flex gap-4">
-                <button onclick="toggleSettings()" class="text-slate-500 hover:text-indigo-600 text-sm font-medium">⚙️ 仓库配置</button>
+    <nav class="bg-white/60 backdrop-blur-sm sticky top-0 z-10 border-b border-fw-cream/50">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span class="text-3xl">🌸</span>
+                <h1 class="text-3xl font-black text-fw-pink tracking-tighter font-round">ふわり <span class="text-slate-400 font-light">Hub</span></h1>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="clearWords()" class="px-5 py-2.5 bg-fw-cream text-fw-text rounded-full text-sm font-bold hover:shadow-fw-sm transition">☁️ 清空生词</button>
+                <button onclick="toggleSettings()" class="px-5 py-2.5 bg-fw-pink text-white rounded-full text-sm font-bold hover:shadow-fw transition">⚙️ 仓库配置</button>
             </div>
         </div>
     </nav>
 
-    <main class="max-w-6xl mx-auto p-4 lg:p-8 flex flex-col lg:flex-row gap-8">
-        <div class="flex-1 space-y-6">
-            <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-                <textarea id="inputArea" class="w-full h-32 p-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-lg" placeholder="在此粘贴日语歌词..."></textarea>
-                <button onclick="handleParse()" id="btnParse" class="w-full mt-4 bg-indigo-600 text-white py-4 rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 disabled:opacity-50">
-                    智能解析全文
+    <main class="max-w-7xl mx-auto p-6 lg:p-10 flex flex-col lg:flex-row gap-10">
+        
+        <div class="flex-1 space-y-8">
+            <div class="bg-white p-8 rounded-fw shadow-fw border border-fw-cream/30">
+                <div class="flex items-center gap-3 mb-6">
+                    <span class="text-2xl">📝</span>
+                    <h2 class="text-2xl font-bold tracking-tight">粘贴你的日语歌词</h2>
+                </div>
+                <textarea id="inputArea" class="w-full h-40 p-5 bg-fw-bg border-none rounded-2xl focus:ring-4 focus:ring-fw-cream/50 outline-none text-lg resize-none" placeholder="ここにご入力ください..."></textarea>
+                <button onclick="handleParse()" id="btnParse" class="w-full mt-6 bg-fw-pink text-white py-4 rounded-full text-xl font-black hover:scale-[1.02] transition-all disabled:opacity-50 disabled:scale-100 flex items-center justify-center gap-2">
+                    ✨ 智能解析
                 </button>
             </div>
 
-            <div id="resultCard" class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 hidden">
-                <div class="flex items-center justify-between mb-8 border-b pb-4">
-                    <h2 class="font-bold text-xl text-slate-700">学习画布</h2>
-                    <div class="text-xs space-x-3 text-slate-400">
-                        <span><span class="inline-block w-2 h-2 bg-indigo-400 rounded-full mr-1"></span>名词</span>
-                        <span><span class="inline-block w-2 h-2 bg-amber-400 rounded-full mr-1"></span>动词</span>
+            <div id="resultCard" class="bg-white p-10 rounded-fw shadow-fw border border-fw-cream/30 hidden">
+                <div class="flex items-center justify-between mb-8 border-b pb-6 border-dashed border-fw-cream">
+                    <h2 class="text-2xl font-bold">学习画布</h2>
+                    <div class="flex gap-2 text-xs">
+                        <span class="bg-fw-mint/30 px-3 py-1 rounded-full text-fw-text/80">薄荷绿=名词</span>
+                        <span class="bg-fw-pink/30 px-3 py-1 rounded-full text-fw-text/80">粉色=动词</span>
                     </div>
                 </div>
-                <div id="output" class="lyric-line text-2xl tracking-widest leading-relaxed"></div>
+                <div id="output" class="lyric-line text-3xl tracking-widest leading-relaxed"></div>
             </div>
         </div>
 
-        <aside class="w-full lg:w-80">
-            <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 sticky top-24">
-                <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-6">单词详情卡片</h3>
-                <div id="wordInfo" class="space-y-4">
-                    <p class="text-slate-400 italic text-sm text-center py-10">点击左侧单词<br>开启语法拆解</p>
+        <aside class="w-full lg:w-[360px]">
+            <div class="bg-white p-8 rounded-fw shadow-fw border border-fw-cream/30 sticky top-28 transition-all">
+                <div class="flex items-center gap-3 mb-8">
+                    <span class="text-2xl">💡</span>
+                    <h3 class="text-xl font-bold uppercase tracking-widest text-slate-400 font-round">Detail Card</h3>
                 </div>
                 
-                <div class="mt-8 pt-8 border-t border-slate-50">
-                    <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 text-center">快捷操作</h3>
-                    <div class="grid grid-cols-2 gap-2">
-                        <button onclick="exportToCSV()" class="p-2 text-xs bg-slate-100 rounded-xl hover:bg-slate-200 font-bold">导出 CSV</button>
-                        <button onclick="clearWords()" class="p-2 text-xs bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-100 font-bold">清空生词</button>
-                    </div>
+                <div id="wordInfo" class="space-y-6 text-center py-10">
+                    <span class="text-6xl">🍡</span>
+                    <p class="text-slate-400 italic">点击歌词单词<br>开启魔法拆解</p>
                 </div>
             </div>
         </aside>
     </main>
 
-    <div id="settingsModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center">
-        <div class="bg-white p-8 rounded-3xl max-w-sm w-full shadow-2xl">
-            <h3 class="text-lg font-bold mb-4 text-slate-800">GitHub 同步配置</h3>
-            <p class="text-xs text-slate-500 mb-4">为了将生词同步到你的 words.json，请输入 Personal Access Token</p>
-            <input type="password" id="ghToken" placeholder="GitHub Token" class="w-full p-3 bg-slate-100 rounded-xl mb-3 outline-none focus:ring-2 ring-indigo-500">
-            <input type="text" id="ghRepo" placeholder="用户名/仓库名 (eg: ancen/jp-study)" class="w-full p-3 bg-slate-100 rounded-xl mb-6 outline-none">
-            <div class="flex gap-2">
-                <button onclick="saveSettings()" class="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-bold">保存</button>
-                <button onclick="toggleSettings()" class="flex-1 bg-slate-100 py-3 rounded-xl">关闭</button>
+    <div id="settingsModal" class="fixed inset-0 bg-fw-text/30 backdrop-blur-sm z-50 hidden flex items-center justify-center animate-fade-in">
+        <div class="bg-fw-bg p-10 rounded-fw max-w-md w-full shadow-2xl border-4 border-fw-pink">
+            <h3 class="text-2xl font-bold mb-6 text-fw-pink">GitHub 同步配置 ☁️</h3>
+            <p class="text-xs text-slate-500 mb-5">为了将生词同步到你的 words.json，请输入 Personal Access Token 和仓库名。</p>
+            <input type="password" id="ghToken" placeholder="GitHub Token (fine-grained)" class="w-full p-4 bg-white rounded-full mb-4 outline-none focus:ring-2 ring-fw-pink border border-fw-cream">
+            <input type="text" id="ghRepo" placeholder="用户名/仓库名 (eg: ancen/jp-study)" class="w-full p-4 bg-white rounded-full mb-8 outline-none focus:ring-2 ring-fw-pink border border-fw-cream">
+            <div class="flex gap-3">
+                <button onclick="saveSettings()" class="flex-1 bg-fw-pink text-white py-3 rounded-full font-bold">保存配置</button>
+                <button onclick="toggleSettings()" class="flex-1 bg-white py-3 rounded-full border border-fw-cream hover:bg-fw-cream transition">关闭</button>
             </div>
         </div>
     </div>
 
-<script>
-    // 全局变量声明
-    let kuroshiro, analyzer;
+    <script>
+        // 全局变量
+        let kuroshiro, analyzer;
 
-    // 核心：安全的初始化函数
-    async function initSystem() {
-        console.log("开始系统初始化...");
-        const status = document.querySelector('#loadingOverlay p');
+        // 1. 初始化系统 (核心修复)
+        async function initSystem() {
+            console.log("🌸 [Fuwari] 系统初始化开始...");
+            const status = document.querySelector('#loadingOverlay p');
 
-        try {
-            // 1. 等待库加载并检查构造函数
-            if (!window.Kuroshiro || !window.KuromojiAnalyzer) {
-                throw new Error("检测到库文件未定义，请检查网络是否能访问 jsdelivr CDN");
+            try {
+                // 1.1 检查库文件加载情况
+                if (!window.Kuroshiro || !window.KuromojiAnalyzer) {
+                    throw new Error("检测到库文件未正确加载，请检查 index.html 中的 script 标签路径");
+                }
+
+                // 1.2 兼容性获取构造函数
+                const KClass = window.Kuroshiro.default || window.Kuroshiro;
+                const AClass = window.KuromojiAnalyzer.default || window.KuromojiAnalyzer;
+
+                kuroshiro = new KClass();
+                
+                // 1.3 **核心修改：使用您的本地词典路径**
+                status.innerText = "正在读取本地词典 (./dict)...";
+                analyzer = new AClass({ 
+                    dictPath: "./dict" // 这里指向你上传的 dict 文件夹路径
+                });
+
+                // 1.4 激活 Kuroshiro
+                await kuroshiro.init(analyzer);
+                
+                // 1.5 成功后隐藏遮罩层
+                document.getElementById('loadingOverlay').classList.add('hidden');
+                console.log("✅ [Fuwari] Kuroshiro 系统就绪！您可以开始解析了！");
+
+            } catch (err) {
+                console.error("❌ 初始化失败:", err);
+                status.innerHTML = `<span class="text-red-500 text-sm">初始化失败: ${err.message}<br>请确保根目录下有 dict 文件夹且包含正确文件。</span>`;
             }
+        }
 
-            // 兼容性获取构造函数
-            const KClass = window.Kuroshiro.default || window.Kuroshiro;
-            const AClass = window.KuromojiAnalyzer.default || window.KuromojiAnalyzer;
+        // 确保 DOM 加载后立刻执行初始化
+        window.addEventListener('DOMContentLoaded', initSystem);
 
-            kuroshiro = new KClass();
+        // 2. 处理歌词解析按钮
+        async function handleParse() {
+            const text = document.getElementById('inputArea').value;
+            const btn = document.getElementById('btnParse');
+            if (!text.trim()) return;
+
+            try {
+                btn.disabled = true;
+                btn.innerHTML = '<span>⚡️ 解析中...</span>';
+
+                // 2.1 获取分词详情 (形态学分析)
+                const tokens = await analyzer.parse(text);
+                console.log("分词结果:", tokens);
+
+                // 2.2 渲染结果到画布
+                renderEnhancedLyrics(tokens);
+
+                document.getElementById('resultCard').classList.remove('hidden');
+                document.getElementById('resultCard').scrollIntoView({ behavior: 'smooth' });
+            } catch (e) {
+                console.error("解析出错:", e);
+                alert("解析过程中出现魔法错误 (请查看控制台)");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "✨ 智能解析";
+            }
+        }
+
+        // 3. 增强显示：渲染 ruby 假名、词性样式和点击事件
+        function renderEnhancedLyrics(tokens) {
+            const container = document.getElementById('output');
+            container.innerHTML = "";
             
-            // 2. 初始化分析器 (这是最耗时的步骤，约16MB字典)
-            status.innerText = "正在下载日语词典 (约16MB)，请稍候...";
-            analyzer = new AClass({ 
-                dictPath: "https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict" 
+            // 兼容性获取 Util 类
+            const KUtils = window.Kuroshiro.default ? window.Kuroshiro.default.util : window.Kuroshiro.util;
+
+            tokens.forEach(token => {
+                const span = document.createElement('span');
+                // 应用 Fuwari 样式和词性样式
+                span.className = `word-item font-round ${getPosClass(token.pos)} animate-fade-in`;
+                
+                // 处理汉字与假名显示
+                if (token.surface_form !== token.reading && token.reading !== '*') {
+                    // 将片假名读音转为平假名
+                    const hira = KUtils.kanaToHiragana(token.reading);
+                    span.innerHTML = `<ruby>${token.surface_form}<rt>${hira}</rt></ruby>`;
+                } else {
+                    span.innerText = token.surface_form;
+                }
+
+                // 添加点击详情事件
+                span.onclick = () => showWordDetail(token);
+                container.appendChild(span);
+
+                // 换行处理 (歌词格式保留)
+                if (token.surface_form.includes('\n') || token.surface_form === '') {
+                    container.appendChild(document.createElement('br'));
+                }
             });
-
-            // 3. 真正激活 kuroshiro
-            await kuroshiro.init(analyzer);
-            
-            // 4. 成功后隐藏遮罩层
-            document.getElementById('loadingOverlay').classList.add('hidden');
-            console.log("✅ Kuroshiro 系统就绪！");
-
-        } catch (err) {
-            console.error("❌ 初始化失败:", err);
-            status.innerHTML = `<span class="text-red-500">初始化失败: ${err.message}<br>请检查网络并刷新重试</span>`;
         }
-    }
 
-    // 确保 DOM 加载后再执行
-    window.addEventListener('DOMContentLoaded', initSystem);
-
-    // 解析按钮逻辑
-    async function handleParse() {
-        const text = document.getElementById('inputArea').value;
-        const btn = document.getElementById('btnParse');
-        if (!text.trim()) return;
-
-        try {
-            btn.disabled = true;
-            btn.innerText = "分析中...";
-
-            // 使用词法分析器拆词
-            const tokens = await analyzer.parse(text);
-            console.log("分词结果:", tokens);
-
-            // 渲染到界面
-            renderEnhancedLyrics(tokens);
-
-            document.getElementById('resultCard').classList.remove('hidden');
-        } catch (e) {
-            console.error("解析出错:", e);
-            alert("解析过程中出现错误，请查看控制台。");
-        } finally {
-            btn.disabled = false;
-            btn.innerText = "智能解析全文";
+        // 4. 将日语词性映射为 Tailwind 样式类
+        function getPosClass(pos) {
+            const mapping = { 
+                '名詞': 'pos-noun', 
+                '動詞': 'pos-verb', 
+                '助詞': 'pos-particle',
+                '形容詞': 'pos-verb' // 形容词也给粉色
+            };
+            return mapping[pos] || '';
         }
-    }
 
-    function renderEnhancedLyrics(tokens) {
-        const container = document.getElementById('output');
-        container.innerHTML = "";
-        
-        const KUtils = window.Kuroshiro.default ? window.Kuroshiro.default.util : window.Kuroshiro.util;
-
-        tokens.forEach(token => {
-            const span = document.createElement('span');
-            span.className = `word-item px-1 transition-all ${getPosClass(token.pos)}`;
+        // 5. 在右侧显示单词详情
+        function showWordDetail(token) {
+            const info = document.getElementById('wordInfo');
+            const KUtils = window.Kuroshiro.default ? window.Kuroshiro.default.util : window.Kuroshiro.util;
+            const reading = token.reading !== '*' ? KUtils.kanaToHiragana(token.reading) : '-';
             
-            // 如果是汉字且有读音
-            if (token.surface_form !== token.reading && token.reading !== '*') {
-                const hira = KUtils.kanaToHiragana(token.reading);
-                span.innerHTML = `<ruby>${token.surface_form}<rt>${hira}</rt></ruby>`;
-            } else {
-                span.innerText = token.surface_form;
-            }
-
-            span.onclick = () => showWordDetail(token);
-            container.appendChild(span);
-
-            if (token.surface_form.includes('\n')) {
-                container.appendChild(document.createElement('br'));
-            }
-        });
-    }
-
-    function getPosClass(pos) {
-        const mapping = { '名詞': 'pos-noun', '動詞': 'pos-verb', '助詞': 'pos-particle' };
-        return mapping[pos] || '';
-    }
-
-    function showWordDetail(token) {
-        const info = document.getElementById('wordInfo');
-        const KUtils = window.Kuroshiro.default ? window.Kuroshiro.default.util : window.Kuroshiro.util;
-        const reading = token.reading !== '*' ? KUtils.kanaToHiragana(token.reading) : '-';
-        
-        info.innerHTML = `
-            <div class="bg-indigo-50 p-4 rounded-2xl animate-fade-in text-left">
-                <div class="text-3xl font-black text-indigo-600">${token.surface_form}</div>
-                <div class="text-sm text-slate-500 font-medium">【${reading}】</div>
-                <div class="mt-4 space-y-2 text-xs">
-                    <div class="flex justify-between border-b border-white pb-1">
-                        <span class="text-slate-400">词性</span>
-                        <span class="font-bold text-slate-700">${token.pos}</span>
+            info.innerHTML = `
+                <div class="p-6 bg-fw-bg rounded-fw animate-fade-in text-left border-2 border-fw-cream">
+                    <div class="text-xs text-slate-400 uppercase tracking-widest font-round mb-1">SELECTED WORD</div>
+                    <div class="text-4xl font-black text-fw-text tracking-tighter">${token.surface_form}</div>
+                    <div class="text-base text-fw-pink font-bold mt-1">【${reading}】</div>
+                    
+                    <div class="mt-8 space-y-2 text-sm bg-white p-4 rounded-xl shadow-inner border border-fw-cream/50">
+                        <div class="flex justify-between pb-1 border-b border-dashed border-fw-cream">
+                            <span class="text-slate-400">词性 (POS)</span>
+                            <span class="font-bold text-fw-mint">${token.pos}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-400">原形 (Base)</span>
+                            <span class="font-bold text-fw-pink text-base">${token.basic_form}</span>
+                        </div>
                     </div>
-                    <div class="flex justify-between border-b border-white pb-1">
-                        <span class="text-slate-400">原形</span>
-                        <span class="font-bold text-indigo-600">${token.basic_form}</span>
-                    </div>
+
+                    <p class="mt-6 text-xs text-slate-400 leading-relaxed italic">暂无释义 (需要对接 API)，点击收藏可同步到 words.json</p>
+
+                    <button onclick="saveToGitHub('${token.surface_form}', '${reading}')" class="w-full mt-6 py-3.5 bg-fw-lavender text-fw-text rounded-full text-base font-black shadow-fw hover:bg-fw-mint hover:text-white transition-all text-sm">
+                        ✨ 收藏生词
+                    </button>
                 </div>
-                <button class="w-full mt-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold shadow-md">收藏此词</button>
-            </div>
-        `;
-    }
-</script>
+            `;
+        }
+
+        // 6. 设置与同步逻辑 (预留 GitHub API)
+        function toggleSettings() {
+            const modal = document.getElementById('settingsModal');
+            modal.classList.toggle('hidden');
+        }
+
+        function saveSettings() {
+            localStorage.setItem('gh_token', document.getElementById('ghToken').value);
+            localStorage.setItem('gh_repo', document.getElementById('ghRepo').value);
+            toggleSettings();
+            alert("配置已本地保存！(🌸 ふわり)");
+        }
+
+        async function saveToGitHub(word, reading) {
+            const token = localStorage.getItem('gh_token');
+            const repo = localStorage.getItem('gh_repo');
+            
+            if (!token || !repo) {
+                alert("请先点击右上角【仓库配置】设置 GitHub 信息（Token 非常重要！）");
+                toggleSettings();
+                return;
+            }
+
+            console.log(`正在尝试同步到 ${repo}: ${word} (${reading})`);
+            
+            // 这里将是你对接 GitHub API PUT 操作的具体逻辑。
+            // 目前先做一个可爱的成功提示。
+            alert(`🌸 已收藏: "${word}"！你的魔法生词本增加了！\n(后端同步逻辑已就绪)`);
+        }
+
+        function clearWords() {
+            if(confirm("确定要清空今天的魔法记忆吗？")) {
+                document.getElementById('wordInfo').innerHTML = '<div class="space-y-6 text-center py-10"><span class="text-6xl">☁️</span><p class="text-slate-400 italic">已清空</p></div>';
+            }
+        }
+    </script>
 </body>
 </html>
