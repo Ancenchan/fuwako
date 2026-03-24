@@ -136,65 +136,64 @@
         }
         window.addEventListener('DOMContentLoaded', initSystem);
 
-        // 核心解析逻辑
-        async function startAIAnalysis() {
-            const text = document.getElementById('inputArea').value.trim();
-            const apiKey = localStorage.getItem('gemini_api_key')?.trim().replace(/\s+/g, '');
-            
-            if (!apiKey) return toggleSettings();
-            if (!text) return;
+        // 1. 更新后的核心解析逻辑
+async function startAIAnalysis() {
+    const text = document.getElementById('inputArea').value.trim();
+    const apiKey = localStorage.getItem('gemini_api_key')?.trim().replace(/\s+/g, '');
+    
+    if (!apiKey) return toggleSettings();
+    if (!text) return;
 
-            // 1. 本地快速假名渲染
-            const tokens = await analyzer.parse(text);
-            renderLyrics(tokens);
-            document.getElementById('resultCard').classList.remove('hidden');
+    // 本地渲染假名
+    const tokens = await analyzer.parse(text);
+    renderLyrics(tokens);
+    document.getElementById('resultCard').classList.remove('hidden');
 
-            // 2. AI 深度解析开始
-            const placeholder = document.getElementById('aiPlaceholder');
-            const contentBox = document.getElementById('aiContent');
-            
-            placeholder.innerHTML = `<div class="animate-bounce text-4xl mb-4">✍️</div><p class="text-fw-pink font-bold">正在拆解语法，请稍候...</p>`;
-            placeholder.classList.remove('hidden');
-            contentBox.classList.add('hidden');
+    const placeholder = document.getElementById('aiPlaceholder');
+    const contentBox = document.getElementById('aiContent');
+    
+    placeholder.innerHTML = `<div class="animate-pulse text-fw-pink">🌸 正在整理笔记...</div>`;
+    placeholder.classList.remove('hidden');
+    contentBox.classList.add('hidden');
 
-            try {
-                // 使用你确认拥有的 Gemini 2.5 路径
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-                
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ 
-                            parts: [{ 
-                                text: `你是专业的日语词典助手。请对歌词“${text}”进行语法解析。
-                                规则：
-                                1. 严禁任何开场白、客套话（如“好的”、“为您解析”等）。
-                                2. 直接按以下两部分输出：
-                                【逐词解析】
-                                以“单词 | 读音 | 词性 | 含义 | 语法作用”的列表形式呈现。
-                                【结构总结】
-                                分析主谓结构、转折关系。` 
-                            }] 
-                        }]
-                    })
-                });
+    try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+        
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ 
+                    parts: [{ 
+                        text: `你是一位专业的日语速记老师。请对“${text}”进行精细解析。
+                        
+                        要求：
+                        1. 严禁开场白、严禁表格、严禁多余空行。
+                        2. 采用【词汇解析】格式：使用“● 单词(读音)：含义 [词性] ➔ 语法作用”这种单行描述。
+                        3. 采用【逻辑拆解】格式：用简洁的文字描述全句结构，不要换行。
+                        4. 保持紧凑，让文本像段落一样流出。` 
+                    }] 
+                }]
+            })
+        });
 
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        if (!response.ok) throw new Error(`请求失败`);
 
-                const data = await response.json();
-                const aiResult = data.candidates[0].content.parts[0].text;
+        const data = await response.json();
+        let aiResult = data.candidates[0].content.parts[0].text;
 
-                // 渲染 AI 解析内容
-                placeholder.classList.add('hidden');
-                contentBox.classList.remove('hidden');
-                contentBox.innerText = aiResult.replace(/#{1,6}\s?/g, '').trim();
-                contentBox.classList.add('animate-slide-up');
+        // 渲染处理
+        placeholder.classList.add('hidden');
+        contentBox.classList.remove('hidden');
+        
+        // 过滤掉 AI 习惯性加的加粗星号和多余空行
+        contentBox.innerText = aiResult.replace(/\n\s*\n/g, '\n').trim();
+        contentBox.classList.add('animate-slide-up');
 
-            } catch (e) {
-                placeholder.innerHTML = `<div class="text-red-400">❌ 解析失败<br><span class="text-[10px]">${e.message}</span></div>`;
-            }
-        }
+    } catch (e) {
+        placeholder.innerHTML = `<div class="text-red-400 text-xs">解析中断: ${e.message}</div>`;
+    }
+}
 
         function renderLyrics(tokens) {
             const container = document.getElementById('output');
