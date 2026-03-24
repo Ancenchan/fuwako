@@ -81,72 +81,66 @@
 
 async function startAIAnalysis() {
     const text = document.getElementById('inputArea').value.trim();
-    if (!text) return;
-    
-    // 1. 获取并深度清洗 API Key
     const rawKey = localStorage.getItem('gemini_api_key') || "";
     const apiKey = rawKey.trim().replace(/[\r\n\s]/g, '');
     
-    if (!apiKey || apiKey.length < 20) {
-        alert("请先在设置中填入正确的 API Key 🌸");
-        toggleSettings();
-        return;
-    }
+    if (!apiKey) return toggleSettings();
+    if (!text) return;
 
     const aiBox = document.getElementById('aiAnalysisBox');
-    aiBox.innerHTML = `<div class="p-6 bg-fw-cream/30 rounded-2xl animate-pulse text-center text-fw-pink font-bold">🌸 1.5 Flash 老师正在拆解语法...</div>`;
+    aiBox.innerHTML = `<div class="p-6 bg-fw-cream/30 rounded-2xl animate-pulse text-center text-fw-pink font-bold">🌸 AI 老师正在匹配模型接口...</div>`;
 
-    try {
-        // 【关键改动】使用最标准的 v1beta / gemini-1.5-flash 路径
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    // 2026年主流模型路径列表
+    const modelCandidates = [
+        "gemini-2.0-flash",   // 当前最通用的稳定版
+        "gemini-1.5-flash",   // 经典兼容版
+        "gemini-3-flash"      // 实验性最新版
+    ];
 
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [{
-                        text: `你是一位专业的日语老师。请对以下歌词进行极其精细的逐词解析和语法结构分析。
-                        要求：
-                        1. 逐词解析：词汇、假名、词性、含义。
-                        2. 重点解释：助词（如に、は、が、けれど）在句中的具体语法作用。
-                        3. 结构总结：分析整句的主谓关系和逻辑转折。
-                        歌词内容：${text}`
-                    }]
-                }]
-            })
-        });
+    let successData = null;
+    let lastError = "";
 
-        // 如果 1.5 还是报 404，尝试自动切换到 gemini-pro (备选方案)
-        if (!response.ok) {
-            const errData = await response.json();
-            throw new Error(errData.error?.message || "请求失败");
+    // 自动轮询尝试
+    for (const modelName of modelCandidates) {
+        try {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: `你是一位精通日语语法和歌词意境的老师。请对以下歌词进行精细的逐词解析（包含假名、词性、含义）和语法结构分析：${text}` }] }]
+                })
+            });
+
+            if (response.ok) {
+                successData = await response.json();
+                console.log(`✅ 成功连接模型: ${modelName}`);
+                break; // 成功后跳出循环
+            } else {
+                const err = await response.json();
+                lastError = err.error?.message || "未知错误";
+            }
+        } catch (e) {
+            lastError = e.message;
         }
+    }
 
-        const data = await response.json();
-        
-        // 检查返回结构是否正确
-        if (data.candidates && data.candidates[0].content) {
-            const result = data.candidates[0].content.parts[0].text;
-            aiBox.style.whiteSpace = "pre-wrap";
-            aiBox.className = "ai-note text-sm leading-relaxed text-fw-text p-2";
-            aiBox.innerText = result;
-            
-            // 同步显示本地解析的假名（双重保险）
-            const tokens = await analyzer.parse(text);
-            renderTokens(tokens);
-            document.getElementById('resultCard').classList.remove('hidden');
-        } else {
-            throw new Error("AI 吐不出东西，请稍后再试");
-        }
+    if (successData) {
+        const result = successData.candidates[0].content.parts[0].text;
+        aiBox.style.whiteSpace = "pre-wrap";
+        aiBox.className = "ai-note text-sm leading-relaxed text-fw-text p-2 animate-fade-in";
+        aiBox.innerText = result;
 
-    } catch (e) {
-        console.error("Analysis Error:", e);
+        // 同步渲染本地假名
+        const tokens = await analyzer.parse(text);
+        renderTokens(tokens);
+        document.getElementById('resultCard').classList.remove('hidden');
+    } else {
         aiBox.innerHTML = `
-            <div class="p-4 bg-red-50 text-red-500 rounded-xl text-xs border border-red-100">
-                <strong>❌ 1.5 接口响应失败</strong><br>
-                原因：${e.message}<br><br>
-                <p class="opacity-70 text-[10px]">Tips: 确保你的梯子不在香港，且 API Key 已在 Google AI Studio 激活。</p>
+            <div class="p-4 bg-red-50 text-red-500 rounded-xl text-xs">
+                <strong>❌ 所有模型路径均失效 (404)</strong><br>
+                最后报错信息：${lastError}<br><br>
+                <p class="opacity-70">提示：这通常意味着 API 还没在你的新项目中完成全球分发。请等待 5 分钟后再试，或确认节点是否避开了香港/大陆。</p>
             </div>`;
     }
 }
