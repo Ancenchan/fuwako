@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>J-Lyrics AI Hub | 深度语法解析</title>
+    <title>J-Lyrics AI Hub | Gemini 2.5 Powered</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&family=Varela+Round&display=swap" rel="stylesheet">
+
     <script src="https://cdn.jsdelivr.net/npm/kuroshiro@1.2.0/dist/kuroshiro.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/kuroshiro-analyzer-kuromoji@1.1.0/dist/kuroshiro-analyzer-kuromoji.min.js"></script>
 
@@ -13,161 +15,219 @@
         tailwind.config = {
             theme: {
                 extend: {
-                    colors: { 'fw-bg': '#fefaf6', 'fw-pink': '#ffb3c6', 'fw-cream': '#fff3e0', 'fw-lavender': '#e1bee7', 'fw-text': '#5d4037' },
-                    fontFamily: { 'maru': ['"Kosugi Maru"', 'sans-serif'], 'round': ['"Varela Round"', 'sans-serif'] }
+                    colors: {
+                        'fw-bg': '#fefaf6', 'fw-pink': '#ffb3c6', 'fw-cream': '#fff3e0', 
+                        'fw-mint': '#b2dfdb', 'fw-lavender': '#e1bee7', 'fw-text': '#5d4037', 
+                    },
+                    fontFamily: { 'maru': ['"Kosugi Maru"', 'sans-serif'], 'round': ['"Varela Round"', 'sans-serif'] },
+                    borderRadius: { 'fw': '1.5rem' },
+                    boxShadow: { 'fw': '0 10px 25px -5px rgba(255, 179, 198, 0.15)' }
                 }
             }
         }
     </script>
+    
     <style>
         ruby { ruby-align: center; }
-        rt { font-size: 0.55em; color: #ff80ab; font-family: 'Varela Round'; padding-top: 1px; }
-        .word-item { cursor: pointer; transition: all 0.2s; padding: 4px 10px; margin: 4px 6px; border-radius: 12px; display: inline-block; background: #fff; border-bottom: 3px solid transparent; }
-        .word-item:hover { transform: translateY(-3px); background: #fff3e0; }
-        .pos-noun { border-color: #b2dfdb; } .pos-verb { border-color: #ffb3c6; } .pos-particle { background: #fdf2f2; color: #8d6e63; }
-        .lyric-line { line-height: 5.5rem; }
-        .ai-note { white-space: pre-wrap; line-height: 1.8; }
+        rt { font-size: 0.55em; color: #ff80ab; font-family: 'Varela Round', sans-serif; padding-top: 2px; }
+        
+        .word-item { 
+            position: relative; 
+            transition: all 0.2s ease; 
+            padding: 4px 10px; 
+            margin: 6px 4px; 
+            border-radius: 12px; 
+            display: inline-block;
+            background: #ffffff;
+            border-bottom: 3px solid #f3e5f5;
+        }
+        .word-item:hover { background-color: #fff3e0; transform: translateY(-2px); border-color: #ffb3c6; }
+        
+        .pos-noun { border-bottom-color: #b2dfdb; }
+        .pos-verb { border-bottom-color: #ffb3c6; }
+        .pos-particle { color: #8d6e63; background: #fdf2f2; border-bottom-color: #e1bee7; }
+
+        .lyric-line { line-height: 5.5rem; word-break: break-all; }
+        .ai-note-content { 
+            white-space: pre-wrap; 
+            line-height: 1.8; 
+            font-size: 0.85rem;
+            height: auto;
+            overflow: visible;
+        }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-slide-up { animation: slideUp 0.3s ease-out forwards; }
     </style>
 </head>
-<body class="bg-fw-bg min-h-screen text-fw-text font-maru p-6">
+<body class="bg-fw-bg min-h-screen text-fw-text font-maru">
 
-    <nav class="max-w-7xl mx-auto flex justify-between items-center mb-10">
-        <h1 class="text-3xl font-black text-fw-pink font-round">ふわり AI Hub 🌸</h1>
-        <button onclick="toggleSettings()" class="bg-white px-4 py-2 rounded-full shadow-sm text-sm">⚙️ 设置 API Key</button>
+    <nav class="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-fw-cream px-6 py-4">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <span class="text-3xl">🌸</span>
+                <h1 class="text-2xl font-black text-fw-pink tracking-tight font-round">ふわり Study Hub</h1>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="toggleSettings()" class="p-2 hover:bg-fw-cream rounded-full transition">⚙️ 设置 Key</button>
+            </div>
+        </div>
     </nav>
 
-    <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-10">
-        <div class="lg:col-span-2 space-y-6">
-            <div class="bg-white p-6 rounded-3xl shadow-sm">
-                <textarea id="inputArea" class="w-full h-32 p-4 bg-fw-bg rounded-2xl outline-none text-xl" placeholder="歌に形はないけれど"></textarea>
-                <button onclick="startAIAnalysis()" id="btnAction" class="w-full mt-4 bg-fw-pink text-white py-4 rounded-xl font-bold shadow-lg hover:scale-[1.01] transition">✨ AI 深度逐词拆解</button>
+    <main class="max-w-7xl mx-auto p-6 lg:p-10 flex flex-col lg:flex-row gap-10">
+        <div class="flex-1 space-y-6">
+            <div class="bg-white p-6 rounded-fw shadow-fw">
+                <textarea id="inputArea" class="w-full h-32 p-4 bg-fw-bg border-none rounded-2xl focus:ring-2 focus:ring-fw-pink/30 outline-none text-xl resize-none" placeholder="输入歌词，例如：歌に形はないけれど"></textarea>
+                <button onclick="startAIAnalysis()" id="btnAction" class="w-full mt-4 bg-fw-pink text-white py-4 rounded-xl text-lg font-bold hover:shadow-lg transition-all active:scale-95">
+                    ✨ Gemini 2.5 深度解析
+                </button>
             </div>
-            
-            <div id="resultCard" class="bg-white p-8 rounded-3xl shadow-sm hidden">
+
+            <div id="resultCard" class="bg-white/50 p-8 rounded-fw hidden border border-white">
                 <div id="output" class="lyric-line text-4xl tracking-widest"></div>
             </div>
         </div>
 
-        <aside class="bg-white p-8 rounded-3xl shadow-sm min-h-[500px]">
-            <div id="aiAnalysisBox" class="ai-note text-sm text-fw-text/80">
-                <div class="flex flex-col items-center justify-center py-20 text-slate-300">
-                    <span class="text-6xl mb-4">🤖</span>
-                    <p>等待 AI 老师上线...</p>
+        <aside class="w-full lg:w-[450px]">
+            <div id="aiAnalysisBox" class="bg-white p-8 rounded-fw shadow-fw border border-fw-cream/30 sticky top-28 min-h-[400px] h-auto overflow-visible">
+                <div id="aiPlaceholder" class="flex flex-col items-center justify-center py-20 text-center space-y-4">
+                    <div class="text-6xl opacity-20">📖</div>
+                    <p class="text-slate-400">点击按钮生成<br>AI 语法笔记</p>
                 </div>
+                <div id="aiContent" class="ai-note-content hidden"></div>
             </div>
         </aside>
     </main>
 
-    <div id="settingsModal" class="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 hidden flex items-center justify-center">
-        <div class="bg-white p-8 rounded-3xl w-full max-w-md">
-            <h3 class="text-xl font-bold mb-4">Gemini API 配置</h3>
-            <input type="password" id="geminiKey" placeholder="粘贴你的 API Key" class="w-full p-4 bg-fw-bg rounded-xl mb-6 outline-none border focus:border-fw-pink">
-            <button onclick="saveKey()" class="w-full bg-fw-pink text-white py-3 rounded-xl font-bold">保存并开始学习</button>
+    <div id="settingsModal" class="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-fw max-w-sm w-full shadow-2xl">
+            <h3 class="text-xl font-bold mb-4 text-fw-pink">API 配置</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="text-xs text-slate-400 ml-2">Gemini API Key</label>
+                    <input type="password" id="geminiKey" class="w-full p-3 bg-fw-bg rounded-xl outline-none border border-fw-cream">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 ml-2">GitHub Token (可选)</label>
+                    <input type="password" id="ghToken" class="w-full p-3 bg-fw-bg rounded-xl outline-none border border-fw-cream">
+                </div>
+            </div>
+            <button onclick="saveSettings()" class="w-full bg-fw-pink text-white py-3 rounded-xl font-bold mt-6 shadow-lg">保存配置</button>
+            <button onclick="toggleSettings()" class="w-full mt-3 text-slate-400 text-sm">关闭</button>
         </div>
     </div>
 
     <script>
         let kuroshiro, analyzer;
 
-        async function init() {
-            const KClass = window.Kuroshiro?.default || window.Kuroshiro;
-            const AClass = window.KuromojiAnalyzer?.default || window.KuromojiAnalyzer;
-            kuroshiro = new KClass();
-            analyzer = new AClass({ dictPath: "./dict" });
-            await kuroshiro.init(analyzer);
-            console.log("Ready!");
-        }
-        window.onload = init;
-
-async function startAIAnalysis() {
-    const text = document.getElementById('inputArea').value.trim();
-    if (!text) return;
-
-    const rawKey = localStorage.getItem('gemini_api_key') || "";
-    const apiKey = rawKey.trim().replace(/[\r\n\s]/g, '');
-    
-    const aiBox = document.getElementById('aiAnalysisBox');
-    aiBox.innerHTML = `<div class="p-6 bg-fw-cream/30 rounded-2xl animate-pulse text-center text-fw-pink font-bold">🚀 正在调用 Gemini 2.5 Flash 深度解析...</div>`;
-
-    try {
-        // 【核心修改】直接使用你 ListModels 返回的精确路径
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-        
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ 
-                    parts: [{ 
-                        text: `你是一位专业的日语老师。请对以下歌词进行【极其精细】的逐词解析和语法结构分析。
-                        
-                        要求：
-                        1. 逐词解析：列出词汇、假名、词性、含义。
-                        2. 语法重点：深入解释助词（如に、は、けれど）在本句中的具体语法功能。
-                        3. 结构总结：拆解整句的主谓关系和逻辑转折。
-                        
-                        歌词内容：${text}` 
-                    }] 
-                }],
-                generationConfig: {
-                    temperature: 1,
-                    topP: 0.95,
-                    maxOutputTokens: 2048
+        // 初始化假名转换引擎
+        async function initSystem() {
+            try {
+                const KClass = window.Kuroshiro?.default || window.Kuroshiro;
+                const AClass = window.KuromojiAnalyzer?.default || window.KuromojiAnalyzer;
+                kuroshiro = new KClass();
+                analyzer = new AClass({ dictPath: "./dict" });
+                await kuroshiro.init(analyzer);
+                
+                // 自动填充 Key
+                if(localStorage.getItem('gemini_api_key')) {
+                    document.getElementById('geminiKey').value = localStorage.getItem('gemini_api_key');
                 }
-            })
-        });
-
-        if (!response.ok) {
-            const errData = await response.json();
-            throw new Error(errData.error?.message || `状态码: ${response.status}`);
+            } catch (err) { console.error("Init Error", err); }
         }
+        window.addEventListener('DOMContentLoaded', initSystem);
 
-        const data = await response.json();
-        
-        if (data.candidates && data.candidates[0].content) {
-            const result = data.candidates[0].content.parts[0].text;
+        // 核心解析逻辑
+        async function startAIAnalysis() {
+            const text = document.getElementById('inputArea').value.trim();
+            const apiKey = localStorage.getItem('gemini_api_key')?.trim().replace(/\s+/g, '');
             
-            // 渲染结果
-            aiBox.style.whiteSpace = "pre-wrap";
-            aiBox.className = "ai-note text-sm leading-relaxed text-fw-text p-2 animate-slide-up";
-            aiBox.innerText = result;
+            if (!apiKey) return toggleSettings();
+            if (!text) return;
 
-            // 同步渲染本地假名
+            // 1. 本地快速假名渲染
             const tokens = await analyzer.parse(text);
-            renderTokens(tokens);
+            renderLyrics(tokens);
             document.getElementById('resultCard').classList.remove('hidden');
+
+            // 2. AI 深度解析开始
+            const placeholder = document.getElementById('aiPlaceholder');
+            const contentBox = document.getElementById('aiContent');
+            
+            placeholder.innerHTML = `<div class="animate-bounce text-4xl mb-4">✍️</div><p class="text-fw-pink font-bold">正在拆解语法，请稍候...</p>`;
+            placeholder.classList.remove('hidden');
+            contentBox.classList.add('hidden');
+
+            try {
+                // 使用你确认拥有的 Gemini 2.5 路径
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ 
+                            parts: [{ 
+                                text: `你是专业的日语词典助手。请对歌词“${text}”进行语法解析。
+                                规则：
+                                1. 严禁任何开场白、客套话（如“好的”、“为您解析”等）。
+                                2. 直接按以下两部分输出：
+                                【逐词解析】
+                                以“单词 | 读音 | 词性 | 含义 | 语法作用”的列表形式呈现。
+                                【结构总结】
+                                分析主谓结构、转折关系。` 
+                            }] 
+                        }]
+                    })
+                });
+
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                const data = await response.json();
+                const aiResult = data.candidates[0].content.parts[0].text;
+
+                // 渲染 AI 解析内容
+                placeholder.classList.add('hidden');
+                contentBox.classList.remove('hidden');
+                contentBox.innerText = aiResult.replace(/#{1,6}\s?/g, '').trim();
+                contentBox.classList.add('animate-slide-up');
+
+            } catch (e) {
+                placeholder.innerHTML = `<div class="text-red-400">❌ 解析失败<br><span class="text-[10px]">${e.message}</span></div>`;
+            }
         }
 
-    } catch (e) {
-        console.error("Gemini 2.5 Error:", e);
-        aiBox.innerHTML = `
-            <div class="p-4 bg-red-50 text-red-500 rounded-xl text-xs">
-                <strong>❌ Gemini 2.5 调用失败</strong><br>
-                报错：${e.message}<br><br>
-                提示：既然 ListModels 能看到 2.5，说明 Key 没问题。请确认请求时【不要】使用香港节点。
-            </div>`;
-    }
-}
-        function renderTokens(tokens) {
-            const out = document.getElementById('output');
+        function renderLyrics(tokens) {
+            const container = document.getElementById('output');
+            container.innerHTML = "";
             const KUtils = window.Kuroshiro?.default?.util || window.Kuroshiro?.util;
-            out.innerHTML = "";
-            tokens.forEach(t => {
+
+            tokens.forEach(token => {
                 const span = document.createElement('span');
-                const pos = t.pos.includes('名詞') ? 'pos-noun' : t.pos.includes('動詞') ? 'pos-verb' : t.pos.includes('助詞') ? 'pos-particle' : '';
-                span.className = `word-item ${pos}`;
-                if (KUtils && t.surface_form !== t.reading && t.reading !== '*') {
-                    span.innerHTML = `<ruby>${t.surface_form}<rt>${KUtils.kanaToHiragana(t.reading)}</rt></ruby>`;
-                } else { span.innerText = t.surface_form; }
-                out.appendChild(span);
+                const posClass = getPosClass(token.pos);
+                span.className = `word-item animate-slide-up ${posClass}`;
+                
+                if (KUtils && token.surface_form !== token.reading && token.reading !== '*') {
+                    span.innerHTML = `<ruby>${token.surface_form}<rt>${KUtils.kanaToHiragana(token.reading)}</rt></ruby>`;
+                } else {
+                    span.innerText = token.surface_form;
+                }
+                container.appendChild(span);
             });
         }
 
+        function getPosClass(pos) {
+            if (pos.includes('名詞')) return 'pos-noun';
+            if (pos.includes('動詞')) return 'pos-verb';
+            if (pos.includes('助詞')) return 'pos-particle';
+            return '';
+        }
+
         function toggleSettings() { document.getElementById('settingsModal').classList.toggle('hidden'); }
-        function saveKey() {
-            localStorage.setItem('gemini_api_key', document.getElementById('geminiKey').value);
+        function saveSettings() {
+            localStorage.setItem('gemini_api_key', document.getElementById('geminiKey').value.trim());
+            localStorage.setItem('gh_token', document.getElementById('ghToken').value.trim());
             toggleSettings();
-            alert("API Key 已就绪！🌸");
+            alert("配置已更新 🌸");
         }
     </script>
 </body>
