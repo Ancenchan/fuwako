@@ -3,11 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>J-Lyrics ふわり Hub | 逐词解析增强版</title>
-    
+    <title>J-Lyrics AI Hub | 深度语法解析</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&family=Varela+Round&display=swap" rel="stylesheet">
-
     <script src="https://cdn.jsdelivr.net/npm/kuroshiro@1.2.0/dist/kuroshiro.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/kuroshiro-analyzer-kuromoji@1.1.0/dist/kuroshiro-analyzer-kuromoji.min.js"></script>
 
@@ -15,243 +13,127 @@
         tailwind.config = {
             theme: {
                 extend: {
-                    colors: {
-                        'fw-bg': '#fefaf6', 'fw-pink': '#ffb3c6', 'fw-cream': '#fff3e0', 
-                        'fw-mint': '#b2dfdb', 'fw-lavender': '#e1bee7', 'fw-text': '#5d4037', 
-                    },
-                    fontFamily: { 'maru': ['"Kosugi Maru"', 'sans-serif'], 'round': ['"Varela Round"', 'sans-serif'] },
-                    borderRadius: { 'fw': '1.5rem' },
-                    boxShadow: { 'fw': '0 10px 25px -5px rgba(255, 179, 198, 0.2)' }
+                    colors: { 'fw-bg': '#fefaf6', 'fw-pink': '#ffb3c6', 'fw-cream': '#fff3e0', 'fw-lavender': '#e1bee7', 'fw-text': '#5d4037' },
+                    fontFamily: { 'maru': ['"Kosugi Maru"', 'sans-serif'], 'round': ['"Varela Round"', 'sans-serif'] }
                 }
             }
         }
     </script>
-    
     <style>
         ruby { ruby-align: center; }
-        rt { font-size: 0.55em; color: #ff80ab; font-family: 'Varela Round', sans-serif; padding-top: 1px; }
-        
-        /* 语义切割：通过间距和微阴影增强可读性 */
-        .word-item { 
-            position: relative; 
-            cursor: pointer; 
-            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
-            padding: 4px 10px; 
-            margin: 4px 6px; 
-            border-radius: 14px; 
-            display: inline-block;
-            background: #ffffff;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
-        }
-        .word-item:hover { background-color: #fff3e0; transform: translateY(-3px); box-shadow: 0 6px 15px rgba(255,179,198,0.25); }
-        
-        /* 词性视觉标识 */
-        .pos-noun { border-left: 4px solid #b2dfdb; }    /* 名词 */
-        .pos-verb { border-left: 4px solid #ffb3c6; }    /* 动词 */
-        .pos-adj { border-left: 4px solid #ffe082; }     /* 形容词 */
-        .pos-particle { color: #8d6e63; opacity: 0.8; font-size: 0.9em; background: #f5f5f5; } /* 助词 */
-
-        .lyric-line { line-height: 5.8rem; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.5s ease forwards; }
-        .loader { border: 4px solid #fff; border-radius: 50%; border-top: 4px solid #ffb3c6; width: 40px; height: 40px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        rt { font-size: 0.55em; color: #ff80ab; font-family: 'Varela Round'; padding-top: 1px; }
+        .word-item { cursor: pointer; transition: all 0.2s; padding: 4px 10px; margin: 4px 6px; border-radius: 12px; display: inline-block; background: #fff; border-bottom: 3px solid transparent; }
+        .word-item:hover { transform: translateY(-3px); background: #fff3e0; }
+        .pos-noun { border-color: #b2dfdb; } .pos-verb { border-color: #ffb3c6; } .pos-particle { background: #fdf2f2; color: #8d6e63; }
+        .lyric-line { line-height: 5.5rem; }
+        .ai-note { white-space: pre-wrap; line-height: 1.8; }
     </style>
 </head>
-<body class="bg-fw-bg min-h-screen text-fw-text font-maru">
+<body class="bg-fw-bg min-h-screen text-fw-text font-maru p-6">
 
-    <div id="loadingOverlay" class="fixed inset-0 bg-white/95 backdrop-blur-md z-50 flex flex-col items-center justify-center">
-        <div class="loader mb-6"></div>
-        <p class="text-xl font-bold text-fw-pink tracking-widest">ふわり 词典同步中...</p>
-    </div>
-
-    <nav class="bg-white/70 backdrop-blur-md sticky top-0 z-10 border-b border-fw-cream">
-        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <span class="text-3xl animate-bounce">🌸</span>
-                <h1 class="text-3xl font-black text-fw-pink tracking-tighter font-round">ふわり Hub</h1>
-            </div>
-            <button onclick="toggleSettings()" class="p-3 bg-fw-cream rounded-full hover:rotate-90 transition-transform duration-500">⚙️</button>
-        </div>
+    <nav class="max-w-7xl mx-auto flex justify-between items-center mb-10">
+        <h1 class="text-3xl font-black text-fw-pink font-round">ふわり AI Hub 🌸</h1>
+        <button onclick="toggleSettings()" class="bg-white px-4 py-2 rounded-full shadow-sm text-sm">⚙️ 设置 API Key</button>
     </nav>
 
-    <main class="max-w-7xl mx-auto p-6 lg:p-10 flex flex-col lg:flex-row gap-10">
-        <div class="flex-1 space-y-8">
-            <div class="bg-white p-8 rounded-fw shadow-fw">
-                <textarea id="inputArea" class="w-full h-32 p-5 bg-fw-bg border-none rounded-2xl focus:ring-4 focus:ring-fw-cream/50 outline-none text-xl resize-none font-maru" placeholder="在此输入：歌に形はないけれど"></textarea>
-                <button onclick="handleProcess()" id="btnAction" class="w-full mt-6 bg-fw-pink text-white py-4 rounded-full text-xl font-black hover:opacity-90 transition-all shadow-lg">
-                    ✨ 逐词拆解 & 翻译
-                </button>
+    <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-10">
+        <div class="lg:col-span-2 space-y-6">
+            <div class="bg-white p-6 rounded-3xl shadow-sm">
+                <textarea id="inputArea" class="w-full h-32 p-4 bg-fw-bg rounded-2xl outline-none text-xl" placeholder="歌に形はないけれど"></textarea>
+                <button onclick="startAIAnalysis()" id="btnAction" class="w-full mt-4 bg-fw-pink text-white py-4 rounded-xl font-bold shadow-lg hover:scale-[1.01] transition">✨ AI 深度逐词拆解</button>
             </div>
-
-            <div id="fullTranslationCard" class="bg-gradient-to-r from-fw-lavender/20 to-fw-pink/10 p-7 rounded-fw border border-white hidden animate-fade-in">
-                <h3 class="text-xs font-bold text-fw-lavender uppercase mb-2 tracking-widest font-round">Sentence Analysis</h3>
-                <p id="fullTranslationText" class="text-2xl font-bold text-fw-text/90 italic"></p>
-            </div>
-
-            <div id="resultCard" class="bg-white p-10 rounded-fw shadow-fw hidden border border-fw-cream/20">
+            
+            <div id="resultCard" class="bg-white p-8 rounded-3xl shadow-sm hidden">
                 <div id="output" class="lyric-line text-4xl tracking-widest"></div>
             </div>
         </div>
 
-        <aside class="w-full lg:w-[380px]">
-            <div id="wordInfo" class="bg-white p-8 rounded-fw shadow-fw border border-fw-cream/30 sticky top-28 min-h-[500px] flex flex-col items-center justify-center">
-                <span class="text-7xl mb-4">🍡</span>
-                <p class="text-slate-400 italic text-center text-lg">点击歌词单词<br>查看详细语法解析</p>
+        <aside class="bg-white p-8 rounded-3xl shadow-sm min-h-[500px]">
+            <div id="aiAnalysisBox" class="ai-note text-sm text-fw-text/80">
+                <div class="flex flex-col items-center justify-center py-20 text-slate-300">
+                    <span class="text-6xl mb-4">🤖</span>
+                    <p>等待 AI 老师上线...</p>
+                </div>
             </div>
         </aside>
     </main>
 
-    <div id="settingsModal" class="fixed inset-0 bg-fw-text/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-fw-bg p-10 rounded-fw max-w-md w-full shadow-2xl">
-            <h3 class="text-2xl font-bold mb-6 text-fw-pink font-round text-center">Config</h3>
-            <input type="password" id="ghToken" placeholder="GitHub Access Token" class="w-full p-4 bg-white rounded-full mb-4 outline-none border-2 border-fw-cream focus:border-fw-pink">
-            <input type="text" id="ghRepo" placeholder="username/repo" class="w-full p-4 bg-white rounded-full mb-8 outline-none border-2 border-fw-cream focus:border-fw-pink">
-            <button onclick="saveSettings()" class="w-full bg-fw-pink text-white py-4 rounded-full font-bold shadow-lg">确认保存</button>
-            <button onclick="toggleSettings()" class="w-full mt-3 text-slate-400 text-sm">取消</button>
+    <div id="settingsModal" class="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 hidden flex items-center justify-center">
+        <div class="bg-white p-8 rounded-3xl w-full max-w-md">
+            <h3 class="text-xl font-bold mb-4">Gemini API 配置</h3>
+            <input type="password" id="geminiKey" placeholder="粘贴你的 API Key" class="w-full p-4 bg-fw-bg rounded-xl mb-6 outline-none border focus:border-fw-pink">
+            <button onclick="saveKey()" class="w-full bg-fw-pink text-white py-3 rounded-xl font-bold">保存并开始学习</button>
         </div>
     </div>
 
     <script>
         let kuroshiro, analyzer;
 
-        function getKUtils() {
-            const KBase = window.Kuroshiro;
-            return KBase?.default?.util || KBase?.util || null;
+        async function init() {
+            const KClass = window.Kuroshiro?.default || window.Kuroshiro;
+            const AClass = window.KuromojiAnalyzer?.default || window.KuromojiAnalyzer;
+            kuroshiro = new KClass();
+            analyzer = new AClass({ dictPath: "./dict" });
+            await kuroshiro.init(analyzer);
+            console.log("Ready!");
         }
+        window.onload = init;
 
-        async function initSystem() {
-            try {
-                const KClass = window.Kuroshiro?.default || window.Kuroshiro;
-                const AClass = window.KuromojiAnalyzer?.default || window.KuromojiAnalyzer;
-                kuroshiro = new KClass();
-                analyzer = new AClass({ dictPath: "./dict" });
-                await kuroshiro.init(analyzer);
-                document.getElementById('loadingOverlay').classList.add('hidden');
-            } catch (err) {
-                console.error(err);
-                document.querySelector('#loadingOverlay p').innerText = "词典加载失败，请检查 ./dict";
-            }
-        }
-
-        window.addEventListener('DOMContentLoaded', initSystem);
-
-        async function handleProcess() {
+        async function startAIAnalysis() {
             const text = document.getElementById('inputArea').value.trim();
+            const apiKey = localStorage.getItem('gemini_api_key');
+            if (!apiKey) return toggleSettings();
             if (!text) return;
-            
-            const btn = document.getElementById('btnAction');
-            btn.disabled = true;
-            btn.innerText = "⏳ 魔法解析中...";
 
+            // 1. 本地快速解析假名
+            const tokens = await analyzer.parse(text);
+            renderTokens(tokens);
+            document.getElementById('resultCard').classList.remove('hidden');
+
+            // 2. 调用 AI 深度解析
+            document.getElementById('aiAnalysisBox').innerHTML = `<div class="animate-pulse">🌸 AI 老师正在查阅文献...</div>`;
+            
             try {
-                const tokens = await analyzer.parse(text);
-                renderLyrics(tokens);
-                
-                // 获取整句翻译
-                const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=ja|zh-CN`);
-                const data = await res.json();
-                document.getElementById('fullTranslationText').innerText = data.responseData.translatedText;
-                document.getElementById('fullTranslationCard').classList.remove('hidden');
-                document.getElementById('resultCard').classList.remove('hidden');
-            } catch(e) {
-                console.error(e);
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "✨ 逐词拆解 & 翻译";
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: `你是一位专业的日语老师。请对以下歌词进行极其精细的逐词解析和语法结构分析。
+                        格式要求：
+                        1. 逐词解析：列出词汇、假名、词性、含义，并解释它在当前句中的语法作用（例如格助词的用法）。
+                        2. 整体结构：分析句子的主谓结构和转折等逻辑。
+                        内容参考：
+                        歌词：${text}` }] }]
+                    })
+                });
+                const data = await response.json();
+                const aiResult = data.candidates[0].content.parts[0].text;
+                document.getElementById('aiAnalysisBox').innerText = aiResult;
+            } catch (e) {
+                document.getElementById('aiAnalysisBox').innerText = "AI 响应失败，请检查 API Key 或网络环境。";
             }
         }
 
-        function renderLyrics(tokens) {
-            const container = document.getElementById('output');
-            container.innerHTML = "";
-            const KUtils = getKUtils();
-
-            tokens.forEach(token => {
+        function renderTokens(tokens) {
+            const out = document.getElementById('output');
+            const KUtils = window.Kuroshiro?.default?.util || window.Kuroshiro?.util;
+            out.innerHTML = "";
+            tokens.forEach(t => {
                 const span = document.createElement('span');
-                const posClass = getPosClass(token.pos);
-                span.className = `word-item font-round ${posClass} animate-fade-in`;
-                
-                if (KUtils && token.surface_form !== token.reading && token.reading !== '*') {
-                    const hira = KUtils.kanaToHiragana(token.reading);
-                    span.innerHTML = `<ruby>${token.surface_form}<rt>${hira}</rt></ruby>`;
-                } else {
-                    span.innerText = token.surface_form;
-                }
-
-                span.onclick = () => showDetail(token);
-                container.appendChild(span);
-                if (token.surface_form.includes('\n')) container.appendChild(document.createElement('br'));
+                const pos = t.pos.includes('名詞') ? 'pos-noun' : t.pos.includes('動詞') ? 'pos-verb' : t.pos.includes('助詞') ? 'pos-particle' : '';
+                span.className = `word-item ${pos}`;
+                if (KUtils && t.surface_form !== t.reading && t.reading !== '*') {
+                    span.innerHTML = `<ruby>${t.surface_form}<rt>${KUtils.kanaToHiragana(t.reading)}</rt></ruby>`;
+                } else { span.innerText = t.surface_form; }
+                out.appendChild(span);
             });
         }
 
-        function getPosClass(pos) {
-            if (pos.includes('名詞')) return 'pos-noun';
-            if (pos.includes('動詞')) return 'pos-verb';
-            if (pos.includes('形容詞')) return 'pos-adj';
-            if (pos.includes('助詞')) return 'pos-particle';
-            return '';
-        }
-
-        async function showDetail(token) {
-            const info = document.getElementById('wordInfo');
-            const KUtils = getKUtils();
-            const reading = (KUtils && token.reading !== '*') ? KUtils.kanaToHiragana(token.reading) : '-';
-            
-            info.innerHTML = `<div class="text-center"><div class="loader mx-auto"></div><p class="mt-4 text-fw-pink">正在检索释义...</p></div>`;
-
-            try {
-                const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(token.surface_form)}&langpair=ja|zh-CN`);
-                const data = await res.json();
-                const translation = data.responseData.translatedText;
-
-                info.className = "bg-white p-8 rounded-fw shadow-fw border-2 border-fw-cream animate-fade-in block";
-                info.innerHTML = `
-                    <div class="text-center mb-6">
-                        <div class="text-xs text-slate-400 uppercase tracking-widest mb-1">Lexicon Entry</div>
-                        <div class="text-5xl font-black text-fw-text mb-2">${token.surface_form}</div>
-                        <div class="text-xl text-fw-pink font-bold">【${reading}】</div>
-                    </div>
-
-                    <div class="bg-fw-bg p-5 rounded-2xl mb-6 border border-fw-cream/50 text-center">
-                        <div class="text-xs text-slate-400 mb-1">中文释义 (Translation)</div>
-                        <div class="text-2xl font-bold text-fw-text">${translation}</div>
-                    </div>
-
-                    <div class="space-y-3">
-                        <div class="flex justify-between items-center p-3 bg-white rounded-xl border border-fw-cream/30 shadow-sm">
-                            <span class="text-slate-400 text-sm">词性 (POS)</span>
-                            <span class="px-3 py-1 bg-fw-mint/20 text-fw-text font-bold rounded-lg text-sm">${token.pos}</span>
-                        </div>
-                        <div class="flex justify-between items-center p-3 bg-white rounded-xl border border-fw-cream/30 shadow-sm">
-                            <span class="text-slate-400 text-sm">词干/原形 (Base)</span>
-                            <span class="font-black text-fw-pink">${token.basic_form}</span>
-                        </div>
-                        <div class="flex justify-between items-center p-3 bg-white rounded-xl border border-fw-cream/30 shadow-sm">
-                            <span class="text-slate-400 text-sm">活用/状态 (Type)</span>
-                            <span class="text-fw-text/70 text-sm">${token.pos_detail_1 || '无'}</span>
-                        </div>
-                    </div>
-
-                    <button onclick="saveWord('${token.surface_form}', '${reading}', '${translation}')" class="w-full mt-8 py-4 bg-fw-lavender text-fw-text rounded-full font-black shadow-fw hover:bg-fw-mint hover:text-white transition-all">✨ 收藏生词</button>
-                `;
-            } catch (e) {
-                info.innerText = "网络释义获取失败";
-            }
-        }
-
         function toggleSettings() { document.getElementById('settingsModal').classList.toggle('hidden'); }
-        function saveSettings() {
-            localStorage.setItem('gh_token', document.getElementById('ghToken').value);
-            localStorage.setItem('gh_repo', document.getElementById('ghRepo').value);
+        function saveKey() {
+            localStorage.setItem('gemini_api_key', document.getElementById('geminiKey').value);
             toggleSettings();
-            alert("配置成功！🌸");
-        }
-
-        function saveWord(word, reading, trans) {
-            const token = localStorage.getItem('gh_token');
-            if (!token) { alert("请先在设置中配置 GitHub Token！"); toggleSettings(); return; }
-            alert(`已准备同步：${word} (${reading}) -> ${trans}\n(GitHub API 同步函数已预留接口)`);
+            alert("API Key 已就绪！🌸");
         }
     </script>
 </body>
