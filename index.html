@@ -81,48 +81,56 @@
 
 async function startAIAnalysis() {
             const text = document.getElementById('inputArea').value.trim();
-            const apiKey = localStorage.getItem('gemini_api_key');
+            // 强行清洗 Key 里的空格
+            const apiKey = localStorage.getItem('gemini_api_key')?.replace(/\s+/g, '');
             if (!apiKey) return toggleSettings();
             if (!text) return;
 
-            // 1. 本地快速解析
+            // 1. 本地快速解析 (Kuroshiro)
             const tokens = await analyzer.parse(text);
             renderTokens(tokens);
             document.getElementById('resultCard').classList.remove('hidden');
 
-            // 2. AI 解析逻辑
             const aiBox = document.getElementById('aiAnalysisBox');
-            aiBox.innerHTML = `<div class="p-4 bg-fw-cream rounded-xl animate-pulse">🌸 AI 老师正在解析语法...</div>`;
+            aiBox.innerHTML = `<div class="p-4 bg-fw-cream rounded-xl animate-pulse text-center">🌸 AI 老师（Gemini 3）正在解析...</div>`;
             
             try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                // 使用最新的 Gemini 3 Flash 模型路径
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:generateContent?key=${apiKey}`;
+                
+                const response = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        contents: [{ parts: [{ text: `请对以下日语歌词进行逐词语法解析：${text}` }] }]
+                        contents: [{ 
+                            parts: [{ 
+                                text: `你是一位专业的日语老师。请对以下歌词进行极其精细的逐词解析和语法结构分析。
+                                格式要求：
+                                1. 逐词解析：列出词汇、假名、词性、含义，并解释它在当前句中的语法作用。
+                                2. 整体结构：分析句子的逻辑。
+                                歌词：${text}` 
+                            }] 
+                        }]
                     })
                 });
 
                 if (!response.ok) {
                     const errorData = await response.json();
-                    throw new Error(`HTTP ${response.status}: ${errorData.error.message}`);
+                    throw new Error(`错误 ${response.status}: ${errorData.error.message}`);
                 }
 
                 const data = await response.json();
                 const aiResult = data.candidates[0].content.parts[0].text;
-                aiBox.innerText = aiResult;
+                
+                // 将 Markdown 换行符转换为 HTML 换行
+                aiBox.innerText = aiResult; 
+                aiBox.style.whiteSpace = "pre-wrap"; 
             } catch (e) {
-                console.error("AI Error Details:", e);
-                aiBox.innerHTML = `
-                    <div class="p-4 bg-red-50 text-red-600 rounded-xl text-xs">
-                        <strong>❌ 错误代码：</strong><br>${e.message}<br><br>
-                        <strong>排查建议：</strong><br>
-                        1. 检查节点是否为美国/日本（避开香港/大陆）<br>
-                        2. 确认 API Key 粘贴完整（AIza...）
-                    </div>`;
+                console.error("AI Error:", e);
+                aiBox.innerHTML = `<div class="p-4 bg-red-50 text-red-500 rounded-xl text-xs">❌ 解析失败：${e.message}</div>`;
             }
         }
-
+        
         function renderTokens(tokens) {
             const out = document.getElementById('output');
             const KUtils = window.Kuroshiro?.default?.util || window.Kuroshiro?.util;
