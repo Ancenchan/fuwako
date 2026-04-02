@@ -3,191 +3,142 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fuwari 日语学园 v2.0</title>
+    <title>Fuwari 日语空间</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/kuromoji@0.1.2/build/kuromoji.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&display=swap" rel="stylesheet">
-    <style>
-        :root { --main-pink: #ffb7c5; --bg-soft: #fff9fb; }
-        body { font-family: 'Kosugi Maru', sans-serif; background-color: var(--bg-soft); }
-        .fuwari-card { background: white; border-radius: 20px; border: 2px solid #ffe4e9; transition: all 0.3s; }
-        .fuwari-card:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(255,183,197,0.2); }
-        .tag-subject { background: #fff9db; border: 1px solid #f9eb95; } /* 主语-黄 */
-        .tag-verb { background: #ffe3e3; border: 1px solid #ffb3b3; }    /* 谓语-红 */
-        .tag-object { background: #e3f2fd; border: 1px solid #bbdefb; }  /* 宾语-蓝 */
-        .active-tab { border-bottom: 4px solid var(--main-pink); color: var(--main-pink); }
-        .hidden { display: none; }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
-<body class="text-gray-700">
+<body>
+    <div id="loader" class="fixed inset-0 bg-white z-[100] flex flex-col items-center justify-center">
+        <div class="w-16 h-16 border-4 border-pink-200 border-t-pink-400 rounded-full animate-spin"></div>
+        <p class="mt-4 text-pink-400 font-bold">正在初始化日语字典... (首次加载约3秒)</p>
+    </div>
 
-    <nav class="p-6 flex justify-center space-x-12 bg-white/80 backdrop-blur shadow-sm sticky top-0 z-50">
-        <button onclick="router('knowledge')" id="nav-knowledge" class="active-tab font-bold pb-2">知识百科</button>
-        <button onclick="router('library')" id="nav-library" class="font-bold pb-2 text-gray-400">歌词库</button>
+    <nav class="sticky top-0 bg-white/90 backdrop-blur-md shadow-sm z-50 p-4 flex justify-center gap-8">
+        <button onclick="showPage('wiki')" class="nav-btn active" id="nav-wiki">知识手册</button>
+        <button onclick="showPage('lyrics')" class="nav-btn" id="nav-lyrics">歌词阅读</button>
     </nav>
 
-    <main class="max-w-6xl mx-auto p-4 md:p-8">
-        
-        <section id="page-knowledge" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <main class="max-w-6xl mx-auto p-6">
+        <section id="page-wiki" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             </section>
 
-        <section id="page-library" class="hidden">
-            <div class="fuwari-card p-6 mb-8 text-center">
-                <h2 class="text-2xl font-bold text-pink-400 mb-4">上传新内容 📝</h2>
-                <input type="text" id="lyrics-title" placeholder="输入标题（如：歌名）" class="w-full mb-4 p-3 border-2 border-pink-100 rounded-xl outline-none focus:border-pink-300">
-                <textarea id="lyrics-raw" class="w-full h-40 p-4 border-2 border-pink-100 rounded-xl outline-none focus:border-pink-300" placeholder="在此粘贴歌词内容... (支持混排，会自动识别日语行)"></textarea>
-                <button onclick="saveToLibrary()" class="mt-4 bg-pink-400 text-white px-10 py-3 rounded-full shadow-lg hover:bg-pink-500">存入书架</button>
+        <section id="page-lyrics" class="hidden">
+            <div class="card p-6 mb-8">
+                <input type="text" id="l-title" placeholder="输入歌曲名..." class="fuwari-input mb-4">
+                <textarea id="l-content" placeholder="粘贴文本 (支持中日混排)..." class="fuwari-input h-32"></textarea>
+                <button onclick="addLyrics()" class="btn-primary w-full mt-2">存入书架</button>
             </div>
-            <div id="library-list" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                </div>
+            <div id="lyrics-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
         </section>
 
         <section id="page-detail" class="hidden">
-            <button onclick="router('library')" class="mb-6 text-pink-400">← 返回列表</button>
-            <div class="fuwari-card p-8">
-                <h1 id="detail-title" class="text-3xl font-bold mb-8 text-center"></h1>
-                <div id="detail-content" class="space-y-6 leading-loose">
-                    </div>
+            <button onclick="showPage('lyrics')" class="mb-4 text-pink-400">← 返回列表</button>
+            <div class="card p-8">
+                <h1 id="det-title" class="text-3xl font-bold mb-8 text-center text-gray-700"></h1>
+                <div id="det-body" class="space-y-6 leading-[2.5]"></div>
             </div>
         </section>
     </main>
 
-    <div id="word-modal" class="fixed inset-0 bg-black/40 hidden z-[100] flex items-center justify-center p-4">
-        <div class="bg-white p-8 rounded-3xl max-w-sm w-full shadow-2xl">
-            <div id="modal-content"></div>
-            <button onclick="closeModal()" class="w-full mt-6 bg-gray-100 py-3 rounded-xl">关闭</button>
+    <div id="modal" class="fixed inset-0 bg-black/20 hidden z-[60] flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-3xl max-w-sm w-full shadow-2xl relative">
+            <div id="modal-info"></div>
+            <button onclick="closeModal()" class="w-full mt-6 bg-gray-50 py-3 rounded-2xl hover:bg-gray-100">关闭</button>
         </div>
     </div>
 
+    <script src="data.js"></script>
     <script>
-        // --- 数据存储 ---
-        let library = JSON.parse(localStorage.getItem('jp_library') || '[]');
         let tokenizer = null;
+        let myLibrary = JSON.parse(localStorage.getItem('f_lib') || '[]');
 
-        // 初始化分词器
-        kuromoji.builder({ dicPath: "https://unpkg.com/kuromoji@0.1.2/dict/" }).build((err, _tokenizer) => {
-            if (err) console.error(err);
-            tokenizer = _tokenizer;
-            console.log("Tokenizer Ready!");
+        // 初始化分词器，解决无响应问题
+        kuromoji.builder({ dicPath: "https://unpkg.com/kuromoji@0.1.2/dict/" }).build((err, _t) => {
+            if (err) alert("字典加载失败，请刷新页面");
+            tokenizer = _t;
+            document.getElementById('loader').classList.add('hidden');
+            renderWiki();
         });
 
-        // 补全后的知识库数据
-        const knowledgeData = [
-            { title: "📍 地点表达", items: ["に (存在场所)", "で (动作场所)", "へ (移动方向)", "から (起点)", "まで (终点)", "を (通过/离开)"] },
-            { title: "🌀 动词变型", items: ["ます形 (礼貌)", "て形 (中顿/连接)", "た形 (过去)", "ない形 (否定)", "ば形 (假定)", "可能形 (能力)", "使役形 (让/使)", "被动形 (被)"] },
-            { title: "🙇 敬语体系", items: ["尊敬语 (抬高对方)", "谦让语 (降低自己)", "郑重语 (ございます)", "美化语 (お/ご+名词)"] },
-            { title: "🎁 授受动词", items: ["あげる (我给他人)", "くれる (他人给我)", "もらう (我从他人处得到)", "てあげる/てくれる/てもらう (行为授受)"] },
-            { title: "⏳ 时态结构", items: ["原形 (现在/将来)", "ました (过去)", "ています (进行中)", "ていました (过去进行/状态)"] },
-            { title: "💡 句末助词", items: ["ね (确认/征求)", "よ (告知/提醒)", "な (感叹/禁止)", "わ (女性语气)"] }
-        ];
-
-        // --- 路由与渲染 ---
-        function router(page) {
-            ['knowledge', 'library', 'detail'].forEach(p => {
-                document.getElementById(`page-${p}`).classList.add('hidden');
-                const nav = document.getElementById(`nav-${p}`);
-                if(nav) nav.classList.remove('active-tab', 'text-gray-400');
-            });
-            document.getElementById(`page-${page}`).classList.remove('hidden');
-            const activeNav = document.getElementById(`nav-${page}`);
-            if(activeNav) activeNav.classList.add('active-tab');
-            
-            if(page === 'knowledge') renderKnowledge();
-            if(page === 'library') renderLibrary();
+        function showPage(p) {
+            document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden'));
+            document.getElementById(`page-${p}`).classList.remove('hidden');
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`nav-${p === 'detail' ? 'lyrics' : p}`)?.classList.add('active');
+            if(p === 'lyrics') renderLibrary();
         }
 
-        function renderKnowledge() {
-            const container = document.getElementById('page-knowledge');
-            container.innerHTML = knowledgeData.map(group => `
-                <div class="fuwari-card p-6">
-                    <h3 class="font-bold text-pink-400 border-b pb-2 mb-4">🌸 ${group.title}</h3>
-                    <div class="grid grid-cols-1 gap-2">
-                        ${group.items.map(item => `<div class="text-sm py-1 px-2 bg-pink-50/50 rounded">${item}</div>`).join('')}
+        // 核心渲染逻辑：完整展示四张图内容
+        function renderWiki() {
+            const container = document.getElementById('page-wiki');
+            container.innerHTML = JP_DATA.map(section => `
+                <div class="card p-6">
+                    <h3 class="section-title">${section.icon} ${section.title}</h3>
+                    <div class="space-y-2">
+                        ${section.content.map(c => `<div class="wiki-item"><strong>${c.k}:</strong> <span>${c.v}</span></div>`).join('')}
                     </div>
                 </div>
             `).join('');
         }
 
-        // --- 歌词逻辑 ---
-        function saveToLibrary() {
-            const title = document.getElementById('lyrics-title').value || "无题 " + new Date().toLocaleDateString();
-            const content = document.getElementById('lyrics-raw').value;
-            if(!content) return alert("内容不能为空哦~");
-            
-            library.unshift({ title, content, id: Date.now() });
-            localStorage.setItem('jp_library', JSON.stringify(library));
-            document.getElementById('lyrics-title').value = '';
-            document.getElementById('lyrics-raw').value = '';
+        function addLyrics() {
+            const title = document.getElementById('l-title').value || "未命名";
+            const content = document.getElementById('l-content').value;
+            if(!content) return;
+            myLibrary.unshift({ title, content });
+            localStorage.setItem('f_lib', JSON.stringify(myLibrary));
             renderLibrary();
         }
 
         function renderLibrary() {
-            const list = document.getElementById('library-list');
-            list.innerHTML = library.map((item, index) => `
-                <div class="fuwari-card p-6 cursor-pointer" onclick="showDetail(${index})">
-                    <h3 class="font-bold text-lg">${item.title}</h3>
-                    <p class="text-xs text-gray-400 mt-2 line-clamp-2">${item.content.substring(0, 50)}...</p>
+            const grid = document.getElementById('lyrics-grid');
+            grid.innerHTML = myLibrary.map((item, i) => `
+                <div class="card p-6 cursor-pointer hover:border-pink-300" onclick="viewDetail(${i})">
+                    <div class="font-bold text-gray-600">${item.title}</div>
+                    <div class="text-xs text-gray-400 mt-1">${item.content.substring(0,30)}...</div>
                 </div>
             `).join('');
         }
 
-        function showDetail(index) {
-            const item = library[index];
-            document.getElementById('detail-title').innerText = item.title;
-            const contentDiv = document.getElementById('detail-content');
-            contentDiv.innerHTML = "<p class='text-center text-pink-300 animate-pulse'>分析中...</p>";
-            
-            router('detail');
-            
-            // 延迟一点点确保 UI 切换完成
+        function viewDetail(i) {
+            const item = myLibrary[i];
+            document.getElementById('det-title').innerText = item.title;
+            const body = document.getElementById('det-body');
+            body.innerHTML = "正在解析...";
+            showPage('detail');
+
             setTimeout(() => {
                 const lines = item.content.split('\n');
-                const html = lines.map(line => {
-                    // 识别日语行：只要包含假名或常用汉字
-                    const isJapanese = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(line);
-                    if (isJapanese && tokenizer) {
+                body.innerHTML = lines.map(line => {
+                    const isJp = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(line);
+                    if (isJp && tokenizer) {
                         const tokens = tokenizer.tokenize(line);
-                        const tokenHtml = tokens.map(t => {
-                            const colorClass = getPosColor(t.pos);
-                            return `<span class="inline-block px-1 rounded hover:bg-pink-100 cursor-help transition ${colorClass}" 
-                                          onclick="popWord('${t.surface_form}', '${t.reading}', '${t.pos}')">${t.surface_form}</span>`;
-                        }).join('');
-                        return `<div class="p-2 border-l-4 border-pink-200 bg-white shadow-sm">${tokenHtml}</div>`;
-                    } else {
-                        // 罗马音或中文行：变淡显示
-                        return `<div class="text-gray-400 text-sm italic px-3">${line}</div>`;
+                        return `<div class="jp-line">${tokens.map(t => `
+                            <span class="word ${getPosClass(t.pos)}" onclick="pop('${t.surface_form}','${t.reading}','${t.pos}')">${t.surface_form}</span>
+                        `).join('')}</div>`;
                     }
+                    return `<div class="other-line">${line}</div>`;
                 }).join('');
-                contentDiv.innerHTML = html;
             }, 100);
         }
 
-        // 根据词性（Part of Speech）着色
-        function getPosColor(pos) {
-            if (pos === "助詞") return "text-pink-500 font-bold underline decoration-pink-200";
-            if (pos === "動词") return "text-blue-500";
-            if (pos === "名詞") return "text-gray-800";
-            if (pos === "形容詞") return "text-green-600";
-            return "text-gray-600";
+        function getPosClass(pos) {
+            if(pos === "助詞") return "text-pink-500 underline decoration-pink-200 font-bold";
+            if(pos === "動詞") return "text-blue-500";
+            return "text-gray-700";
         }
 
-        function popWord(word, reading, pos) {
-            const modal = document.getElementById('word-modal');
-            document.getElementById('modal-content').innerHTML = `
-                <h2 class="text-4xl font-bold text-pink-400 mb-2">${word}</h2>
-                <p class="text-gray-400 mb-4">【${reading || '---'}】</p>
-                <div class="space-y-3">
-                    <p><b>词性：</b>${pos}</p>
-                    <p class="text-sm text-gray-500 italic">正在查询详细释义...</p>
-                </div>
+        function pop(w, r, p) {
+            document.getElementById('modal-info').innerHTML = `
+                <div class="text-4xl font-bold text-pink-400 mb-2">${w}</div>
+                <div class="text-gray-400 mb-4">读音：${r}</div>
+                <div class="bg-pink-50 p-4 rounded-2xl text-sm">词性：${p}</div>
             `;
-            modal.classList.remove('hidden');
+            document.getElementById('modal').classList.remove('hidden');
         }
 
-        function closeModal() { document.getElementById('word-modal').classList.add('hidden'); }
-
-        // 默认初始化
-        renderKnowledge();
+        function closeModal() { document.getElementById('modal').classList.add('hidden'); }
     </script>
 </body>
 </html>
