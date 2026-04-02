@@ -3,254 +3,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>J-Lyrics AI Hub | Gemini 2.5 Powered</title>
-    
+    <title>Fuwari 日语学园</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&family=Varela+Round&display=swap" rel="stylesheet">
-
-    <script src="https://cdn.jsdelivr.net/npm/kuroshiro@1.2.0/dist/kuroshiro.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/kuroshiro-analyzer-kuromoji@1.1.0/dist/kuroshiro-analyzer-kuromoji.min.js"></script>
-
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'fw-bg': '#fefaf6', 'fw-pink': '#ffb3c6', 'fw-cream': '#fff3e0', 
-                        'fw-mint': '#b2dfdb', 'fw-lavender': '#e1bee7', 'fw-text': '#5d4037', 
-                    },
-                    fontFamily: { 'maru': ['"Kosugi Maru"', 'sans-serif'], 'round': ['"Varela Round"', 'sans-serif'] },
-                    borderRadius: { 'fw': '1.5rem' },
-                    boxShadow: { 'fw': '0 10px 25px -5px rgba(255, 179, 198, 0.15)' }
-                }
-            }
-        }
-    </script>
-    
+    <link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&display=swap" rel="stylesheet">
     <style>
-        ruby { ruby-align: center; }
-        rt { font-size: 0.55em; color: #ff80ab; font-family: 'Varela Round', sans-serif; padding-top: 2px; }
-        
-        .word-item { 
-            position: relative; 
-            transition: all 0.2s ease; 
-            padding: 4px 10px; 
-            margin: 6px 4px; 
-            border-radius: 12px; 
-            display: inline-block;
-            background: #ffffff;
-            border-bottom: 3px solid #f3e5f5;
-        }
-        .word-item:hover { background-color: #fff3e0; transform: translateY(-2px); border-color: #ffb3c6; }
-        
-        .pos-noun { border-bottom-color: #b2dfdb; }
-        .pos-verb { border-bottom-color: #ffb3c6; }
-        .pos-particle { color: #8d6e63; background: #fdf2f2; border-bottom-color: #e1bee7; }
-
-        .lyric-line { line-height: 5.5rem; word-break: break-all; }
-        .ai-note-content { 
-            white-space: pre-wrap; 
-            line-height: 1.8; 
-            font-size: 0.85rem;
-            height: auto;
-            overflow: visible;
-        }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-slide-up { animation: slideUp 0.3s ease-out forwards; }
+        body { font-family: 'Kosugi Maru', sans-serif; background-color: #fff9fb; }
+        .fuwari-card { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); border-radius: 20px; border: 2px solid #ffe4e9; transition: transform 0.2s; }
+        .fuwari-card:hover { transform: translateY(-5px); }
+        .tab-active { border-bottom: 4px solid #ffb7c5; color: #ff8fa3; }
+        .word-tag:hover { background-color: #fff0f3; cursor: pointer; text-decoration: underline; }
     </style>
 </head>
-<body class="bg-fw-bg min-h-screen text-fw-text font-maru">
+<body class="text-gray-700">
 
-    <nav class="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-fw-cream px-6 py-4">
-        <div class="max-w-7xl mx-auto flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <span class="text-3xl">🌸</span>
-                <h1 class="text-2xl font-black text-fw-pink tracking-tight font-round">ふわり Study Hub</h1>
-            </div>
-            <div class="flex gap-3">
-                <button onclick="toggleSettings()" class="p-2 hover:bg-fw-cream rounded-full transition">⚙️ 设置 Key</button>
-            </div>
-        </div>
+    <nav class="p-6 flex justify-center space-x-12 bg-white shadow-sm">
+        <button onclick="switchTab('knowledge')" id="btn-knowledge" class="tab-active text-xl font-bold pb-2">知识百科</button>
+        <button onclick="switchTab('analyzer')" id="btn-analyzer" class="text-xl font-bold pb-2 text-gray-400">句子拆解</button>
     </nav>
 
-    <main class="max-w-7xl mx-auto p-6 lg:p-10 flex flex-col lg:flex-row gap-10">
-        <div class="flex-1 space-y-6">
-            <div class="bg-white p-6 rounded-fw shadow-fw">
-                <textarea id="inputArea" class="w-full h-32 p-4 bg-fw-bg border-none rounded-2xl focus:ring-2 focus:ring-fw-pink/30 outline-none text-xl resize-none" placeholder="输入歌词，例如：歌に形はないけれど"></textarea>
-                <button onclick="startAIAnalysis()" id="btnAction" class="w-full mt-4 bg-fw-pink text-white py-4 rounded-xl text-lg font-bold hover:shadow-lg transition-all active:scale-95">
-                    ✨ Gemini 2.5 深度解析
-                </button>
+    <main class="max-w-6xl mx-auto p-8">
+        
+        <section id="section-knowledge" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="fuwari-card p-6">
+                <h3 class="text-pink-400 font-bold mb-4 flex items-center">🌸 核心助词 (Particles)</h3>
+                <ul class="text-sm space-y-2">
+                    <li><b class="text-red-400">は</b>：提示主题 (Topic)</li>
+                    <li><b class="text-red-400">が</b>：主语/对象 (Subject)</li>
+                    <li><b class="text-red-400">を</b>：宾语 (Object)</li>
+                    <li><b class="text-red-400">に</b>：时间/地点/目的地</li>
+                </ul>
             </div>
-
-            <div id="resultCard" class="bg-white/50 p-8 rounded-fw hidden border border-white">
-                <div id="output" class="lyric-line text-4xl tracking-widest"></div>
-            </div>
-        </div>
-
-        <aside class="w-full lg:w-[450px]">
-            <div id="aiAnalysisBox" class="bg-white p-8 rounded-fw shadow-fw border border-fw-cream/30 sticky top-28 min-h-[400px] h-auto overflow-visible">
-                <div id="aiPlaceholder" class="flex flex-col items-center justify-center py-20 text-center space-y-4">
-                    <div class="text-6xl opacity-20">📖</div>
-                    <p class="text-slate-400">点击按钮生成<br>AI 语法笔记</p>
+            
+            <div class="fuwari-card p-6 bg-blue-50/30">
+                <h3 class="text-blue-400 font-bold mb-4">🌀 动词活用 (Conjugation)</h3>
+                <div class="text-xs grid grid-cols-2 gap-2">
+                    <div class="p-2 border border-blue-100 rounded">ます形：礼貌</div>
+                    <div class="p-2 border border-blue-100 rounded">て形：连接/状态</div>
+                    <div class="p-2 border border-blue-100 rounded">ない形：否定</div>
+                    <div class="p-2 border border-blue-100 rounded">辞書形：原形</div>
                 </div>
-                <div id="aiContent" class="ai-note-content hidden"></div>
             </div>
-        </aside>
+
+            <div class="fuwari-card p-6 bg-yellow-50/30">
+                <h3 class="text-yellow-600 font-bold mb-4">💡 必备句型 (Patterns)</h3>
+                <p class="text-xs">～たいです (想做...)</p>
+                <p class="text-xs mt-1">～たことがあります (曾有过...经验)</p>
+            </div>
+        </section>
+
+        <section id="section-analyzer" class="hidden">
+            <div class="fuwari-card p-8">
+                <textarea id="jp-input" class="w-full h-40 p-4 border-2 border-pink-100 rounded-xl focus:outline-none focus:border-pink-300" placeholder="在此粘贴日文文本..."></textarea>
+                <button onclick="analyzeText()" class="mt-4 bg-pink-400 text-white px-8 py-3 rounded-full hover:bg-pink-500 shadow-lg transition">开始解析 ✨</button>
+            </div>
+
+            <div id="analysis-result" class="mt-8 space-y-4">
+                </div>
+        </section>
     </main>
 
-    <div id="settingsModal" class="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white p-8 rounded-fw max-w-sm w-full shadow-2xl">
-            <h3 class="text-xl font-bold mb-4 text-fw-pink">API 配置</h3>
-            <div class="space-y-4">
-                <div>
-                    <label class="text-xs text-slate-400 ml-2">Gemini API Key</label>
-                    <input type="password" id="geminiKey" class="w-full p-3 bg-fw-bg rounded-xl outline-none border border-fw-cream">
-                </div>
-                <div>
-                    <label class="text-xs text-slate-400 ml-2">GitHub Token (可选)</label>
-                    <input type="password" id="ghToken" class="w-full p-3 bg-fw-bg rounded-xl outline-none border border-fw-cream">
-                </div>
+    <div id="word-modal" class="fixed inset-0 bg-black/20 hidden flex items-center justify-center">
+        <div class="bg-white p-8 rounded-3xl max-w-sm w-full shadow-2xl">
+            <h2 id="modal-word" class="text-3xl font-bold text-pink-500 mb-2">単語</h2>
+            <p id="modal-reading" class="text-gray-400 mb-4">假名加载中...</p>
+            <div class="p-4 bg-pink-50 rounded-xl mb-6">
+                <p id="modal-meaning">这里是 AI 自动生成的解释...</p>
             </div>
-            <button onclick="saveSettings()" class="w-full bg-fw-pink text-white py-3 rounded-xl font-bold mt-6 shadow-lg">保存配置</button>
-            <button onclick="toggleSettings()" class="w-full mt-3 text-slate-400 text-sm">关闭</button>
+            <button onclick="saveWord()" class="w-full bg-pink-400 text-white py-2 rounded-xl">收藏生词本</button>
+            <button onclick="closeModal()" class="w-full mt-2 text-gray-400 py-2">关闭</button>
         </div>
     </div>
 
     <script>
-        let kuroshiro, analyzer;
-
-        // 初始化假名转换引擎
-        async function initSystem() {
-            try {
-                const KClass = window.Kuroshiro?.default || window.Kuroshiro;
-                const AClass = window.KuromojiAnalyzer?.default || window.KuromojiAnalyzer;
-                kuroshiro = new KClass();
-                analyzer = new AClass({ dictPath: "./dict" });
-                await kuroshiro.init(analyzer);
-                
-                // 自动填充 Key
-                if(localStorage.getItem('gemini_api_key')) {
-                    document.getElementById('geminiKey').value = localStorage.getItem('gemini_api_key');
-                }
-            } catch (err) { console.error("Init Error", err); }
+        function switchTab(tab) {
+            document.getElementById('section-knowledge').classList.toggle('hidden', tab !== 'knowledge');
+            document.getElementById('section-analyzer').classList.toggle('hidden', tab !== 'analyzer');
+            document.getElementById('btn-knowledge').className = tab === 'knowledge' ? 'tab-active text-xl font-bold pb-2' : 'text-xl font-bold pb-2 text-gray-400';
+            document.getElementById('btn-analyzer').className = tab === 'analyzer' ? 'tab-active text-xl font-bold pb-2' : 'text-xl font-bold pb-2 text-gray-400';
         }
-        window.addEventListener('DOMContentLoaded', initSystem);
 
-  async function startAIAnalysis() {
-    const fullText = document.getElementById('inputArea').value.trim();
-    const apiKey = localStorage.getItem('gemini_api_key')?.trim().replace(/\s+/g, '');
-    
-    if (!apiKey) return toggleSettings();
-    if (!fullText) return;
-
-    // 1. 将整首歌词按行切分，过滤掉空行
-    const lines = fullText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-
-    // 2. 清空侧边栏并准备显示区域
-    const aiBox = document.getElementById('aiAnalysisBox');
-    const placeholder = document.getElementById('aiPlaceholder');
-    const contentBox = document.getElementById('aiContent');
-    
-    placeholder.classList.add('hidden');
-    contentBox.classList.remove('hidden');
-    contentBox.innerHTML = ""; // 清空旧内容
-    
-    // 显示总进度
-    const progressHeader = document.createElement('div');
-    progressHeader.className = "text-[10px] text-fw-pink mb-4 font-bold border-b pb-2";
-    contentBox.appendChild(progressHeader);
-
-    // 3. 循环逐行处理
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        progressHeader.innerText = `🌸 正在分析第 ${i + 1} / ${lines.length} 行...`;
-
-        // 创建这一行的专属笔记卡片
-        const lineCard = document.createElement('div');
-        lineCard.className = "mb-6 p-4 bg-fw-bg/50 rounded-xl border-l-4 border-fw-pink animate-slide-up";
-        lineCard.innerHTML = `
-            <div class="text-xs font-bold text-slate-400 mb-2">LINE ${i + 1}</div>
-            <div class="text-sm font-black mb-3 text-fw-text">${line}</div>
-            <div class="line-ai-result text-[13px] leading-relaxed opacity-60">正在思考...</div>
-        `;
-        contentBox.appendChild(lineCard);
-        const resultTarget = lineCard.querySelector('.line-ai-result');
-
-        try {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+        async function analyzeText() {
+            const text = document.getElementById('jp-input').value;
+            const resultDiv = document.getElementById('analysis-result');
             
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ 
-                        parts: [{ 
-                            text: `你是一位专业的日语速记老师。请对歌词“${line}”进行精简解析。
-                            要求：
-                            1. 严禁开场白、严禁表格、严禁空行。
-                            2. 格式：● 单词(读音)：含义 [词性] ➔ 语法作用。
-                            3. 最后用一句话总结结构。保持紧凑。` 
-                        }] 
-                    }]
-                })
-            });
-
-            if (!response.ok) throw new Error("API Limit");
-
-            const data = await response.json();
-            const aiResult = data.candidates[0].content.parts[0].text;
-
-            // 更新当前卡片的内容
-            resultTarget.innerText = aiResult.replace(/\n\s*\n/g, '\n').trim();
-            resultTarget.classList.remove('opacity-60');
-            
-            // 滚动到当前正在分析的行（可选，增加交互感）
-            lineCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-        } catch (e) {
-            resultTarget.innerText = "⚠️ 这一行解析跳过了（可能是频率太快）";
-            resultTarget.classList.add('text-red-300');
+            // 模拟拆解逻辑（实际部署建议调用 Gemini API）
+            const sentences = text.split(/[。！？]/).filter(s => s.trim());
+            resultDiv.innerHTML = sentences.map(s => `
+                <div class="fuwari-card p-4">
+                    <p class="text-lg mb-2">${tokenize(s)}</p>
+                    <div class="text-xs text-blue-400">结构分析：主语 + 谓语...</div>
+                </div>
+            `).join('');
         }
 
-        // 稍微停顿一下（200ms），防止请求太快触发 Google 的频率限制
-        await new Promise(resolve => setTimeout(resolve, 200));
-    }
-
-    progressHeader.innerText = `✨ 全曲解析完成！共 ${lines.length} 行`;
-}
-
-        function renderLyrics(tokens) {
-            const container = document.getElementById('output');
-            container.innerHTML = "";
-            const KUtils = window.Kuroshiro?.default?.util || window.Kuroshiro?.util;
-
-            tokens.forEach(token => {
-                const span = document.createElement('span');
-                const posClass = getPosClass(token.pos);
-                span.className = `word-item animate-slide-up ${posClass}`;
-                
-                if (KUtils && token.surface_form !== token.reading && token.reading !== '*') {
-                    span.innerHTML = `<ruby>${token.surface_form}<rt>${KUtils.kanaToHiragana(token.reading)}</rt></ruby>`;
-                } else {
-                    span.innerText = token.surface_form;
-                }
-                container.appendChild(span);
-            });
+        function tokenize(sentence) {
+            // 这里演示将句子包裹成可点击的词块
+            return sentence.split('').map(char => `<span class="word-tag px-1" onclick="showDetail('${char}')">${char}</span>`).join('');
         }
 
-        function getPosClass(pos) {
-            if (pos.includes('名詞')) return 'pos-noun';
-            if (pos.includes('動詞')) return 'pos-verb';
-            if (pos.includes('助詞')) return 'pos-particle';
-            return '';
+        function showDetail(word) {
+            document.getElementById('modal-word').innerText = word;
+            document.getElementById('word-modal').classList.remove('hidden');
         }
 
-        function toggleSettings() { document.getElementById('settingsModal').classList.toggle('hidden'); }
-        function saveSettings() {
-            localStorage.setItem('gemini_api_key', document.getElementById('geminiKey').value.trim());
-            localStorage.setItem('gh_token', document.getElementById('ghToken').value.trim());
-            toggleSettings();
-            alert("配置已更新 🌸");
+        function closeModal() {
+            document.getElementById('word-modal').classList.add('hidden');
         }
     </script>
 </body>
