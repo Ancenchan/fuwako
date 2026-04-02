@@ -1,144 +1,15 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fuwari 日语空间</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/kuromoji@0.1.2/build/kuromoji.js"></script>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    <div id="loader" class="fixed inset-0 bg-white z-[100] flex flex-col items-center justify-center">
-        <div class="w-16 h-16 border-4 border-pink-200 border-t-pink-400 rounded-full animate-spin"></div>
-        <p class="mt-4 text-pink-400 font-bold">正在初始化日语字典... (首次加载约3秒)</p>
-    </div>
-
-    <nav class="sticky top-0 bg-white/90 backdrop-blur-md shadow-sm z-50 p-4 flex justify-center gap-8">
-        <button onclick="showPage('wiki')" class="nav-btn active" id="nav-wiki">知识手册</button>
-        <button onclick="showPage('lyrics')" class="nav-btn" id="nav-lyrics">歌词阅读</button>
-    </nav>
-
-    <main class="max-w-6xl mx-auto p-6">
-        <section id="page-wiki" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            </section>
-
-        <section id="page-lyrics" class="hidden">
-            <div class="card p-6 mb-8">
-                <input type="text" id="l-title" placeholder="输入歌曲名..." class="fuwari-input mb-4">
-                <textarea id="l-content" placeholder="粘贴文本 (支持中日混排)..." class="fuwari-input h-32"></textarea>
-                <button onclick="addLyrics()" class="btn-primary w-full mt-2">存入书架</button>
-            </div>
-            <div id="lyrics-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
-        </section>
-
-        <section id="page-detail" class="hidden">
-            <button onclick="showPage('lyrics')" class="mb-4 text-pink-400">← 返回列表</button>
-            <div class="card p-8">
-                <h1 id="det-title" class="text-3xl font-bold mb-8 text-center text-gray-700"></h1>
-                <div id="det-body" class="space-y-6 leading-[2.5]"></div>
-            </div>
-        </section>
-    </main>
-
-    <div id="modal" class="fixed inset-0 bg-black/20 hidden z-[60] flex items-center justify-center p-4">
-        <div class="bg-white p-8 rounded-3xl max-w-sm w-full shadow-2xl relative">
-            <div id="modal-info"></div>
-            <button onclick="closeModal()" class="w-full mt-6 bg-gray-50 py-3 rounded-2xl hover:bg-gray-100">关闭</button>
-        </div>
-    </div>
-
-    <script src="data.js"></script>
-    <script>
-        let tokenizer = null;
-        let myLibrary = JSON.parse(localStorage.getItem('f_lib') || '[]');
-
-        // 初始化分词器，解决无响应问题
-        kuromoji.builder({ dicPath: "https://unpkg.com/kuromoji@0.1.2/dict/" }).build((err, _t) => {
-            if (err) alert("字典加载失败，请刷新页面");
-            tokenizer = _t;
-            document.getElementById('loader').classList.add('hidden');
-            renderWiki();
-        });
-
-        function showPage(p) {
-            document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden'));
-            document.getElementById(`page-${p}`).classList.remove('hidden');
-            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(`nav-${p === 'detail' ? 'lyrics' : p}`)?.classList.add('active');
-            if(p === 'lyrics') renderLibrary();
-        }
-
-        // 核心渲染逻辑：完整展示四张图内容
-        function renderWiki() {
-            const container = document.getElementById('page-wiki');
-            container.innerHTML = JP_DATA.map(section => `
-                <div class="card p-6">
-                    <h3 class="section-title">${section.icon} ${section.title}</h3>
-                    <div class="space-y-2">
-                        ${section.content.map(c => `<div class="wiki-item"><strong>${c.k}:</strong> <span>${c.v}</span></div>`).join('')}
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function addLyrics() {
-            const title = document.getElementById('l-title').value || "未命名";
-            const content = document.getElementById('l-content').value;
-            if(!content) return;
-            myLibrary.unshift({ title, content });
-            localStorage.setItem('f_lib', JSON.stringify(myLibrary));
-            renderLibrary();
-        }
-
-        function renderLibrary() {
-            const grid = document.getElementById('lyrics-grid');
-            grid.innerHTML = myLibrary.map((item, i) => `
-                <div class="card p-6 cursor-pointer hover:border-pink-300" onclick="viewDetail(${i})">
-                    <div class="font-bold text-gray-600">${item.title}</div>
-                    <div class="text-xs text-gray-400 mt-1">${item.content.substring(0,30)}...</div>
-                </div>
-            `).join('');
-        }
-
-        function viewDetail(i) {
-            const item = myLibrary[i];
-            document.getElementById('det-title').innerText = item.title;
-            const body = document.getElementById('det-body');
-            body.innerHTML = "正在解析...";
-            showPage('detail');
-
-            setTimeout(() => {
-                const lines = item.content.split('\n');
-                body.innerHTML = lines.map(line => {
-                    const isJp = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(line);
-                    if (isJp && tokenizer) {
-                        const tokens = tokenizer.tokenize(line);
-                        return `<div class="jp-line">${tokens.map(t => `
-                            <span class="word ${getPosClass(t.pos)}" onclick="pop('${t.surface_form}','${t.reading}','${t.pos}')">${t.surface_form}</span>
-                        `).join('')}</div>`;
-                    }
-                    return `<div class="other-line">${line}</div>`;
-                }).join('');
-            }, 100);
-        }
-
-        function getPosClass(pos) {
-            if(pos === "助詞") return "text-pink-500 underline decoration-pink-200 font-bold";
-            if(pos === "動詞") return "text-blue-500";
-            return "text-gray-700";
-        }
-
-        function pop(w, r, p) {
-            document.getElementById('modal-info').innerHTML = `
-                <div class="text-4xl font-bold text-pink-400 mb-2">${w}</div>
-                <div class="text-gray-400 mb-4">读音：${r}</div>
-                <div class="bg-pink-50 p-4 rounded-2xl text-sm">词性：${p}</div>
-            `;
-            document.getElementById('modal').classList.remove('hidden');
-        }
-
-        function closeModal() { document.getElementById('modal').classList.add('hidden'); }
-    </script>
-</body>
-</html>
+// 修改后的初始化逻辑
+// 注意：浏览器访问本地文件可能有跨域限制，
+// 但在 GitHub Pages (https) 环境下，相对路径 ./dict/ 是完美的。
+kuromoji.builder({ dicPath: "./dict/" }).build((err, _t) => {
+    if (err) {
+        console.error("词典加载失败:", err);
+        // 如果本地加载失败，可以增加一个 UI 提示
+        document.getElementById('loader').innerHTML = 
+            `<p class="text-red-400">词典加载失败，请检查 /dict 文件夹是否存在 .dat.gz 文件</p>`;
+        return;
+    }
+    tokenizer = _t;
+    document.getElementById('loader').classList.add('hidden');
+    renderWiki();
+});
