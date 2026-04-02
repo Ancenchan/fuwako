@@ -10,394 +10,345 @@
     
     <style>
         :root {
-            --fuwari-pink: #ffb7c5;
-            --fuwari-bg: #fff9fb;
-            --fuwari-card-border: #ffeef1;
+            --fuwari-pink: #ffc2d1;
+            --fuwari-pink-dark: #fb6f92;
+            --fuwari-bg: #fffcfd;
+            --fuwari-card-bg: rgba(255, 255, 255, 0.7);
+            --fuwari-border: #ffe5ec;
         }
 
         body {
-            font-family: 'M PLUS Rounded 1c', 'Kosugi Maru', sans-serif;
+            font-family: 'M PLUS Rounded 1c', sans-serif;
             background-color: var(--fuwari-bg);
-            color: #5a5a5a;
-            overflow-x: hidden;
+            background-image: 
+                radial-gradient(at 0% 0%, hsla(338, 100%, 95%, 1) 0, transparent 50%), 
+                radial-gradient(at 50% 100%, hsla(338, 100%, 98%, 1) 0, transparent 50%);
+            color: #6d6d6d;
+            min-height: 100vh;
         }
 
+        /* 纯净可爱的导航栏 */
         nav {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(12px);
-            border-bottom: 2px solid var(--fuwari-card-border);
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--fuwari-border);
         }
 
         .nav-btn {
             position: relative;
             font-weight: 700;
-            color: #d1d1d1;
-            transition: all 0.3s;
+            color: #ccadb4;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
         .nav-btn.active {
-            color: var(--fuwari-pink);
+            color: var(--fuwari-pink-dark);
+            transform: scale(1.1);
         }
 
         .nav-btn.active::after {
-            content: '';
+            content: '✿';
             position: absolute;
-            bottom: -4px;
-            left: 0;
-            width: 100%;
-            height: 4px;
-            background: var(--fuwari-pink);
-            border-radius: 10px;
+            bottom: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
         }
 
+        /* 更轻盈的卡片 */
         .fuwari-card {
-            background: white;
-            border-radius: 24px;
-            border: 2px solid var(--fuwari-card-border);
-            box-shadow: 0 8px 0 #ffeef1;
-            transition: transform 0.2s, box-shadow 0.2s;
+            background: var(--fuwari-card-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 30px;
+            border: 1px solid white;
+            box-shadow: 0 10px 30px rgba(255, 194, 209, 0.15);
+            transition: all 0.3s ease;
         }
 
         .fuwari-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 0 #ffeef1;
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(255, 194, 209, 0.25);
+            background: white;
         }
 
-        .line-wrapper {
-            margin-bottom: 1.5rem;
-            line-height: 2.4;
-        }
-
+        /* 词块效果优化 */
         .jp-token {
             display: inline-block;
-            padding: 2px 6px;
+            padding: 0 4px;
             margin: 0 2px;
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
-            transition: all 0.2s;
-            background: transparent;
+            transition: all 0.2s ease;
+            position: relative;
         }
 
         .jp-token:hover, .jp-token.selected {
-            background: #fff0f3;
-            transform: scale(1.05);
-            box-shadow: 0 2px 8px rgba(255, 183, 197, 0.3);
+            background: #ffe5ec;
+            color: var(--fuwari-pink-dark);
         }
 
-        .pos-助詞 { color: #ff8fa3; font-weight: bold; border-bottom: 2px dotted #ffb7c5; }
-        .pos-動詞 { color: #5dade2; font-weight: bold; }
-        .pos-名詞 { color: #5a5a5a; }
-        .pos-形容詞 { color: #58d68d; font-weight: bold;}
+        .pos-助詞 { border-bottom: 2px solid #ffccd5; }
+        .pos-動詞 { color: #8ecae6; }
+        .pos-名詞 { color: #6d6d6d; }
+        .pos-形容詞 { color: #b7e4c7; }
 
-        .other-lang-line {
-            color: #a0a0a0;
-            font-size: 0.95rem;
-            font-style: italic;
-            padding-left: 1rem;
-            border-left: 3px solid #f0f0f0;
-        }
-
-        #loader-screen { background: var(--fuwari-bg); z-index: 9999; }
-        .spinner {
-            width: 50px; height: 50px;
-            border: 5px solid #ffeef1;
-            border-top: 5px solid var(--fuwari-pink);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
+        .line-wrapper { margin-bottom: 1.2rem; line-height: 2.2; }
+        
         .sidebar-sticky {
             position: sticky;
-            top: 88px;
-            height: calc(100vh - 120px);
+            top: 100px;
+            height: calc(100vh - 140px);
             overflow-y: auto;
         }
-        
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #ffe4e9; border-radius: 10px; }
+
+        /* 配置弹窗动画 */
+        #config-modal {
+            transition: opacity 0.3s ease;
+        }
+
+        #config-modal .modal-content {
+            animation: fuwariPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes fuwariPop {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .spinner {
+            width: 40px; height: 40px;
+            border: 4px solid #fff;
+            border-top: 4px solid var(--fuwari-pink);
+            border-radius: 50%;
+            animation: spin 1s infinite linear;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-    <div id="loader-screen" class="fixed inset-0 flex flex-col items-center justify-center">
+    <div id="loader-screen" class="fixed inset-0 flex flex-col items-center justify-center z-[9999]">
         <div class="spinner"></div>
-        <p class="mt-6 font-bold text-pink-300 animate-pulse">系统加载中，请稍候...</p>
+        <p class="mt-4 font-bold text-pink-300 tracking-widest text-sm">LOADING...</p>
     </div>
 
-    <nav class="sticky top-0 z-50 p-4 shadow-sm">
-        <div class="max-w-7xl mx-auto flex justify-between items-center px-4">
-            <div class="flex items-center gap-4">
-                <div class="text-2xl font-bold text-pink-400">🌸 Fuwako 学园</div>
-                <button onclick="openConfigModal()" id="btn-config" class="text-xl text-gray-300 hover:text-pink-400 transition" title="配置云端密钥">
-                    ⚙️
+    <nav class="sticky top-0 z-50 p-4">
+        <div class="max-w-7xl mx-auto flex justify-between items-center px-6">
+            <div class="flex items-center gap-6">
+                <div class="text-2xl font-bold text-pink-400 tracking-tight">Fuwako.</div>
+                <button onclick="openConfigModal()" id="btn-config" class="text-xl opacity-40 hover:opacity-100 transition-opacity">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M208,80H173.66a36,36,0,0,0-67.32,0H48a12,12,0,0,0,0,24H106.34a36,36,0,0,0,67.32,0H208a12,12,0,0,0,0-24Zm-68,28a12,12,0,1,1,12-12A12,12,0,0,1,140,108ZM48,176a12,12,0,0,0,0,24H82.34a36,36,0,0,0,67.32,0H208a12,12,0,0,0,0-24H149.66a36,36,0,0,0-67.32,0Z"></path></svg>
                 </button>
             </div>
-            <div class="flex gap-8">
-                <button onclick="switchPage('wiki')" id="btn-wiki" class="nav-btn active">知识百科</button>
-                <button onclick="switchPage('lib')" id="btn-lib" class="nav-btn">歌词书架</button>
+            <div class="flex gap-10">
+                <button onclick="switchPage('wiki')" id="btn-wiki" class="nav-btn active">WIKI</button>
+                <button onclick="switchPage('lib')" id="btn-lib" class="nav-btn">LIBRARY</button>
             </div>
         </div>
     </nav>
 
-    <main class="max-w-7xl mx-auto p-4 md:p-6">
+    <main class="max-w-7xl mx-auto p-6">
         
-        <section id="page-wiki" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></section>
+        <section id="page-wiki" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"></section>
 
         <section id="page-lib" class="hidden">
-            <div class="fuwari-card p-8 mb-8 relative">
-                <div id="sync-status" class="absolute top-6 right-6 text-xs font-bold text-gray-300 flex items-center gap-1">
-                    <span class="w-2 h-2 rounded-full bg-gray-300" id="sync-dot"></span> 未连接云端
-                </div>
-                <h3 class="text-xl font-bold text-pink-400 mb-4">📝 添加新歌词</h3>
-                <input type="text" id="input-title" placeholder="歌曲名称..." class="w-full p-4 rounded-2xl border-2 border-pink-50 outline-none focus:border-pink-200 mb-4 bg-gray-50/50">
-                <textarea id="input-content" placeholder="粘贴文本 (中日罗马音混排会自动识别日文行)..." class="w-full h-40 p-4 rounded-2xl border-2 border-pink-50 outline-none focus:border-pink-200 bg-gray-50/50"></textarea>
-                <button onclick="saveLyrics()" class="w-full mt-4 bg-pink-300 text-white font-bold py-4 rounded-2xl shadow hover:bg-pink-400 transition">存入书架 ☁️</button>
+            <div class="fuwari-card p-10 mb-10 relative overflow-hidden">
+                <div class="absolute -top-10 -right-10 w-40 h-40 bg-pink-50 rounded-full opacity-50"></div>
+                <div id="sync-status" class="absolute top-6 right-8 text-[10px] font-bold tracking-widest uppercase text-gray-300"></div>
+                
+                <h3 class="text-lg font-bold text-gray-400 mb-6 flex items-center gap-2">
+                    <span class="w-8 h-[2px] bg-pink-200"></span> NEW ENTRY
+                </h3>
+                <input type="text" id="input-title" placeholder="Title" class="w-full p-4 mb-4 rounded-2xl border border-pink-50 outline-none focus:border-pink-200 bg-white/50 transition-all">
+                <textarea id="input-content" placeholder="Content..." class="w-full h-40 p-4 rounded-2xl border border-pink-50 outline-none focus:border-pink-200 bg-white/50 transition-all"></textarea>
+                <button onclick="saveLyrics()" class="w-full mt-6 bg-pink-200 text-white font-bold py-4 rounded-2xl hover:bg-pink-300 shadow-sm transition-all active:scale-95">SAVE TO CLOUD</button>
             </div>
             
-            <div id="lyrics-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+            <div id="lyrics-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
         </section>
 
         <section id="page-detail" class="hidden">
-            <button onclick="switchPage('lib')" class="mb-4 text-pink-300 font-bold px-2 hover:text-pink-400 transition">← 返回书架</button>
-            <div class="flex flex-col lg:flex-row gap-6">
-                <div class="flex-1 fuwari-card p-6 md:p-10">
-                    <h1 id="view-title" class="text-3xl font-bold text-center mb-8 text-gray-700 border-b-2 border-pink-50 pb-6"></h1>
-                    <div id="view-body" class="text-lg text-gray-600"></div>
+            <button onclick="switchPage('lib')" class="mb-6 text-pink-300 text-sm font-bold flex items-center gap-2 hover:gap-3 transition-all">
+                <span>←</span> BACK TO LIBRARY
+            </button>
+            <div class="flex flex-col lg:flex-row gap-8">
+                <div class="flex-1 fuwari-card p-8 md:p-14 min-h-[600px]">
+                    <h1 id="view-title" class="text-2xl font-bold text-center mb-12 text-gray-700 tracking-tight"></h1>
+                    <div id="view-body" class="text-[17px] text-gray-500 leading-relaxed"></div>
                 </div>
                 <div class="w-full lg:w-80 shrink-0">
-                    <div class="fuwari-card p-6 sidebar-sticky flex flex-col bg-pink-50/30">
-                        <h3 class="font-bold text-pink-400 mb-4 flex items-center gap-2"><span>📖</span> 单词解析</h3>
-                        <div id="sidebar-content" class="flex-1"></div>
+                    <div class="fuwari-card p-8 sidebar-sticky bg-white/80">
+                        <h3 class="font-bold text-pink-300 text-xs tracking-widest mb-8 uppercase">Analysis</h3>
+                        <div id="sidebar-content" class="space-y-6"></div>
                     </div>
                 </div>
             </div>
         </section>
     </main>
 
-    <div id="config-modal" class="fixed inset-0 bg-black/10 backdrop-blur-sm hidden z-[100] flex items-center justify-center p-4">
-        <div class="bg-white p-8 rounded-[32px] max-w-sm w-full shadow-2xl border-4 border-pink-50">
-            <h3 class="text-xl font-bold text-pink-400 mb-2">⚙️ 核心配置</h3>
-            <p class="text-xs text-gray-400 mb-6">密钥仅保存在您的浏览器本地，不会上传。</p>
-            
-            <div class="space-y-4 mb-6">
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 mb-1">GitHub Token (用于云端同步)</label>
-                    <input type="password" id="cfg-github" placeholder="ghp_..." class="w-full p-3 rounded-xl border-2 border-pink-50 outline-none focus:border-pink-200 text-sm bg-gray-50/50">
-                </div>
+    <div id="config-modal" class="fixed inset-0 bg-pink-100/20 backdrop-blur-md hidden z-[100] flex items-center justify-center p-6">
+        <div class="modal-content bg-white p-10 rounded-[40px] max-w-sm w-full shadow-2xl border border-white">
+            <div class="w-12 h-12 bg-pink-50 rounded-2xl flex items-center justify-center mb-6">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="#ffb7c5" viewBox="0 0 256 256"><path d="M216,48H40A16,16,0,0,0,24,64V192a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V64A16,16,0,0,0,216,48ZM216,192H40V88H216V192Z"></path></svg>
             </div>
+            <h3 class="text-xl font-bold text-gray-700 mb-2">GitHub Sync</h3>
+            <p class="text-xs text-gray-400 mb-8 leading-relaxed">请输入您的 Personal Access Token 以开启跨设备同步功能。</p>
+            
+            <input type="password" id="cfg-github" placeholder="ghp_xxxxxxxxxxxx" class="w-full p-4 mb-8 rounded-2xl border border-pink-50 outline-none focus:border-pink-200 bg-gray-50/50 text-sm">
 
             <div class="flex gap-4">
-                <button onclick="saveConfig()" class="flex-1 bg-pink-300 text-white font-bold py-3 rounded-xl shadow hover:bg-pink-400 transition">保存并同步</button>
-                <button onclick="closeConfigModal()" class="flex-1 bg-gray-100 text-gray-500 font-bold py-3 rounded-xl hover:bg-gray-200 transition">取消</button>
+                <button onclick="saveConfig()" class="flex-1 bg-pink-200 text-white font-bold py-4 rounded-2xl hover:bg-pink-300 transition-all">CONNECT</button>
+                <button onclick="closeConfigModal()" class="flex-1 bg-gray-50 text-gray-400 font-bold py-4 rounded-2xl hover:bg-gray-100 transition-all">CLOSE</button>
             </div>
         </div>
     </div>
 
     <script>
-        // ================= 配置与变量 =================
+        // ================= 配置区 =================
+        const GEMINI_KEY = "AIzaSyC3vAqGTuOmHUe1UDFbHXA4uf4Ij0ZeJbs"; // 硬编码
         const REPO_OWNER = "ancenchan";
         const REPO_NAME = "fuwako";
         const FILE_PATH = "lyrics_data.json";
 
-        // 从本地存储读取密钥
         let GITHUB_TOKEN = localStorage.getItem('fuwako_github') || "";
-        let GEMINI_KEY ="AIzaSyC3vAqGTuOmHUe1UDFbHXA4uf4Ij0ZeJbs";
-        
         let tokenizer = null;
         let library = JSON.parse(localStorage.getItem('fuwari_lib') || '[]');
 
         const JP_DATA = [
             { title: "人称代词", icon: "🌸", content: [
-                {k: "第一人称", v: "私 (普) / 僕 (男) / 俺 (糙) / あたし (娇)"},
-                {k: "第二人称", v: "あなた (礼) / 君 (亲) / お前 (强)"},
-                {k: "第三人称", v: "彼 (他) / 彼女 (她) / あいつ (那家伙)"},
-                {k: "复数", v: "～たち (们) / ～ら (等)"}
+                {k: "第一人称", v: "私 / 僕 / 俺 / あたし"},
+                {k: "第二人称", v: "あなた / 君 / お前"},
+                {k: "第三人称", v: "彼 / 彼女 / あいつ"}
             ]},
             { title: "核心格助词", icon: "📍", content: [
-                {k: "は/が", v: "提示主题 / 强调主语"},
-                {k: "を", v: "动作的目的物（吃/看/做）"},
-                {k: "に", v: "时间、地点、终点、对象"},
-                {k: "で", v: "动作地、工具、方式、原因"},
-                {k: "と", v: "和、引用内容"},
-                {k: "から/まで", v: "起点 / 终点"}
+                {k: "は/が", v: "主题提示 / 强调主语"},
+                {k: "を", v: "宾格（动作对象）"},
+                {k: "に", v: "时间、对象、目的地"}
             ]},
             { title: "动词活用", icon: "🌀", content: [
-                {k: "ます形", v: "敬体/礼貌形式"},
-                {k: "て形", v: "中顿、状态、正在进行"},
-                {k: "た形", v: "过去时、动作完成"},
-                {k: "ない形", v: "否定式、不..."},
-                {k: "辞書形", v: "原形/肯定将来时"},
-                {k: "意向形", v: "想要、建议、一起吧"},
-                {k: "可能形", v: "能、会、可以"},
-                {k: "使役/被动", v: "让某人做 / 被迫做"}
+                {k: "ます形", v: "敬体礼貌形式"},
+                {k: "て形", v: "接续、正在进行"},
+                {k: "辞書形", v: "原形/将来时"}
             ]},
             { title: "授受关系", icon: "🎁", content: [
-                {k: "あげる", v: "我/己方 给 别人"},
-                {k: "くれる", v: "别人 给 我/己方"},
-                {k: "もらう", v: "我 从别人处 得到"},
-                {k: "～てあげる", v: "主动为他人做某事"},
-                {k: "～てくれる", v: "感激他人为我做"}
+                {k: "あげる", v: "我 给 别人"},
+                {k: "くれる", v: "别人 给 我"},
+                {k: "もらう", v: "我 得到"}
             ]},
             { title: "敬语体系", icon: "🙇", content: [
-                {k: "尊敬语", v: "抬高对方 (いらっしゃる)"},
-                {k: "谦让语", v: "贬低自己 (参る)"},
-                {k: "郑重语", v: "礼貌用语 (です/ます)"},
-                {k: "美化语", v: "名词加 お/ご (お茶)"}
+                {k: "尊敬语", v: "抬高对方"},
+                {k: "谦让语", v: "降低自己"},
+                {k: "郑重语", v: "です/ます"}
             ]},
             { title: "疑问与细节", icon: "❓", content: [
-                {k: "人/物", v: "だれ / なに"},
-                {k: "地点/时间", v: "どこ / いつ"},
-                {k: "促音 (っ)", v: "顿一下，占一拍"},
-                {k: "长音 (ー)", v: "拖长一拍"},
-                {k: "拗音", v: "辅音+ゃ/ゅ/ょ"}
+                {k: "だれ / なに", v: "谁 / 什么"},
+                {k: "どこ / いつ", v: "哪里 / 何时"}
             ]}
         ];
 
         // ================= 初始化 =================
         kuromoji.builder({ dicPath: "./dict/" }).build(async (err, _tokenizer) => {
-            if (err) {
-                document.getElementById('loader-screen').innerHTML = `<p class="text-red-400">字典加载失败</p>`;
-                return;
-            }
+            if (err) return alert("词典加载失败");
             tokenizer = _tokenizer;
             renderWiki();
             updateConfigUI();
-            
-            if(GITHUB_TOKEN) {
-                await forceSyncFlow(); // 如果有Token，初始化时自动拉取并合并
-            } else {
-                renderLibrary(); // 没有Token只显示本地
-            }
-            
-            document.getElementById('loader-screen').classList.add('hidden');
+            if(GITHUB_TOKEN) await forceSyncFlow();
+            else renderLibrary();
+            document.getElementById('loader-screen').style.display = 'none';
         });
 
-        // ================= 密钥管理UI =================
+        // ================= 弹窗逻辑 =================
         function openConfigModal() {
             document.getElementById('cfg-github').value = GITHUB_TOKEN;
-            document.getElementById('cfg-gemini').value = GEMINI_KEY;
             document.getElementById('config-modal').classList.remove('hidden');
         }
-
         function closeConfigModal() {
             document.getElementById('config-modal').classList.add('hidden');
         }
-
         async function saveConfig() {
             GITHUB_TOKEN = document.getElementById('cfg-github').value.trim();
-            GEMINI_KEY = document.getElementById('cfg-gemini').value.trim();
-            
             localStorage.setItem('fuwako_github', GITHUB_TOKEN);
-            localStorage.setItem('fuwako_gemini', GEMINI_KEY);
-            
             closeConfigModal();
             updateConfigUI();
-
-            if (GITHUB_TOKEN) {
-                const btn = document.getElementById('btn-config');
-                btn.innerHTML = "⏳";
-                await forceSyncFlow();
-                btn.innerHTML = "⚙️";
-            }
+            if (GITHUB_TOKEN) await forceSyncFlow();
         }
-
         function updateConfigUI() {
-            const btn = document.getElementById('btn-config');
             const statusText = document.getElementById('sync-status');
-            const statusDot = document.getElementById('sync-dot');
-
-            if (GITHUB_TOKEN) {
-                btn.classList.replace('text-gray-300', 'text-pink-400');
-                statusText.innerHTML = `<span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span> 云端已连接`;
-            } else {
-                btn.classList.replace('text-pink-400', 'text-gray-300');
-                statusText.innerHTML = `<span class="w-2 h-2 rounded-full bg-gray-300"></span> 未连接云端`;
-            }
+            statusText.innerHTML = GITHUB_TOKEN ? "● Connected to Cloud" : "○ Local Mode";
+            statusText.className = GITHUB_TOKEN ? "absolute top-6 right-8 text-[10px] font-bold tracking-widest uppercase text-pink-300" : "absolute top-6 right-8 text-[10px] font-bold tracking-widest uppercase text-gray-300";
         }
 
-        // ================= 云同步核心逻辑 =================
-        // 强制全量合并与同步流
+        // ================= 同步与存取 =================
         async function forceSyncFlow() {
             const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`;
-            let sha = "";
-            let remoteLibrary = [];
-
-            // 1. 获取远程数据
+            let sha = "", remoteLibrary = [];
             try {
-                const getRes = await fetch(url, { headers: { "Authorization": `token ${GITHUB_TOKEN}` } });
-                if (getRes.ok) {
-                    const data = await getRes.json();
+                const res = await fetch(url, { headers: { "Authorization": `token ${GITHUB_TOKEN}` } });
+                if (res.ok) {
+                    const data = await res.json();
                     sha = data.sha;
                     remoteLibrary = JSON.parse(decodeURIComponent(escape(atob(data.content))));
                 }
-            } catch (err) {
-                console.log("云端文件不存在或获取失败，将创建新文件");
-            }
-
-            // 2. 合并本地和远程数据 (通过 ID 去重)
+            } catch (e) {}
             const map = new Map();
             remoteLibrary.forEach(item => map.set(item.id || item.title, item));
-            library.forEach(item => {
-                if(!map.has(item.id || item.title)) map.set(item.id || item.title, item);
-            });
-            library = Array.from(map.values()).sort((a,b) => b.id - a.id); // 最新的在前面
-
-            // 3. 渲染并存入本地
+            library.forEach(item => { if(!map.has(item.id || item.title)) map.set(item.id || item.title, item); });
+            library = Array.from(map.values()).sort((a,b) => b.id - a.id);
             localStorage.setItem('fuwari_lib', JSON.stringify(library));
             renderLibrary();
-
-            // 4. 将合并后的全量数据推回 GitHub
             await pushToGitHub(sha);
         }
 
-        // 仅推送到云端 (新增时调用)
         async function pushToGitHub(knownSha = "") {
             if(!GITHUB_TOKEN) return;
             const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`;
-            
             try {
                 let sha = knownSha;
-                if (!sha) {
-                    const getRes = await fetch(url, { headers: { "Authorization": `token ${GITHUB_TOKEN}` } });
-                    if (getRes.ok) sha = (await getRes.json()).sha;
+                if(!sha) {
+                    const res = await fetch(url, { headers: { "Authorization": `token ${GITHUB_TOKEN}` } });
+                    if(res.ok) sha = (await res.json()).sha;
                 }
-
                 const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(library, null, 2))));
                 await fetch(url, {
                     method: 'PUT',
                     headers: { "Authorization": `token ${GITHUB_TOKEN}`, "Content-Type": "application/json" },
-                    body: JSON.stringify({ message: "Auto-sync lyrics via Fuwako", content: contentBase64, sha: sha })
+                    body: JSON.stringify({ message: "Update", content: contentBase64, sha: sha })
                 });
-                console.log("云端同步完成");
-            } catch (err) {
-                console.error("云推送失败:", err);
-            }
+            } catch (e) {}
         }
 
-        // ================= 页面路由与渲染 =================
+        async function saveLyrics() {
+            const title = document.getElementById('input-title').value || "Untitled";
+            const content = document.getElementById('input-content').value;
+            if(!content.trim()) return;
+            library.unshift({ title, content, id: Date.now() });
+            localStorage.setItem('fuwari_lib', JSON.stringify(library));
+            renderLibrary();
+            document.getElementById('input-title').value = "";
+            document.getElementById('input-content').value = "";
+            pushToGitHub();
+        }
+
+        // ================= 渲染 =================
         function switchPage(page) {
             document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden'));
             document.getElementById(`page-${page}`).classList.remove('hidden');
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
             const activeNav = document.getElementById(`btn-${page === 'detail' ? 'lib' : page}`);
             if(activeNav) activeNav.classList.add('active');
+            window.scrollTo(0,0);
         }
 
         function renderWiki() {
-            const container = document.getElementById('page-wiki');
-            container.innerHTML = JP_DATA.map(box => `
-                <div class="fuwari-card p-6">
-                    <div class="flex items-center gap-3 mb-4 border-b-2 border-pink-50 pb-3">
-                        <span class="text-2xl">${box.icon}</span>
-                        <h3 class="font-bold text-pink-400 text-lg">${box.title}</h3>
-                    </div>
-                    <div class="space-y-3">
+            document.getElementById('page-wiki').innerHTML = JP_DATA.map(box => `
+                <div class="fuwari-card p-8">
+                    <div class="text-pink-300 text-2xl mb-4">${box.icon}</div>
+                    <h3 class="font-bold text-gray-700 text-sm tracking-widest mb-6 uppercase">${box.title}</h3>
+                    <div class="space-y-4">
                         ${box.content.map(item => `
-                            <div class="flex text-sm">
-                                <span class="w-24 shrink-0 font-bold text-pink-300">${item.k}</span>
-                                <span class="text-gray-500">${item.v}</span>
+                            <div class="flex flex-col">
+                                <span class="text-[10px] font-bold text-pink-200 uppercase">${item.k}</span>
+                                <span class="text-sm text-gray-500">${item.v}</span>
                             </div>
                         `).join('')}
                     </div>
@@ -405,29 +356,11 @@
             `).join('');
         }
 
-        async function saveLyrics() {
-            const title = document.getElementById('input-title').value || "无题文本";
-            const content = document.getElementById('input-content').value;
-            if(!content.trim()) return alert("请输入内容~");
-
-            // 插入到开头
-            library.unshift({ title, content, id: Date.now() });
-            localStorage.setItem('fuwari_lib', JSON.stringify(library));
-            renderLibrary();
-            
-            document.getElementById('input-title').value = "";
-            document.getElementById('input-content').value = "";
-            
-            // 静默同步到云端
-            pushToGitHub();
-        }
-
         function renderLibrary() {
-            const container = document.getElementById('lyrics-container');
-            container.innerHTML = library.map((item, index) => `
-                <div class="fuwari-card p-6 cursor-pointer flex flex-col h-32" onclick="viewDetail(${index})">
-                    <h4 class="font-bold text-gray-700 mb-2 truncate">${item.title}</h4>
-                    <p class="text-xs text-gray-400 line-clamp-3 leading-relaxed flex-1">${item.content}</p>
+            document.getElementById('lyrics-container').innerHTML = library.map((item, index) => `
+                <div class="fuwari-card p-8 cursor-pointer group" onclick="viewDetail(${index})">
+                    <h4 class="font-bold text-gray-600 mb-3 group-hover:text-pink-400 transition-colors">${item.title}</h4>
+                    <p class="text-xs text-gray-400 line-clamp-2 leading-loose">${item.content}</p>
                 </div>
             `).join('');
         }
@@ -436,84 +369,51 @@
             const item = library[idx];
             document.getElementById('view-title').innerText = item.title;
             const body = document.getElementById('view-body');
-            
-            document.getElementById('sidebar-content').innerHTML = `
-                <div class="h-full flex flex-col items-center justify-center text-gray-400 text-sm opacity-60 mt-20">
-                    <span class="text-4xl mb-3">✨</span>
-                    <p>点击左侧的日文单词</p>
-                    <p>这里会显示详细释义哦</p>
-                </div>
-            `;
+            document.getElementById('sidebar-content').innerHTML = `<div class="py-20 text-center text-gray-300 text-xs tracking-widest">SELECT A WORD</div>`;
             switchPage('detail');
-
             setTimeout(() => {
-                const lines = item.content.split('\n');
-                body.innerHTML = lines.map(line => {
+                body.innerHTML = item.content.split('\n').map(line => {
                     const isJp = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(line);
                     if (isJp && tokenizer) {
-                        const tokens = tokenizer.tokenize(line);
-                        return `<div class="line-wrapper">${tokens.map(t => `<span class="jp-token pos-${t.pos}" onclick="showWord(this, '${t.surface_form}', '${t.reading}', '${t.pos}')">${t.surface_form}</span>`).join('')}</div>`;
-                    } else {
-                        return `<div class="line-wrapper other-lang-line">${line}</div>`;
+                        return `<div class="line-wrapper">${tokenizer.tokenize(line).map(t => `<span class="jp-token pos-${t.pos}" onclick="showWord(this, '${t.surface_form}', '${t.reading}', '${t.pos}')">${t.surface_form}</span>`).join('')}</div>`;
                     }
+                    return `<div class="line-wrapper opacity-40 italic text-sm pl-4 border-l border-pink-50">${line}</div>`;
                 }).join('');
             }, 100);
         }
 
-        // ================= 侧边栏释义 (Gemini) =================
-        async function showWord(element, word, reading, pos) {
-            document.querySelectorAll('.jp-token').forEach(el => el.classList.remove('selected'));
-            element.classList.add('selected');
-
+        async function showWord(el, word, reading, pos) {
+            document.querySelectorAll('.jp-token').forEach(t => t.classList.remove('selected'));
+            el.classList.add('selected');
             const sidebar = document.getElementById('sidebar-content');
+            sidebar.style.opacity = '0';
             
-            sidebar.innerHTML = `
-                <div class="mb-6">
-                    <h2 class="text-3xl font-bold text-pink-400 mb-1">${word}</h2>
-                    <p class="text-gray-400 text-sm mb-3">【${reading || '---'}】</p>
-                    <span class="inline-block px-3 py-1 bg-white rounded-full text-xs text-pink-300 font-bold border border-pink-100">
-                        词性: ${pos}
-                    </span>
-                </div>
-                <div class="bg-white rounded-2xl p-4 shadow-sm border border-pink-50 min-h-[150px]">
-                    ${!GEMINI_KEY ? `<p class="text-xs text-red-300">请先在左上角 ⚙️ 中配置 Gemini API Key 哦~</p>` : `
-                    <div id="ai-loading" class="flex flex-col items-center justify-center py-6">
-                        <div class="w-6 h-6 border-4 border-pink-50 border-t-pink-300 rounded-full animate-spin"></div>
-                        <p class="text-xs text-pink-300 mt-3 font-bold">思考中...</p>
+            setTimeout(async () => {
+                sidebar.innerHTML = `
+                    <div>
+                        <h2 class="text-3xl font-bold text-gray-700 mb-1">${word}</h2>
+                        <p class="text-pink-200 text-xs font-bold tracking-tighter">【${reading || ''}】</p>
                     </div>
-                    <div id="ai-response" class="text-sm text-gray-600 leading-loose hidden"></div>
-                    `}
-                </div>
-            `;
+                    <div class="pt-4 border-t border-pink-50">
+                        <div class="inline-block px-3 py-1 rounded-full bg-pink-50 text-[10px] text-pink-300 font-bold mb-6">${pos}</div>
+                        <div id="ai-res" class="text-sm text-gray-500 leading-relaxed space-y-4 animate-pulse">Searching...</div>
+                    </div>
+                `;
+                sidebar.style.opacity = '1';
 
-            if(!GEMINI_KEY) return;
-
-            try {
-                const prompt = `你是一位温柔的日语助手。请为词汇“${word}”（词性：${pos}）提供：1. 简明的中文含义。2. 一个二次元/动漫语境的简短日文例句及翻译。不需要太多客套话，排版整洁。`;
-                const MODEL_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`;
-
-                const response = await fetch(MODEL_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                });
-
-                const data = await response.json();
-                if (data.error) throw new Error(data.error.message);
-
-                const result = data.candidates[0].content.parts[0].text;
-                
-                document.getElementById('ai-loading').classList.add('hidden');
-                const respDiv = document.getElementById('ai-response');
-                respDiv.innerHTML = result.replace(/\n/g, '<br>');
-                respDiv.classList.remove('hidden');
-
-            } catch (error) {
-                document.getElementById('ai-loading').classList.add('hidden');
-                const respDiv = document.getElementById('ai-response');
-                respDiv.innerHTML = `<span class="text-red-400 text-xs">呜咕... 查词失败了<br>${error.message}</span>`;
-                respDiv.classList.remove('hidden');
-            }
+                try {
+                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ contents: [{ parts: [{ text: `你是一位温柔可爱的日语老师。请简单解释词汇“${word}”（词性：${pos}）的含义，并给出一个非常简短的动漫风例句。要求：语气清新，排版简洁，不要废话。` }] }] })
+                    });
+                    const data = await res.json();
+                    document.getElementById('ai-res').classList.remove('animate-pulse');
+                    document.getElementById('ai-res').innerHTML = data.candidates[0].content.parts[0].text.replace(/\n/g, '<br>');
+                } catch (e) {
+                    document.getElementById('ai-res').innerText = "呜咕，连接失败了..";
+                }
+            }, 200);
         }
     </script>
 </body>
