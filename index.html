@@ -1,15 +1,308 @@
-// 修改后的初始化逻辑
-// 注意：浏览器访问本地文件可能有跨域限制，
-// 但在 GitHub Pages (https) 环境下，相对路径 ./dict/ 是完美的。
-kuromoji.builder({ dicPath: "./dict/" }).build((err, _t) => {
-    if (err) {
-        console.error("词典加载失败:", err);
-        // 如果本地加载失败，可以增加一个 UI 提示
-        document.getElementById('loader').innerHTML = 
-            `<p class="text-red-400">词典加载失败，请检查 /dict 文件夹是否存在 .dat.gz 文件</p>`;
-        return;
-    }
-    tokenizer = _t;
-    document.getElementById('loader').classList.add('hidden');
-    renderWiki();
-});
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fuwari 日语学园</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/kuromoji@0.1.2/build/kuromoji.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&family=M+PLUS+Rounded+1c:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --fuwari-pink: #ffb7c5;
+            --fuwari-bg: #fff9fb;
+            --fuwari-card-border: #ffeef1;
+        }
+
+        body {
+            font-family: 'M PLUS Rounded 1c', 'Kosugi Maru', sans-serif;
+            background-color: var(--fuwari-bg);
+            color: #5a5a5a;
+            overflow-x: hidden;
+        }
+
+        /* 磨砂玻璃导航栏 */
+        nav {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 2px solid var(--fuwari-card-border);
+        }
+
+        .nav-btn {
+            position: relative;
+            font-weight: 700;
+            color: #d1d1d1;
+            transition: all 0.3s;
+        }
+
+        .nav-btn.active {
+            color: var(--fuwari-pink);
+        }
+
+        .nav-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: var(--fuwari-pink);
+            border-radius: 10px;
+        }
+
+        /* 软绵绵卡片样式 */
+        .fuwari-card {
+            background: white;
+            border-radius: 24px;
+            border: 2px solid var(--fuwari-card-border);
+            box-shadow: 0 8px 0 #ffeef1;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .fuwari-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 0 #ffeef1;
+        }
+
+        /* 句子解析样式 */
+        .line-wrapper {
+            margin-bottom: 1.5rem;
+            line-height: 2.2;
+        }
+
+        .jp-token {
+            display: inline-block;
+            padding: 0 4px;
+            margin: 0 2px;
+            border-radius: 8px;
+            cursor: help;
+            transition: background 0.2s;
+        }
+
+        .jp-token:hover {
+            background: #fff0f3;
+            text-decoration: underline wavy var(--fuwari-pink);
+        }
+
+        /* 不同词性的颜色提示 */
+        .pos-助詞 { color: #ff8fa3; font-weight: bold; border-bottom: 1px dashed #ffb7c5; }
+        .pos-動詞 { color: #5dade2; }
+        .pos-名詞 { color: #5a5a5a; }
+        .pos-形容詞 { color: #58d68d; }
+
+        .other-lang-line {
+            color: #a0a0a0;
+            font-size: 0.9rem;
+            font-style: italic;
+            padding-left: 1rem;
+            border-left: 3px solid #f0f0f0;
+        }
+
+        /* 加载动画 */
+        #loader-screen {
+            background: var(--fuwari-bg);
+            z-index: 9999;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #ffeef1;
+            border-top: 5px solid var(--fuwari-pink);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* 自定义滚动条 */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: var(--fuwari-bg); }
+        ::-webkit-scrollbar-thumb { background: #ffe4e9; border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+    <div id="loader-screen" class="fixed inset-0 flex flex-col items-center justify-center">
+        <div class="spinner"></div>
+        <p class="mt-6 font-bold text-pink-300 animate-pulse">正在搬运字典 (./dict)...</p>
+    </div>
+
+    <nav class="sticky top-0 z-50 p-4">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <div class="text-2xl font-bold text-pink-400">ふわふわ学園</div>
+            <div class="flex gap-8">
+                <button onclick="switchPage('wiki')" id="btn-wiki" class="nav-btn active">知识百科</button>
+                <button onclick="switchPage('lib')" id="btn-lib" class="nav-btn">歌词书架</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-6xl mx-auto p-6">
+        
+        <section id="page-wiki" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            </section>
+
+        <section id="page-lib" class="hidden">
+            <div class="fuwari-card p-8 mb-8">
+                <h3 class="text-xl font-bold text-pink-400 mb-4">✨ 新增歌词/文本</h3>
+                <input type="text" id="input-title" placeholder="输入标题（歌名）" class="w-full p-4 rounded-2xl border-2 border-pink-50 outline-none focus:border-pink-200 mb-4">
+                <textarea id="input-content" placeholder="在此粘贴混排文本... 
+例如：
+君のことが好きだ
+Kimi no koto ga suki da
+我喜欢你" class="w-full h-48 p-4 rounded-2xl border-2 border-pink-50 outline-none focus:border-pink-200"></textarea>
+                <button onclick="saveLyrics()" class="w-full mt-4 bg-pink-300 text-white font-bold py-4 rounded-2xl shadow-lg hover:bg-pink-400 transition">存入书架</button>
+            </div>
+            
+            <div id="lyrics-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                </div>
+        </section>
+
+        <section id="page-detail" class="hidden">
+            <button onclick="switchPage('lib')" class="mb-6 text-pink-300 font-bold">← 返回列表</button>
+            <div class="fuwari-card p-8 md:p-12">
+                <h1 id="view-title" class="text-3xl font-bold text-center mb-12 text-gray-600"></h1>
+                <div id="view-body" class="space-y-4 text-xl">
+                    </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="word-modal" class="fixed inset-0 bg-black/10 backdrop-blur-sm hidden z-[100] flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-[32px] max-w-sm w-full shadow-2xl border-4 border-pink-50">
+            <div id="word-info"></div>
+            <button onclick="closeModal()" class="w-full mt-8 bg-gray-50 text-gray-400 py-4 rounded-2xl font-bold">关闭窗口</button>
+        </div>
+    </div>
+
+    <script src="data.js"></script>
+
+    <script>
+        let tokenizer = null;
+        let library = JSON.parse(localStorage.getItem('fuwari_lib') || '[]');
+
+        // 初始化：加载本地字典
+        // 请确保文件夹名为 dict 且在 index.html 同级目录
+        kuromoji.builder({ dicPath: "./dict/" }).build((err, _tokenizer) => {
+            if (err) {
+                document.getElementById('loader-screen').innerHTML = `<p class="text-red-400">词典加载失败，请确认 /dict 文件夹位置正确</p>`;
+                return;
+            }
+            tokenizer = _tokenizer;
+            document.getElementById('loader-screen').classList.add('hidden');
+            renderWiki();
+        });
+
+        // 页面切换逻辑
+        function switchPage(page) {
+            document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden'));
+            document.getElementById(`page-${page}`).classList.remove('hidden');
+            
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            const activeNav = document.getElementById(`btn-${page === 'detail' ? 'lib' : page}`);
+            if(activeNav) activeNav.classList.add('active');
+
+            if(page === 'lib') renderLibrary();
+        }
+
+        // 渲染百科卡片 (数据来自 data.js)
+        function renderWiki() {
+            const container = document.getElementById('page-wiki');
+            if (typeof JP_DATA === 'undefined') return;
+            
+            container.innerHTML = JP_DATA.map(box => `
+                <div class="fuwari-card p-6">
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="text-2xl">${box.icon}</span>
+                        <h3 class="font-bold text-pink-400 border-b-2 border-pink-50 flex-1 pb-1">${box.title}</h3>
+                    </div>
+                    <div class="space-y-2">
+                        ${box.content.map(item => `
+                            <div class="flex text-sm leading-relaxed">
+                                <span class="w-20 shrink-0 font-bold text-pink-300">${item.k}</span>
+                                <span class="text-gray-500">${item.v}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 保存到歌词库
+        function saveLyrics() {
+            const title = document.getElementById('input-title').value || "无题文本";
+            const content = document.getElementById('input-content').value;
+            if(!content.trim()) return alert("请输入内容~");
+
+            library.unshift({ title, content, id: Date.now() });
+            localStorage.setItem('fuwari_lib', JSON.stringify(library));
+            
+            document.getElementById('input-title').value = "";
+            document.getElementById('input-content').value = "";
+            renderLibrary();
+        }
+
+        function renderLibrary() {
+            const container = document.getElementById('lyrics-container');
+            container.innerHTML = library.map((item, index) => `
+                <div class="fuwari-card p-6 cursor-pointer" onclick="viewDetail(${index})">
+                    <h4 class="font-bold text-gray-700 mb-2">${item.title}</h4>
+                    <p class="text-xs text-gray-400 line-clamp-2">${item.content.substring(0, 60)}...</p>
+                </div>
+            `).join('');
+        }
+
+        // 核心功能：进入详情页并解析
+        function viewDetail(idx) {
+            const item = library[idx];
+            document.getElementById('view-title').innerText = item.title;
+            const body = document.getElementById('view-body');
+            body.innerHTML = "<p class='text-center animate-pulse'>正在进行语法拆解...</p>";
+            switchPage('detail');
+
+            setTimeout(() => {
+                const lines = item.content.split('\n');
+                body.innerHTML = lines.map(line => {
+                    // 识别日语行：包含假名或日文汉字
+                    const isJp = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(line);
+                    
+                    if (isJp && tokenizer) {
+                        const tokens = tokenizer.tokenize(line);
+                        const tokenHtml = tokens.map(t => {
+                            const posClass = `pos-${t.pos}`;
+                            return `<span class="jp-token ${posClass}" onclick="showWord('${t.surface_form}', '${t.reading}', '${t.pos}')">${t.surface_form}</span>`;
+                        }).join('');
+                        return `<div class="line-wrapper">${tokenHtml}</div>`;
+                    } else {
+                        // 罗马音或中文行
+                        return `<div class="line-wrapper other-lang-line">${line}</div>`;
+                    }
+                }).join('');
+            }, 300);
+        }
+
+        // 弹窗显示单词详情
+        function showWord(word, reading, pos) {
+            const info = document.getElementById('word-info');
+            info.innerHTML = `
+                <h2 class="text-4xl font-bold text-pink-400 mb-2">${word}</h2>
+                <p class="text-gray-400 text-lg mb-6 italic">【${reading || '---'}】</p>
+                <div class="space-y-4">
+                    <div class="flex items-center gap-4 bg-pink-50 p-4 rounded-2xl">
+                        <span class="text-pink-300 font-bold">词性</span>
+                        <span class="text-gray-600">${pos}</span>
+                    </div>
+                    <p class="text-sm text-gray-400 px-2">※ 详细释义功能建议接入 Gemini API 获取实时分析</p>
+                </div>
+            `;
+            document.getElementById('word-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('word-modal').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
