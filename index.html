@@ -186,10 +186,6 @@
                     <label class="block text-xs font-bold text-gray-500 mb-1">GitHub Token (用于云端同步)</label>
                     <input type="password" id="cfg-github" placeholder="ghp_..." class="w-full p-3 rounded-xl border-2 border-pink-50 outline-none focus:border-pink-200 text-sm bg-gray-50/50">
                 </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 mb-1">Gemini API Key (用于单词释义)</label>
-                    <input type="password" id="cfg-gemini" placeholder="AIzaSy..." class="w-full p-3 rounded-xl border-2 border-pink-50 outline-none focus:border-pink-200 text-sm bg-gray-50/50">
-                </div>
             </div>
 
             <div class="flex gap-4">
@@ -207,7 +203,7 @@
 
         // 从本地存储读取密钥
         let GITHUB_TOKEN = localStorage.getItem('fuwako_github') || "";
-        let GEMINI_KEY = localStorage.getItem('fuwako_gemini') || "";
+        let GEMINI_KEY ="AIzaSyC3vAqGTuOmHUe1UDFbHXA4uf4Ij0ZeJbs";
         
         let tokenizer = null;
         let library = JSON.parse(localStorage.getItem('fuwari_lib') || '[]');
