@@ -180,9 +180,12 @@ Kimi no koto ga suki da
     <script src="data.js"></script>
 
     <script>
-        let tokenizer = null;
-        let library = JSON.parse(localStorage.getItem('fuwari_lib') || '[]');
 
+const GEMINI_KEY = "AIzaSyC3vAqGTuOmHUe1UDFbHXA4uf4Ij0ZeJbs"; 
+    const MODEL_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`;
+
+    let tokenizer = null;
+    let library = JSON.parse(localStorage.getItem('fuwari_lib') || '[]');
         // 初始化：加载本地字典
         // 请确保文件夹名为 dict 且在 index.html 同级目录
         kuromoji.builder({ dicPath: "./dict/" }).build((err, _tokenizer) => {
