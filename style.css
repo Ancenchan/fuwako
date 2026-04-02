@@ -1,0 +1,15 @@
+body { background-color: #fff9fb; color: #5a5a5a; }
+.card { background: white; border-radius: 24px; border: 2px solid #ffeef1; box-shadow: 0 8px 0 #ffeef1; transition: all 0.2s; }
+.nav-btn { font-weight: bold; color: #d1d1d1; padding-bottom: 8px; border-bottom: 3px solid transparent; }
+.nav-btn.active { color: #ffb7c5; border-bottom-color: #ffb7c5; }
+.fuwari-input { width: 100%; border: 2px solid #ffeef1; border-radius: 16px; padding: 12px; outline: none; transition: border-color 0.3s; }
+.fuwari-input:focus { border-color: #ffb7c5; }
+.btn-primary { background: #ffb7c5; color: white; font-bold; border-radius: 16px; padding: 12px; transition: transform 0.2s; }
+.btn-primary:active { transform: scale(0.98); }
+.section-title { font-size: 1.1rem; font-weight: bold; color: #ff8fa3; margin-bottom: 1rem; border-bottom: 1px dashed #ffeef1; padding-bottom: 0.5rem; }
+.wiki-item { display: flex; font-size: 0.85rem; padding: 4px 0; }
+.wiki-item strong { color: #ffb7c5; width: 80px; flex-shrink: 0; }
+.jp-line { background: white; padding: 10px 15px; border-radius: 12px; border: 1px solid #ffeef1; }
+.word { cursor: pointer; padding: 0 2px; border-radius: 4px; }
+.word:hover { background: #fff0f3; }
+.other-line { color: #a0a0a0; font-size: 0.9rem; padding-left: 15px; }
