@@ -3,236 +3,508 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>御子柴安尘的日语工坊</title>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;700&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+    <title>Fuwari - AI 日语分析器</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/build/kuromoji.js"></script>
-    
     <style>
         :root {
             --sakura-pink: #ffc2d1;
-            --sakura-light: #fff0f3;
-            --sakura-deep: #ff85a1;
-            --glass: rgba(255, 255, 255, 0.6);
-            --glass-border: rgba(255, 255, 255, 0.4);
-            --text-color: #5e5e5e;
+            --mint-green: #a8e6cf;
+            --glass-bg: rgba(255, 255, 255, 0.45);
+            --glass-border: rgba(255, 255, 255, 0.6);
+            --text-main: #333333;
         }
-
-        * { box-sizing: border-box; transition: all 0.3s ease; }
 
         body {
-            margin: 0; padding: 0;
             font-family: 'Noto Sans JP', sans-serif;
-            background: linear-gradient(135deg, #fceef5 0%, #e0f7fa 100%);
-            color: var(--text-color);
-            height: 100vh; overflow: hidden;
-            display: flex; justify-content: center; align-items: center;
+            background: linear-gradient(135deg, var(--sakura-pink), var(--mint-green));
+            background-attachment: fixed;
+            min-height: 100vh;
+            margin: 0;
+            color: var(--text-main);
+            overflow-x: hidden;
         }
 
-        /* Fuwari 风格毛玻璃容器 */
-        #app {
-            width: 95vw; height: 90vh;
-            display: grid;
-            grid-template-columns: 80px 1fr 380px;
-            gap: 20px; padding: 20px;
-            background: var(--glass);
+        /* Glassmorphism 基础类 */
+        .glass {
+            background: var(--glass-bg);
             backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border: 1px solid var(--glass-border);
-            border-radius: 40px;
-            box-shadow: 0 20px 50px rgba(255, 133, 161, 0.1);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
         }
 
-        /* 侧边导航 */
-        nav { display: flex; flex-direction: column; align-items: center; gap: 30px; padding-top: 50px; }
-        .nav-item {
-            width: 55px; height: 55px; cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 24px; border-radius: 20px; background: white;
-            box-shadow: 0 8px 15px rgba(0,0,0,0.05);
+        /* 顶部导航与配置按钮 */
+        header {
+            display: flex;
+            align-items: center;
+            padding: 20px 40px;
+            gap: 20px;
         }
-        .nav-item:hover { transform: scale(1.1) rotate(5deg); background: var(--sakura-pink); }
-        .nav-item.active { background: var(--sakura-deep); color: white; }
 
-        /* 主视口 */
-        main { background: rgba(255,255,255,0.3); border-radius: 30px; padding: 30px; overflow-y: auto; position: relative; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; animation: fuwariFade 0.6s ease; }
+        #config-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            object-fit: cover;
+        }
 
-        @keyframes fuwariFade {
-            from { opacity: 0; transform: translateY(15px); }
+        #config-btn:hover {
+            transform: scale(1.1) rotate(5deg);
+            box-shadow: 0 4px 15px rgba(255, 194, 209, 0.8);
+        }
+
+        nav {
+            display: flex;
+            gap: 15px;
+        }
+
+        .tab-btn {
+            padding: 10px 25px;
+            border: none;
+            background: var(--glass-bg);
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #555;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .tab-btn.active, .tab-btn:hover {
+            background: rgba(255, 255, 255, 0.8);
+            transform: scale(1.05);
+            color: #111;
+        }
+
+        /* 页面布局 */
+        .container {
+            display: flex;
+            padding: 20px 40px;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        main {
+            flex: 1;
+            position: relative;
+        }
+
+        /* 标签页淡入淡出逻辑 */
+        .tab-content {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+        .tab-content.active {
+            display: block;
+            opacity: 1;
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* 歌词卡片 */
-        .lyric-line { margin-bottom: 25px; padding: 15px; border-radius: 20px; background: rgba(255,255,255,0.4); border: 1px solid transparent; }
-        .lyric-line:hover { background: white; border-color: var(--sakura-pink); box-shadow: 0 10px 20px rgba(0,0,0,0.03); }
-        
-        .word-token { display: inline-block; padding: 0 4px; margin: 2px; border-radius: 8px; cursor: help; border-bottom: 3px solid transparent; }
-        .pos-名詞 { border-bottom-color: var(--sakura-pink); }
-        .pos-動詞 { border-bottom-color: var(--sakura-deep); }
-        .pos-助詞 { border-bottom-color: #b9fbc0; }
-
-        /* 深度分析侧边栏 */
-        aside { display: flex; flex-direction: column; gap: 20px; }
-        .panel { 
-            background: white; border-radius: 30px; padding: 25px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.02); overflow-y: auto;
-        }
-        .analysis-card h4 { color: var(--sakura-deep); margin: 10px 0; border-left: 5px solid var(--sakura-pink); padding-left: 10px; }
-        .analysis-card p { font-size: 14px; line-height: 1.8; color: #666; }
-
-        /* 编辑器 */
+        /* Editor 区域 */
         textarea {
-            width: 100%; height: 250px; border: none; border-radius: 20px; padding: 20px;
-            background: var(--sakura-light); font-family: inherit; resize: none; outline: none;
-        }
-        .btn-fuwari {
-            background: var(--sakura-deep); color: white; border: none; padding: 15px 40px;
-            border-radius: 50px; font-weight: bold; cursor: pointer; margin-top: 20px;
-            box-shadow: 0 10px 20px rgba(255, 133, 161, 0.3);
-        }
-
-        /* 喵喵 Loading */
-        #loading {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255,255,255,0.8); backdrop-filter: blur(10px);
-            display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 9999;
+            width: 100%;
+            height: 150px;
+            padding: 20px;
+            box-sizing: border-box;
+            border: none;
+            outline: none;
+            resize: vertical;
+            font-size: 16px;
+            margin-bottom: 15px;
         }
 
-        /* Wiki 样式保持 */
-        .wiki-item { margin-bottom: 15px; white-space: pre-wrap; font-size: 14px; line-height: 1.6; }
+        .action-btn {
+            background: rgba(255, 255, 255, 0.6);
+            border: 1px solid var(--glass-border);
+            padding: 12px 30px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .action-btn:hover {
+            transform: scale(1.05) rotate(-1deg);
+            background: white;
+        }
+
+        .action-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        /* 词性高亮与交互 */
+        .token {
+            display: inline-block;
+            margin: 2px 1px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        .token:hover {
+            transform: scale(1.1);
+        }
+        .pos-名词 { border-bottom: 2px solid var(--sakura-pink); }
+        .pos-助词 { border-bottom: 2px solid var(--mint-green); }
+        .pos-动词 { border-bottom: 2px solid #82b1ff; }
+
+        /* 右侧边栏：单词便签 */
+        aside {
+            width: 300px;
+            padding: 20px;
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+
+        #word-note h3 { margin-top: 0; border-bottom: 2px dashed var(--sakura-pink); padding-bottom: 10px; }
+        
+        /* 结果展示区 */
+        .result-box {
+            margin-top: 20px;
+            padding: 20px;
+        }
+        .ai-section {
+            margin-bottom: 15px;
+            background: rgba(255,255,255,0.3);
+            padding: 15px;
+            border-radius: 15px;
+        }
+        .ai-section h4 { margin: 0 0 10px 0; color: #444; }
+
+        /* Sakura Loading 动画 */
+        .loading {
+            display: none;
+            color: #d81b60;
+            font-weight: bold;
+            margin-left: 15px;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; text-shadow: 0 0 8px var(--sakura-pink); }
+            100% { opacity: 0.5; }
+        }
+
+        /* Wiki 样式 */
+        .wiki-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .wiki-card {
+            padding: 20px;
+        }
+        .wiki-card h3 {
+            margin-top: 0;
+            color: #d81b60;
+            border-bottom: 1px solid var(--sakura-pink);
+            padding-bottom: 5px;
+        }
+        .wiki-example {
+            background: rgba(255,255,255,0.5);
+            padding: 5px;
+            border-radius: 5px;
+            margin-bottom: 5px;
+        }
+
+        /* Library 样式 */
+        .lib-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
     </style>
 </head>
 <body>
 
-<div id="loading">
-    <div style="font-size: 40px; animation: bounce 1s infinite;">🌸</div>
-    <p>Gemini 2.5 正在深度解析中...</p>
-</div>
+    <header class="glass">
+        <img src="7.png" alt="Settings" id="config-btn" onerror="this.src='https://via.placeholder.com/50?text=7'">
+        <nav>
+            <button class="tab-btn active" onclick="switchTab('editor')">Editor</button>
+            <button class="tab-btn" onclick="switchTab('library')">Library</button>
+            <button class="tab-btn" onclick="switchTab('wiki')">Wiki</button>
+        </nav>
+    </header>
 
-<div id="app">
-    <nav>
-        <div class="nav-item" onclick="switchTab('wiki')">📖</div>
-        <div class="nav-item active" onclick="switchTab('library')">🎧</div>
-        <div class="nav-item" onclick="switchTab('editor')">✨</div>
-    </nav>
+    <div class="container">
+        <main>
+            <section id="editor" class="tab-content active">
+                <textarea id="lyrics-input" class="glass" placeholder="在此粘贴日文歌词或文本，感受中二之魂的共鸣..."></textarea>
+                <div>
+                    <button id="analyze-btn" class="action-btn" onclick="processLyrics()" disabled>分词引擎加载中...</button>
+                    <span id="loading-indicator" class="loading">🌸 Sakura Loading... AI 老师正在咏唱解析魔法...</span>
+                </div>
+                
+                <div id="kuromoji-result" class="glass result-box" style="display:none;">
+                    </div>
 
-    <main id="main">
-        <div id="view-wiki" class="tab-content">
-            <h2 style="font-family: 'ZCOOL KuaiLe'; color: var(--sakura-deep);">语法百科手册</h2>
-            <div id="wiki-container"></div>
-        </div>
+                <div id="ai-result" class="glass result-box" style="display:none;">
+                    </div>
+            </section>
 
-        <div id="view-library" class="tab-content active">
-            <h2 style="font-family: 'ZCOOL KuaiLe'; color: var(--sakura-deep);">正在分析的作品</h2>
-            <div id="library-content">快去导入你喜欢的歌词吧~</div>
-        </div>
+            <section id="library" class="tab-content">
+                <div id="lib-list"></div>
+            </section>
 
-        <div id="view-editor" class="tab-content">
-            <h2 style="font-family: 'ZCOOL KuaiLe'; color: var(--sakura-deep);">导入新歌词</h2>
-            <textarea id="input-text" placeholder="在这里贴入日语歌词..."></textarea>
-            <button class="btn-fuwari" onclick="startAI()">交给 Gemini 老师 ✨</button>
-        </div>
-    </main>
+            <section id="wiki" class="tab-content">
+                <div class="wiki-grid" id="wiki-grid"></div>
+            </section>
+        </main>
 
-    <aside>
-        <div class="panel" style="flex: 2;">
-            <h3 style="margin-top: 0;">📖 深度解析</h3>
-            <div id="analysis-detail">点击歌词下方的“查看解析”获取详细教学。</div>
-        </div>
-        <div class="panel" style="flex: 1; font-size: 13px;">
-            <h3 style="margin-top: 0;">🐱 单词便签</h3>
-            <div id="word-tag">轻轻点击歌词中的单词...</div>
-        </div>
-    </aside>
-</div>
+        <aside id="word-note" class="glass">
+            <h3>📝 单词便签</h3>
+            <div id="word-details">
+                <p style="color:#666; font-size:14px;">点击左侧歌词中的单词，唤醒它的真实身份...</p>
+            </div>
+        </aside>
+    </div>
 
 <script>
-    const API_KEY = "AIzaSyBd99vT-P-IkpRifkKvXy4G86ZmPS8_9cs";
-    const WIKI_DATA = [
-        { "t": "人称代词", "c": "私（普通）/ 僕（自称）/ 俺（粗鲁）/ あなた（你）\n例：俺はこの世界の神になる！" },
-        { "t": "格助词", "c": "は（主题）/ を（宾语）/ が（主语）/ の（所属）\n例：闇は俺の味方だ。→ 黑暗是我的伙伴。" },
-        { "t": "接续助词", "c": "て（中顿）/ たら（假设）/ のに（转折）\n例：あんなに努力したのに、負けた…→ 明明努力了却输了。" }
-    ];
-
+    // ============================================================================
+    // 1. 配置与初始化
+    // ============================================================================
+    const GEMINI_API_KEY = "YOUR_API_KEY_HERE"; // 【重要】在此处填入你的 Gemini 2.5 Flash API Key
     let tokenizer = null;
-    let analysisResult = [];
 
-    // 初始化分词器
-    kuromoji.builder({ dicPath: "https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/" }).build((err, _tokenizer) => {
-        if (err) alert("分词字典加载失败，请检查网络！");
+    // 初始化 Kuromoji
+    kuromoji.builder({ dicPath: "https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict" }).build(function (err, _tokenizer) {
+        if (err) {
+            console.error("Kuromoji 加载失败:", err);
+            document.getElementById('analyze-btn').innerText = "引擎加载失败";
+            return;
+        }
         tokenizer = _tokenizer;
+        const btn = document.getElementById('analyze-btn');
+        btn.innerText = "✨ 深度分析";
+        btn.disabled = false;
     });
 
-    function switchTab(id) {
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-        document.getElementById(`view-${id}`).classList.add('active');
-        event.currentTarget.classList.add('active');
+    // ============================================================================
+    // 2. UI 交互逻辑
+    // ============================================================================
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        event.target.classList.add('active');
+        
+        if(tabId === 'library') loadLibrary();
     }
 
-    // 渲染 Wiki
-    const wikiHtml = WIKI_DATA.map(d => `<div class="panel wiki-item"><strong>${d.t}</strong><br>${d.c.replace(/例：/g, '<span style="color:var(--sakura-deep)">例：</span>')}</div>`).join('');
-    document.getElementById('wiki-container').innerHTML = wikiHtml;
+    // 显示单词详情
+    function showWordDetail(surface_form, pos, pos_detail_1, basic_form) {
+        const detailHtml = `
+            <p><strong>原词：</strong> ${surface_form}</p>
+            <p><strong>基本型：</strong> ${basic_form}</p>
+            <p><strong>词性：</strong> <span style="color:#d81b60">${pos}</span></p>
+            <p><strong>分类：</strong> ${pos_detail_1}</p>
+        `;
+        document.getElementById('word-details').innerHTML = detailHtml;
+    }
 
-    // AI 处理
-    async function startAI() {
-        const text = document.getElementById('input-text').value;
-        if(!text) return;
-        document.getElementById('loading').style.display = 'flex';
+    // ============================================================================
+    // 3. 核心处理逻辑 (分词 + AI)
+    // ============================================================================
+    async function processLyrics() {
+        const text = document.getElementById('lyrics-input').value.trim();
+        if (!text) return alert("写点什么吧，不要让命运的卷轴空白！");
 
-        const prompt = `你是一位日语老师。请分析歌词。返回纯JSON数组，格式如下：
-        [{"line": "原句", "trans": "译文", "struct": "句子结构(主语/谓语/宾语)", "grammar": "深度解析助词连接词和动词变形", "vocab": "核心词义"}]
-        内容如下：\n${text}`;
+        const btn = document.getElementById('analyze-btn');
+        const loading = document.getElementById('loading-indicator');
+        btn.disabled = true;
+        loading.style.display = "inline-block";
 
         try {
-            const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-            });
-            const resData = await resp.json();
-            const raw = resData.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim();
-            analysisResult = JSON.parse(raw);
-            
-            renderLibrary();
-            switchTab('library');
-        } catch (e) {
-            alert("AI 分析中断了，可能是 API Key 或格式问题。");
+            // 3.1 前端分词与渲染
+            const path = tokenizer.tokenize(text);
+            renderKuromoji(path);
+
+            // 3.2 调用 Gemini API
+            const aiData = await callGeminiAPI(text);
+            renderAIResult(aiData);
+
+            // 3.3 保存到本地书架
+            saveToLibrary(text, aiData, path);
+
+        } catch (error) {
+            console.error(error);
+            alert("魔法反噬了！解析失败：" + error.message);
         } finally {
-            document.getElementById('loading').style.display = 'none';
+            btn.disabled = false;
+            loading.style.display = "none";
         }
     }
 
-    function renderLibrary() {
-        const container = document.getElementById('library-content');
-        container.innerHTML = analysisResult.map((item, idx) => `
-            <div class="lyric-line">
-                <div style="font-size: 1.2em; font-weight: bold;">${doTokenize(item.line)}</div>
-                <div style="color: #999; margin: 5px 0;">${item.trans}</div>
-                <button class="btn-fuwari" style="padding: 5px 15px; font-size: 12px;" onclick="showDeep(${idx})">查看深度讲解</button>
+    function renderKuromoji(tokens) {
+        const container = document.getElementById('kuromoji-result');
+        container.style.display = "block";
+        container.innerHTML = "<h3>🔍 词性透视</h3>";
+
+        let html = "";
+        tokens.forEach(token => {
+            let className = "";
+            if (token.pos === "名詞") className = "pos-名词";
+            else if (token.pos === "助詞") className = "pos-助词";
+            else if (token.pos === "動詞") className = "pos-动词";
+
+            const safeToken = JSON.stringify({
+                s: token.surface_form,
+                p: token.pos,
+                p1: token.pos_detail_1,
+                b: token.basic_form
+            }).replace(/'/g, "&#39;");
+
+            html += `<span class="token ${className}" onclick='showWordDetail("${token.surface_form}", "${token.pos}", "${token.pos_detail_1}", "${token.basic_form}")'>${token.surface_form}</span>`;
+        });
+        container.innerHTML += `<div style="line-height:2.5; font-size:18px;">${html}</div>`;
+    }
+
+    // Gemini API 调用
+    async function callGeminiAPI(text) {
+        if (GEMINI_API_KEY === "YOUR_API_KEY_HERE") {
+            throw new Error("请先在代码中配置您的 GEMINI_API_KEY");
+        }
+
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+        const prompt = `
+你是一位充满中二病风格但极其专业的日语老师。请分析以下日语文本：
+「${text}」
+
+你必须严格返回以下 JSON 格式的数据，不要包含任何其他废话或 Markdown 格式以外的文本。
+JSON 结构要求：
+{
+  "sentence_structure": "解释主谓宾关系",
+  "grammar": "详细解释助词连接词的用法以及动词的活用形态（变形过程）",
+  "core_vocabulary": ["重点单词1(解释)", "重点单词2(解释)"],
+  "translation": "流畅且具有中二风格的中文翻译"
+}
+`;
+
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }]
+            })
+        });
+
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error?.message || "API 请求失败");
+        
+        let rawText = result.candidates[0].content.parts[0].text;
+        
+        // 正则清洗 Markdown 带来的 ```json 和 ``` 标记
+        rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+        return JSON.parse(rawText);
+    }
+
+    function renderAIResult(data) {
+        const container = document.getElementById('ai-result');
+        container.style.display = "block";
+        container.innerHTML = `
+            <h3>🔮 AI 深度解密</h3>
+            <div class="ai-section"><h4>🔗 句子结构</h4><p>${data.sentence_structure}</p></div>
+            <div class="ai-section"><h4>📚 语法奥义</h4><p>${data.grammar}</p></div>
+            <div class="ai-section"><h4>💎 核心魔力词</h4><ul>${data.core_vocabulary.map(v => `<li>${v}</li>`).join('')}</ul></div>
+            <div class="ai-section"><h4>📜 命运译本</h4><p>${data.translation}</p></div>
+        `;
+    }
+
+    // ============================================================================
+    // 4. 数据持久化 (Library)
+    // ============================================================================
+    function saveToLibrary(text, aiData, tokens) {
+        let lib = JSON.parse(localStorage.getItem('fuwari_lib') || '[]');
+        const newItem = { id: Date.now(), text: text.substring(0, 20) + "...", fullText: text, ai: aiData, tokens: tokens };
+        lib.unshift(newItem);
+        localStorage.setItem('fuwari_lib', JSON.stringify(lib));
+    }
+
+    function loadLibrary() {
+        const lib = JSON.parse(localStorage.getItem('fuwari_lib') || '[]');
+        const container = document.getElementById('lib-list');
+        if (lib.length === 0) {
+            container.innerHTML = "<p>书架空空如也，快去书写你的篇章吧！</p>";
+            return;
+        }
+
+        container.innerHTML = lib.map(item => `
+            <div class="glass lib-item">
+                <span>${item.text}</span>
+                <button class="action-btn" style="padding: 8px 15px;" onclick='restoreHistory(${item.id})'>深度讲解</button>
             </div>
         `).join('');
     }
 
-    function doTokenize(text) {
-        if(!tokenizer) return text;
-        return tokenizer.tokenize(text).map(t => `<span class="word-token pos-${t.pos}" onclick="showTag('${t.surface_form}','${t.pos}')">${t.surface_form}</span>`).join('');
+    function restoreHistory(id) {
+        const lib = JSON.parse(localStorage.getItem('fuwari_lib') || '[]');
+        const item = lib.find(i => i.id === id);
+        if (item) {
+            switchTab('editor');
+            document.getElementById('lyrics-input').value = item.fullText;
+            renderKuromoji(item.tokens);
+            renderAIResult(item.ai);
+        }
     }
 
-    function showTag(s, p) {
-        document.getElementById('word-tag').innerHTML = `<b style="color:var(--sakura-deep)">${s}</b><br>词性: ${p}`;
+    // ============================================================================
+    // 5. Wiki 模块渲染
+    // ============================================================================
+    const wikiData = [
+      { "t": "人称代词", "c": "私（普通）/ 僕（男性自称）/ 俺（粗鲁男性）/ あなた（你）/ 彼（他）/ 彼女（她）。例：俺はこの世界の神になる！→ 我要成为这个世界的神！" },
+      { "t": "格助词", "c": "は（主题）例：闇は俺の味方だ。→ 黑暗是我的伙伴。\nを（宾语）例：敵を滅ぼせ！→ 消灭敌人！\nが（主语）例：運命が俺を呼んでいる。→ 命运在召唤我。\nの（所属）例：伝説の剣を手に入れろ。→ 拿到传说之剑。\nに（时间/地点/对象）例：黄昏に決闘しよう。→ 黄昏时决斗吧。\nで（场所/手段）例：拳で語り合え。→ 用拳头对话。\nと（和/引用）例：仲間と共に行く。→ 和伙伴一起去。\nから（起点）例：地獄から来た使者。→ 来自地狱的使者。\nまで（终点）例：天まで届け、俺の叫び！→ 响彻天际吧，我的呐喊！" },
+      { "t": "接续助词", "c": "て/で（中顿/并列）例：叫んで、走れ！→ 呐喊吧，奔跑吧！\nたら（假设条件）例：お前が裏切ったら、許さない。→ 如果你背叛，我不会原谅。\nと（一…就…）例：春になると、俺の力が目覚める。→ 一到春天，我的力量就会觉醒。\nば（假定条件）例：修行すれば、もっと強くなれる。→ 只要修行，就能变得更强。\nのに（转折，却）例：あんなに努力したのに、負けた…→ 明明那么努力了，却输了…\nので（客观原因）例：魔力が尽きたので、撤退する。→ 魔力耗尽了，所以撤退。\nから（主观原因）例：敵が強いから、燃えるぜ！→ 正因为敌人强，才燃起来了！\nが（虽然…但是）例：彼は強いが、俺は負けない。→ 他虽强，但我不会输。\nけれど（虽然…但是）例：行きたいけれど、時間がない。→ 虽然想去，但没时间。\nし（列举理由）例：安いし、美味しいし、最高だ。→ 又便宜又好吃，太棒了。\nながら（一边…一边）例：涙を流しながら、戦う。→ 一边流泪，一边战斗。" },
+      { "t": "副助词", "c": "も（也/连…都）例：敵すらも震え上がる。→ 连敌人都会颤抖。\nだけ（只/仅仅）例：これだけは守り抜く。→ 唯有这个我要守护到底。\nしか（只，后接否定）例：これしか方法がない。→ 只有这个方法了。\nなど（等等/之类）例：雑魚など相手にならない。→ 杂鱼之类的不足为敌。\nか（或者/疑问）例：剣か魔法か、選べ。→ 选剑还是魔法？\nほど（程度/越…越…）例：強ければ強いほど、孤独だ。→ 越强越孤独。\nくらい（大约/程度）例：これくらいの試練、余裕だ。→ 这种程度的试炼，游刃有余。\nさえ（连…都/甚至）例：神さえも超えてみせる。→ 连神我都超越给你看。\nでも（即使/举例）例：雨でも、戦う。→ 即使下雨也要战斗。\nばかり（只/净/刚刚）例：傷だらけばかりの戦士。→ 满身是伤的战士。" },
+      { "t": "终助词", "c": "か（疑问）例：生きたいか？→ 想活下去吗？\nね（确认/感叹）例：運命って残酷だね。→ 命运真是残酷呢。\nよ（告知/提醒）例：俺はまだやれるよ！→ 我还能战斗哦！\nわ（女性感叹）例：素敵な力だわ。→ 好棒的力量啊。\nぞ（男性强调）例：行くぞ、相棒！→ 上吧，搭档！\nな（禁止/感叹）例：諦めるな！→ 不要放弃！\nの（女性疑问）例：どこに行くの？→ 你要去哪？\nかな（自问/疑问）例：彼は本当に敵なのかな？→ 他真的是敌人吗？\nよね（寻求同意）例：約束だよね？→ 是约定对吧？\nものか（强烈否定）例：こんな奴に負けるものか！→ 怎么可能输给这种家伙！" },
+      { "t": "疑问词", "c": "だれ/どなた（谁）例：俺の敵は誰だ？→ 我的敌人是谁？\nなに/なん（什么）例：なにが正義だ？→ 什么是正义？\nいつ（何时）例：いつか必ず復讐する。→ 总有一天会复仇。\nどこ/どちら（哪里）例：楽園はどこにある？→ 乐园在哪里？\nなぜ/どうして（为什么）例：なぜ俺は生まれたのか？→ 我为何而生？\nどう（怎样）例：この力をどう使う？→ 这股力量怎么用？\nいくら（多少钱/多少）例：命の値段はいくらだ？→ 生命的价钱是多少？\nいくつ（几个/几岁）例：敵はいくついる？→ 敌人有几个？\nどの/どれ/どんな（哪个/什么样）例：どんな闇でも照らす。→ 无论怎样的黑暗我都会照亮。\nどのくらい（多少程度/多久）例：どのくらい強くなれる？→ 能变强到什么程度？\n何回/何個/何人（几次/几个/几人）例：何回倒しても、俺は立ち上がる。→ 无论倒下多少次，我都会站起来。" },
+      { "t": "动词分类", "c": "一类动词（五段）例：戦う→戦います。例：仲間を守るため、戦う！→ 为了保护伙伴而战斗！\n二类动词（一段）例：食べる→食べます。例：敵の攻撃を受ける。→ 承受敌人的攻击。\n三类动词（变格）する（做）例：復讐する。→ 复仇。\n来る（来）例：運命が来る。→ 命运来临。" },
+      { "t": "形容词", "c": "い形容词（词尾い）例：強い→強い敵に勝つ。→ 战胜强敌。\nな形容词（词尾だ/な）例：静かだ→静かに闇を歩く。→ 静静地行走于黑暗。" },
+      { "t": "名词", "c": "无词尾变化，加だ/です结句，加に副词化。例：覚悟はできた。→ 做好觉悟了。\n静かに戦場を駆ける。→ 静静地驰骋战场。" },
+      { "t": "副词", "c": "と副词（きっと/ゆっくり）例：必ず勝つ！→ 必定胜利！\nに副词（とても/あまり）例：あまりにも弱い。→ 太弱了。\n其他（もう/まだ/すぐ）例：まだ終わってない！→ 还没结束！" },
+      { "t": "动词时态（礼貌体）", "c": "原形（辞书形）例：書く。例：俺は小説を書く。→ 我写小说。\n现在时（ます）例：書きます。例：毎日、必殺技を書きます。→ 每天写必杀技。\n过去时（ました）例：書きました。例：過去の呪いを解きました。→ 解开了过去的诅咒。\n过去完成时（ていました）例：書いていました。例：すでにその伝説を書き終えていました。→ 早已写完了那个传说。" },
+      { "t": "动词活用形（简略）", "c": "て形（连接）例：飛んで、斬れ！→ 飞过去，斩！\nた形（过去）例：倒した敵の数は数え切れない。→ 打倒的敌人不计其数。\nない形（否定）例：負けない。→ 不会输。\n意志形（提议）例：一緒に地獄へ行こう。→ 一起去地狱吧。\nば形（假定）例：お前が呼べば、必ず来る。→ 只要你呼唤，我一定会来。\n可能形（能够）例：この力で未来を変えられる。→ 用这股力量能改变未来。\n使役形（让/使）例：弟子を修行させる。→ 让弟子修行。\n被动形（被）例：闇に飲み込まれる。→ 被黑暗吞噬。\n使役被动（被逼）例：無理やり戦わせられる。→ 被迫战斗。\n命令形（命令）例：死ね！→ 去死吧！\n禁止形（禁止）例：諦めるな！→ 不准放弃！" },
+      { "t": "敬语", "c": "尊敬语（抬高对方）例：社長がいらっしゃる。例：あなた様がおっしゃる通りです。→ 正如您所说。\n谦让语（降低自己）例：私が参ります。例：敵の情報を申し上げます。→ 我禀报敌人的情报。\n郑重语（礼貌体）例：そこにございます。例：私は戦士でございます。→ 我是战士。\n美化语（加お/ご）例：お酒を召し上がれ。例：お力を貸してください。→ 请借给我力量。" },
+      { "t": "授受动词", "c": "あげる/さしあげる（我给他人）例：友達に勇気をあげる。→ 给朋友勇气。\nくれる/くださる（他人给我）例：師匠が必殺剣をくださる。→ 师父给我必杀剑。\nもらう/いただく（我从他人得到）例：仲間から力をいただく。→ 从伙伴那里得到力量。\nてあげる（为他人做）例：敵の弱点を教えてあげる。→ 我来告诉你敌人的弱点。" },
+      { "t": "地点表达（格助词）", "c": "に（存在场所/附着点）例：秘境に宝物がある。→ 秘境里有宝物。\nで（动作场所）例：闘技場で戦う。→ 在斗技场战斗。\nへ（移动方向）例：理想郷へ行く。→ 去理想乡。\nから（起点）例：異世界から来た。→ 从异世界来的。\nまで（终点）例：限界まで戦う。→ 战斗到极限。\nを（经过/离开/通过点）例：空を飛ぶ。→ 飞翔天空。\nの（内部位置）例：山の上で待つ。→ 在山顶上等待。" },
+      { "t": "句子基本结构", "c": "主语 + 谓语 + 宾语。例：俺はコーヒーを飲む。→ 我喝咖啡。\n否定：俺はコーヒーを飲まない。→ 我不喝咖啡。\n加形容词：俺は熱いコーヒーを飲む。→ 我喝热咖啡。\n加地点状语：俺は事務所でコーヒーを飲む。→ 我在办公室喝咖啡。\n加时间状语：朝、俺は事務所でコーヒーを飲む。→ 早上，我在办公室喝咖啡。" }
+    ];
+
+    function initWiki() {
+        const grid = document.getElementById('wiki-grid');
+        let html = '';
+        wikiData.forEach(item => {
+            // 处理换行和例句高亮
+            const content = item.c.split('\n').map(line => {
+                return `<div class="wiki-example">${line}</div>`;
+            }).join('');
+            
+            html += `
+                <div class="glass wiki-card">
+                    <h3>${item.t}</h3>
+                    ${content}
+                </div>
+            `;
+        });
+        grid.innerHTML = html;
     }
 
-    function showDeep(idx) {
-        const d = analysisResult[idx];
-        document.getElementById('analysis-detail').innerHTML = `
-            <div class="analysis-card fuwariFade">
-                <h4>🌸 句子骨架</h4><p>${d.struct}</p>
-                <h4>📝 语法详解</h4><p>${d.grammar}</p>
-                <h4>🔍 重点词汇</h4><p>${d.vocab}</p>
-            </div>
-        `;
-    }
+    // 页面加载完成后初始化
+    window.onload = initWiki;
+
 </script>
 </body>
 </html>
