@@ -10,16 +10,16 @@
     
     <style>
         :root {
-            --fuwari-pink: #ffc2d1;
-            --fuwari-pink-dark: #fb6f92;
-            --fuwari-bg: #fffcfd;
-            --fuwari-card-bg: rgba(255, 255, 255, 0.6);
-            --fuwari-border: #ffe5ec;
+            --fw-pink: #ffc2d1;
+            --fw-pink-dark: #fb6f92;
+            --fw-bg: #fffcfd;
+            --fw-card: rgba(255, 255, 255, 0.65);
+            --fw-border: #ffe5ec;
         }
 
         body {
             font-family: 'M PLUS Rounded 1c', sans-serif;
-            background-color: var(--fuwari-bg);
+            background-color: var(--fw-bg);
             background-image: 
                 radial-gradient(at 0% 0%, hsla(338, 100%, 96%, 1) 0, transparent 50%), 
                 radial-gradient(at 100% 100%, hsla(180, 100%, 98%, 1) 0, transparent 50%);
@@ -27,71 +27,79 @@
             min-height: 100vh;
         }
 
-        /* 毛玻璃导航 */
+        /* Fuwari 导航 */
         nav {
             background: rgba(255, 255, 255, 0.4);
-            backdrop-filter: blur(15px);
-            border-bottom: 1px solid var(--fuwari-border);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--fw-border);
         }
 
         .nav-btn {
             font-weight: 700;
             color: #d1b8be;
-            transition: all 0.3s ease;
+            transition: all 0.3s;
         }
 
         .nav-btn.active {
-            color: var(--fuwari-pink-dark);
-            text-shadow: 0 0 10px rgba(251, 111, 146, 0.2);
+            color: var(--fw-pink-dark);
+            transform: scale(1.05);
         }
 
-        /* 呼吸感卡片 */
-        .fuwari-card {
-            background: var(--fuwari-card-bg);
-            backdrop-filter: blur(8px);
-            border-radius: 28px;
-            border: 1px solid white;
-            box-shadow: 0 8px 25px rgba(255, 194, 209, 0.12);
-            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+        /* 毛玻璃卡片 */
+        .fw-card {
+            background: var(--fw-card);
+            backdrop-filter: blur(10px);
+            border-radius: 30px;
+            border: 1.5px solid white;
+            box-shadow: 0 10px 30px rgba(255, 194, 209, 0.1);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        .fuwari-card:hover {
+        .fw-card:hover {
             transform: translateY(-4px);
             background: white;
-            box-shadow: 0 12px 35px rgba(255, 194, 209, 0.2);
+            box-shadow: 0 15px 40px rgba(255, 194, 209, 0.18);
         }
 
         /* 词块样式 */
         .jp-token {
             display: inline-block;
             margin: 0 1px;
-            padding: 0 3px;
-            border-radius: 5px;
+            padding: 0 2px;
+            border-radius: 4px;
             cursor: pointer;
             transition: 0.2s;
         }
         .jp-token:hover, .jp-token.selected {
             background: #ffe5ec;
-            color: var(--fuwari-pink-dark);
+            color: var(--fw-pink-dark);
         }
+
         .pos-助詞 { color: #f984ab; font-weight: bold; }
         .pos-動詞 { color: #74c0fc; }
-        .pos-名詞 { color: #6d6d6d; }
-
+        
         .sidebar-sticky {
             position: sticky;
             top: 100px;
             height: calc(100vh - 140px);
         }
 
-        .fade-in { animation: fadeIn 0.4s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* 解析加载条 */
+        #ai-progress {
+            height: 2px;
+            background: var(--fw-pink);
+            transition: width 0.4s;
+            width: 0;
+        }
     </style>
 </head>
 <body>
 
     <div id="loader-screen" class="fixed inset-0 flex flex-col items-center justify-center z-[9999] bg-white">
-        <div class="w-10 h-10 border-4 border-pink-50 border-t-pink-200 rounded-full animate-spin"></div>
+        <div class="w-12 h-12 border-4 border-pink-50 border-t-pink-200 rounded-full animate-spin"></div>
         <p class="mt-4 text-pink-200 text-xs font-bold tracking-[0.2em]">FUWAKO IS READYING...</p>
     </div>
 
@@ -110,31 +118,35 @@
         </div>
     </nav>
 
+    <div id="ai-progress" class="fixed top-0 left-0 z-[60]"></div>
+
     <main class="max-w-7xl mx-auto p-6">
         <section id="page-wiki" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"></section>
 
         <section id="page-lib" class="hidden">
-            <div class="fuwari-card p-10 mb-10 relative overflow-hidden">
+            <div class="fw-card p-10 mb-10 relative overflow-hidden">
                 <div id="sync-status" class="absolute top-6 right-8 text-[10px] font-bold text-gray-300">○ OFFLINE</div>
-                <h3 class="text-sm font-bold text-gray-400 mb-6 tracking-widest uppercase">New Lyrics</h3>
+                <h3 class="text-xs font-bold text-gray-400 mb-6 tracking-widest uppercase">New Entry</h3>
                 <input type="text" id="input-title" placeholder="歌曲标题" class="w-full p-4 mb-4 rounded-2xl border border-pink-50 outline-none focus:border-pink-200 bg-white/50">
                 <textarea id="input-content" placeholder="输入日语歌词..." class="w-full h-40 p-4 rounded-2xl border border-pink-50 outline-none focus:border-pink-200 bg-white/50"></textarea>
-                <button onclick="saveLyrics()" class="w-full mt-6 bg-pink-100 text-pink-400 font-bold py-4 rounded-2xl hover:bg-pink-200 transition-all">保存到书架 🌸</button>
+                <button onclick="saveLyrics()" class="w-full mt-6 bg-pink-100 text-pink-400 font-bold py-4 rounded-2xl hover:bg-pink-200 transition-all">保存 ✿</button>
             </div>
             <div id="lyrics-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
         </section>
 
         <section id="page-detail" class="hidden">
-            <button onclick="switchPage('lib')" class="mb-6 text-pink-300 text-sm font-bold flex items-center gap-2 hover:gap-3 transition-all">← BACK</button>
+            <button onclick="switchPage('lib')" class="mb-6 text-pink-300 text-sm font-bold flex items-center gap-2 hover:translate-x-[-4px] transition-all">← BACK</button>
             <div class="flex flex-col lg:flex-row gap-8">
-                <div class="flex-1 fuwari-card p-10 md:p-14 min-h-[500px]">
+                <div class="flex-1 fw-card p-10 md:p-14 min-h-[500px]">
                     <h1 id="view-title" class="text-2xl font-bold text-center mb-12 text-gray-600"></h1>
                     <div id="view-body" class="text-[17px] text-gray-500 leading-relaxed"></div>
                 </div>
                 <div class="w-full lg:w-80 shrink-0">
-                    <div class="fuwari-card p-8 sidebar-sticky">
-                        <h3 class="text-[10px] font-bold text-pink-200 tracking-[0.3em] uppercase mb-8">Word Dictionary</h3>
-                        <div id="sidebar-content"></div>
+                    <div class="fw-card p-8 sidebar-sticky">
+                        <h3 class="text-[10px] font-bold text-pink-200 tracking-[0.3em] uppercase mb-8">Analysis</h3>
+                        <div id="sidebar-content" class="fade-in">
+                            <p class="text-center text-gray-300 text-[10px] mt-20">SELECT WORD OR LINE</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -146,31 +158,31 @@
             <h3 class="text-xl font-bold text-gray-700 mb-6">GitHub Sync</h3>
             <input type="password" id="cfg-github" placeholder="ghp_token..." class="w-full p-4 mb-8 rounded-2xl border border-pink-50 outline-none bg-gray-50/50 text-sm">
             <div class="flex gap-4">
-                <button onclick="saveConfig()" class="flex-1 bg-pink-200 text-white font-bold py-4 rounded-2xl hover:bg-pink-300 transition-all">连接</button>
+                <button onclick="saveConfig()" class="flex-1 bg-pink-200 text-white font-bold py-4 rounded-2xl hover:bg-pink-300">连接</button>
                 <button onclick="closeConfigModal()" class="flex-1 bg-gray-50 text-gray-400 font-bold py-4 rounded-2xl">关闭</button>
             </div>
         </div>
     </div>
 
     <script>
-        // --- 全局变量 ---
+        const GEMINI_KEY = "AIzaSyBd99vT-P-IkpRifkKvXy4G86ZmPS8_9cs"; // API Key 已填入
         const REPO_OWNER = "ancenchan";
         const REPO_NAME = "fuwako";
         const FILE_PATH = "lyrics_data.json";
+
         let GITHUB_TOKEN = localStorage.getItem('fuwako_github') || "";
         let tokenizer = null;
-        let localDict = null; // 本地词库缓存
+        let localDict = null;
         let library = JSON.parse(localStorage.getItem('fuwari_lib') || '[]');
+        let currentAiAnalysis = []; // 存放当前文章的全篇 AI 解析
 
         // --- 初始化 ---
         async function init() {
-            // 1. 加载本地词库 (dict.json)
             try {
                 const res = await fetch('./dict.json');
                 if (res.ok) localDict = await res.json();
-            } catch (e) { console.log("未检测到本地词库文件"); }
+            } catch (e) { console.log("词库加载失败"); }
 
-            // 2. 加载分词器
             kuromoji.builder({ dicPath: "./dict/" }).build(async (err, _tokenizer) => {
                 tokenizer = _tokenizer;
                 renderWiki();
@@ -182,54 +194,121 @@
         }
         init();
 
-        // --- 核心词库查询 (完全本地化) ---
+        // --- 核心：全篇 AI 预处理 ---
+        async function fetchFullAnalysis(content) {
+            const progressBar = document.getElementById('ai-progress');
+            progressBar.style.width = '30%';
+            currentAiAnalysis = [];
+
+            const prompt = `你是一位温柔的日语老师。请分析以下歌词，严格按行返回一个JSON数组，不要包含任何Markdown标记。
+            每一行是一个对象：{"t": "整句翻译", "e": "语法/重点解释"}。
+            歌词内容：\n${content}`;
+
+            try {
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+                const data = await res.json();
+                let rawText = data.candidates[0].content.parts[0].text;
+                // 清理可能存在的 Markdown 代码块标签
+                rawText = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
+                currentAiAnalysis = JSON.parse(rawText);
+                progressBar.style.width = '100%';
+                setTimeout(() => progressBar.style.width = '0', 500);
+            } catch (e) {
+                console.error("AI 预处理失败", e);
+                progressBar.style.width = '0';
+            }
+        }
+
+        // --- 核心：渲染详情与交互 ---
+        function viewDetail(idx) {
+            const item = library[idx];
+            document.getElementById('view-title').innerText = item.title;
+            const body = document.getElementById('view-body');
+            document.getElementById('sidebar-content').innerHTML = `<p class="text-center text-gray-300 text-[10px] mt-20">AI TEACHER IS READING...</p>`;
+            switchPage('detail');
+
+            // 触发全篇解析
+            fetchFullAnalysis(item.content);
+
+            setTimeout(() => {
+                body.innerHTML = item.content.split('\n').map((line, lineIdx) => {
+                    const isJp = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(line);
+                    if (isJp && tokenizer) {
+                        return `
+                            <div class="mb-4 group flex items-start gap-3">
+                                <div class="flex-1">
+                                    ${tokenizer.tokenize(line).map(t => `<span class="jp-token pos-${t.pos}" onclick="showWord(this, '${t.surface_form}', '${t.reading}', '${t.pos}')">${t.surface_form}</span>`).join('')}
+                                </div>
+                                <button onclick="showLineInfo(${lineIdx})" class="opacity-0 group-hover:opacity-100 text-[10px] text-pink-200 bg-pink-50/50 px-2 py-1 rounded-lg transition-all hover:bg-pink-100">（讲解）</button>
+                            </div>`;
+                    }
+                    return `<div class="mb-4 text-xs opacity-50 italic pl-4 border-l-2 border-pink-50">${line}</div>`;
+                }).join('');
+            }, 100);
+        }
+
+        // --- 侧边栏：显示整句讲解 ---
+        function showLineInfo(idx) {
+            const info = currentAiAnalysis[idx];
+            const sidebar = document.getElementById('sidebar-content');
+            
+            if (!info) {
+                sidebar.innerHTML = `<p class="text-xs text-gray-400 text-center py-10">老师还在读这一句，请稍等哦 ✿</p>`;
+                return;
+            }
+
+            sidebar.innerHTML = `
+                <div class="fade-in">
+                    <div class="bg-pink-50/40 p-4 rounded-2xl mb-6 text-sm text-gray-600 border border-white">
+                        <p class="font-bold text-pink-300 mb-1 text-[10px] uppercase">Translation</p>
+                        “${info.t}”
+                    </div>
+                    <div>
+                        <p class="font-bold text-pink-300 mb-2 text-[10px] uppercase">Grammar Points</p>
+                        <p class="text-sm text-gray-500 leading-relaxed">${info.e.replace(/\n/g, '<br>')}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- 侧边栏：显示单词释义 ---
         function showWord(el, word, reading, pos) {
             document.querySelectorAll('.jp-token').forEach(t => t.classList.remove('selected'));
             el.classList.add('selected');
-            
             const sidebar = document.getElementById('sidebar-content');
+            const def = (localDict && localDict[word]) ? localDict[word] : '词库努力扩充中... ✿';
+            
             sidebar.innerHTML = `
                 <div class="fade-in">
                     <h2 class="text-3xl font-bold text-gray-700 mb-1">${word}</h2>
                     <p class="text-pink-200 text-xs font-bold mb-6">【${reading || '---'}】</p>
                     <div class="pt-6 border-t border-pink-50">
                         <span class="inline-block px-3 py-1 bg-pink-50 text-[10px] text-pink-300 font-bold rounded-full mb-4">${pos}</span>
-                        <p class="text-sm text-gray-500 leading-loose">${(localDict && localDict[word]) ? localDict[word] : '词库努力扩充中... ✿'}</p>
+                        <p class="text-sm text-gray-500 leading-loose">${def}</p>
                     </div>
                 </div>
             `;
         }
 
-        // --- 剩下的功能保持原样 (GitHub同步等) ---
-        function openConfigModal() { document.getElementById('config-modal').classList.remove('hidden'); }
-        function closeConfigModal() { document.getElementById('config-modal').classList.add('hidden'); }
-        async function saveConfig() {
-            GITHUB_TOKEN = document.getElementById('cfg-github').value.trim();
-            localStorage.setItem('fuwako_github', GITHUB_TOKEN);
-            closeConfigModal();
-            updateConfigUI();
-            if (GITHUB_TOKEN) await forceSyncFlow();
-        }
-        function updateConfigUI() {
-            const status = document.getElementById('sync-status');
-            status.innerText = GITHUB_TOKEN ? "● CLOUD CONNECTED" : "○ OFFLINE";
-            status.className = GITHUB_TOKEN ? "absolute top-6 right-8 text-[10px] font-bold text-pink-300" : "absolute top-6 right-8 text-[10px] font-bold text-gray-300";
-        }
-
+        // --- GitHub 同步逻辑 (保持稳定) ---
         async function forceSyncFlow() {
             const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`;
-            let sha = "", remoteLibrary = [];
+            let sha = "", remoteLib = [];
             try {
                 const res = await fetch(url, { headers: { "Authorization": `token ${GITHUB_TOKEN}` } });
                 if (res.ok) {
                     const data = await res.json();
                     sha = data.sha;
-                    remoteLibrary = JSON.parse(decodeURIComponent(escape(atob(data.content))));
+                    remoteLib = JSON.parse(decodeURIComponent(escape(atob(data.content))));
                 }
             } catch (e) {}
             const map = new Map();
-            remoteLibrary.forEach(item => map.set(item.id || item.title, item));
-            library.forEach(item => { if(!map.has(item.id || item.title)) map.set(item.id || item.title, item); });
+            remoteLib.forEach(i => map.set(i.id || i.title, i));
+            library.forEach(i => { if(!map.has(i.id || i.title)) map.set(i.id || i.title, i); });
             library = Array.from(map.values()).sort((a,b) => b.id - a.id);
             localStorage.setItem('fuwari_lib', JSON.stringify(library));
             renderLibrary();
@@ -245,11 +324,11 @@
                     const res = await fetch(url, { headers: { "Authorization": `token ${GITHUB_TOKEN}` } });
                     if(res.ok) sha = (await res.json()).sha;
                 }
-                const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(library, null, 2))));
+                const content = btoa(unescape(encodeURIComponent(JSON.stringify(library, null, 2))));
                 await fetch(url, {
                     method: 'PUT',
                     headers: { "Authorization": `token ${GITHUB_TOKEN}`, "Content-Type": "application/json" },
-                    body: JSON.stringify({ message: "Sync", content: contentBase64, sha: sha })
+                    body: JSON.stringify({ message: "Update", content, sha })
                 });
             } catch (e) {}
         }
@@ -266,53 +345,52 @@
             pushToGitHub();
         }
 
-        function switchPage(page) {
+        // --- 界面辅助 ---
+        function switchPage(p) {
             document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden'));
-            document.getElementById(`page-${page}`).classList.remove('hidden');
+            document.getElementById(`page-${p}`).classList.remove('hidden');
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-            const activeNav = document.getElementById(`btn-${page === 'detail' ? 'lib' : page}`);
-            if(activeNav) activeNav.classList.add('active');
+            const btn = document.getElementById(`btn-${p === 'detail' ? 'lib' : p}`);
+            if(btn) btn.classList.add('active');
             window.scrollTo(0,0);
         }
 
         function renderWiki() {
-            const data = [
+            const d = [
                 {t: "人称", c: "私 (普) / 僕 (少) / 俺 (男)"},
-                {t: "格助词", c: "は (主) / を (宾) / に (时)"},
-                {t: "活用", c: "ます (敬) / て (续) / た (完)"}
+                {t: "格助词", c: "は (主题) / を (宾语) / に (对象)"},
+                {t: "活用", c: "ます (礼貌) / て (接续) / た (过去)"}
             ];
-            document.getElementById('page-wiki').innerHTML = data.map(item => `
-                <div class="fuwari-card p-8">
-                    <h3 class="text-[10px] font-bold text-pink-200 tracking-widest mb-4 uppercase">${item.t}</h3>
-                    <p class="text-sm text-gray-500">${item.c}</p>
+            document.getElementById('page-wiki').innerHTML = d.map(i => `
+                <div class="fw-card p-8">
+                    <h3 class="text-[10px] font-bold text-pink-200 tracking-widest mb-4 uppercase">${i.t}</h3>
+                    <p class="text-sm text-gray-500">${i.c}</p>
                 </div>
             `).join('');
         }
 
         function renderLibrary() {
             document.getElementById('lyrics-container').innerHTML = library.map((item, index) => `
-                <div class="fuwari-card p-8 cursor-pointer group" onclick="viewDetail(${index})">
+                <div class="fw-card p-8 cursor-pointer group" onclick="viewDetail(${index})">
                     <h4 class="font-bold text-gray-600 mb-2 group-hover:text-pink-300 transition-colors">${item.title}</h4>
                     <p class="text-xs text-gray-400 line-clamp-2">${item.content}</p>
                 </div>
             `).join('');
         }
 
-        function viewDetail(idx) {
-            const item = library[idx];
-            document.getElementById('view-title').innerText = item.title;
-            const body = document.getElementById('view-body');
-            document.getElementById('sidebar-content').innerHTML = `<p class="text-center text-gray-300 text-[10px] mt-20">SELECT A WORD</p>`;
-            switchPage('detail');
-            setTimeout(() => {
-                body.innerHTML = item.content.split('\n').map(line => {
-                    const isJp = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(line);
-                    if (isJp && tokenizer) {
-                        return `<div class="mb-4">${tokenizer.tokenize(line).map(t => `<span class="jp-token pos-${t.pos}" onclick="showWord(this, '${t.surface_form}', '${t.reading}', '${t.pos}')">${t.surface_form}</span>`).join('')}</div>`;
-                    }
-                    return `<div class="mb-4 text-xs opacity-50 italic pl-4 border-l-2 border-pink-50">${line}</div>`;
-                }).join('');
-            }, 100);
+        function openConfigModal() { document.getElementById('config-modal').classList.remove('hidden'); }
+        function closeConfigModal() { document.getElementById('config-modal').classList.add('hidden'); }
+        async function saveConfig() {
+            GITHUB_TOKEN = document.getElementById('cfg-github').value.trim();
+            localStorage.setItem('fuwako_github', GITHUB_TOKEN);
+            closeConfigModal();
+            updateConfigUI();
+            if (GITHUB_TOKEN) await forceSyncFlow();
+        }
+        function updateConfigUI() {
+            const s = document.getElementById('sync-status');
+            s.innerText = GITHUB_TOKEN ? "● CLOUD CONNECTED" : "○ OFFLINE";
+            s.className = GITHUB_TOKEN ? "absolute top-6 right-8 text-[10px] font-bold text-pink-300" : "absolute top-6 right-8 text-[10px] font-bold text-gray-300";
         }
     </script>
 </body>
