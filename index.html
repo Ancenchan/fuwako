@@ -200,8 +200,8 @@
             progressBar.style.width = '30%';
             currentAiAnalysis = [];
 
-            const prompt = `你是一位温柔的日语老师。请分析以下歌词，严格按行返回一个JSON数组，不要包含任何Markdown标记。
-            每一行是一个对象：{"t": "整句翻译", "e": "语法/重点解释"}。
+            const prompt = `你是一位日语老师。请分析以下歌词，严格按行返回一个JSON数组，不要包含任何Markdown标记。
+            每一行是一个对象：{"t": "整句翻译", "e": "语法/重点解释"}。在语法解释中要解释清句子的结构，助词连接，变形等用法。
             歌词内容：\n${content}`;
 
             try {
