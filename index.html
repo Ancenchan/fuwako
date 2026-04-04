@@ -1,370 +1,294 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🌸 Fuwari Language - 萌动日语分析 🌸</title>
-    <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <title>Fuwari Lyrics & Grammar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/build/kuromoji.js"></script>
     <style>
         :root {
-            --sakura-pink: #ffc2d1;
-            --soft-pink: #ffe5ec;
-            --deep-pink: #fb6f92;
-            --mint-green: #c1fba4;
-            --glass-bg: rgba(255, 255, 255, 0.6);
-            --glass-border: rgba(255, 255, 255, 0.8);
-            --text-color: #7251b5; /* 优雅的紫色调文字 */
+            --fuwari-pink: #ffe4e6;
+            --fuwari-blue: #e0f2fe;
+            --fuwari-green: #f0fdf4;
+            --fuwari-glass: rgba(255, 255, 255, 0.6);
         }
 
         body {
-            font-family: 'Noto Sans JP', 'ZCOOL KuaiLe', sans-serif;
-            background: linear-gradient(135deg, #ffe5ec 0%, #ffc2d1 50%, #c1fba4 100%);
-            background-attachment: fixed;
-            margin: 0;
-            color: var(--text-color);
-            overflow-x: hidden;
+            background: linear-gradient(135deg, var(--fuwari-pink), var(--fuwari-blue));
+            min-height: 100vh;
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', sans-serif;
+            color: #4b5563;
         }
 
-        /* 增加飘落感背景装饰 */
-        body::before {
-            content: "🌸";
-            position: fixed;
-            top: -5%;
-            left: 10%;
-            font-size: 24px;
-            opacity: 0.3;
-            animation: drift 10s infinite linear;
+        .glass-card {
+            background: var(--fuwari-glass);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
         }
 
-        @keyframes drift {
-            from { transform: translateY(0) rotate(0deg); }
-            to { transform: translateY(100vh) rotate(360deg); }
-        }
-
-        .glass {
-            background: var(--glass-bg);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            border: 2px solid var(--glass-border);
-            border-radius: 30px;
-            box-shadow: 0 10px 30px rgba(255, 182, 193, 0.4);
-        }
-
-        header {
-            display: flex;
-            align-items: center;
-            padding: 15px 40px;
-            gap: 25px;
-            margin: 20px;
-        }
-
-        #config-btn {
-            width: 55px;
-            height: 55px;
-            border-radius: 50%;
-            cursor: pointer;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            border: 3px solid white;
-            background: white;
-        }
-
-        #config-btn:hover {
-            transform: scale(1.2) rotate(15deg);
-            box-shadow: 0 0 20px var(--deep-pink);
-        }
-
-        .tab-btn {
-            padding: 12px 25px;
-            border: none;
-            background: rgba(255, 255, 255, 0.5);
-            border-radius: 50px;
-            cursor: pointer;
-            font-weight: bold;
-            color: var(--deep-pink);
-            transition: all 0.3s ease;
-            font-size: 16px;
-        }
-
-        .tab-btn.active {
-            background: var(--deep-pink);
-            color: white;
-            box-shadow: 0 4px 15px rgba(251, 111, 146, 0.4);
-        }
-
-        .container {
-            display: grid;
-            grid-template-columns: 1fr 320px;
-            padding: 0 20px 40px;
-            gap: 25px;
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        /* 编辑器美化 */
-        textarea {
-            width: 100%;
-            height: 180px;
-            padding: 25px;
-            box-sizing: border-box;
-            border: 2px dashed var(--sakura-pink);
-            background: rgba(255, 255, 255, 0.7);
-            border-radius: 25px;
-            outline: none;
-            font-size: 18px;
-            color: #555;
-            transition: all 0.3s;
-        }
-
-        textarea:focus {
-            background: white;
-            border-style: solid;
-            box-shadow: 0 0 15px rgba(255, 194, 209, 0.6);
-        }
-
-        .action-btn {
-            background: linear-gradient(45deg, var(--deep-pink), #ffb3c1);
-            color: white;
-            border: none;
-            padding: 15px 40px;
-            border-radius: 50px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 18px;
-            margin-top: 15px;
-            box-shadow: 0 5px 20px rgba(251, 111, 146, 0.3);
-            transition: 0.3s;
-        }
-
-        .action-btn:hover {
-            transform: translateY(-3px) scale(1.02);
-            box-shadow: 0 8px 25px rgba(251, 111, 146, 0.5);
-        }
-
-        /* 结果展示区 */
-        .token {
+        /* 语法颜色 */
+        .pos-verb { color: #ec4899; font-weight: bold; }    /* 动词-粉 */
+        .pos-particle { color: #3b82f6; }                 /* 助词-蓝 */
+        .pos-noun { color: #10b981; }                     /* 名词-绿 */
+        
+        .token-block {
             display: inline-block;
-            margin: 4px;
-            padding: 2px 6px;
-            border-radius: 8px;
+            margin: 0 2px;
+            padding: 2px 4px;
+            border-radius: 6px;
             cursor: pointer;
-            transition: 0.2s;
-            font-size: 20px;
+            transition: background 0.2s;
         }
-        .token:hover { background: white; transform: scale(1.1); }
-        .pos-名词 { background: #ffe5ec; border-bottom: 3px solid #fb6f92; }
-        .pos-助词 { background: #f0fff0; border-bottom: 3px solid #70e000; }
-        .pos-动词 { background: #e0f2fe; border-bottom: 3px solid #00b4d8; }
+        .token-block:hover { background: rgba(255, 255, 255, 0.8); }
 
-        .ai-section {
-            background: rgba(255, 255, 255, 0.5);
-            margin: 15px 0;
-            padding: 20px;
-            border-radius: 20px;
-            border-left: 6px solid var(--sakura-pink);
-        }
-
-        .ai-section h4 { margin: 0 0 10px; color: var(--deep-pink); font-size: 18px; }
-
-        /* 右侧便签 */
-        aside h3 { color: var(--deep-pink); text-align: center; font-size: 22px; }
-        #word-details { line-height: 1.8; }
-
-        /* Wiki 特殊颜色 */
-        .wiki-card h3 { color: #ff4d6d; border-bottom: 2px solid #ffb3c1; }
-        .wiki-example { color: #4a4e69; font-size: 14px; margin-bottom: 8px; border-left: 3px solid var(--mint-green); padding-left: 8px; }
-
-        .loading-text {
-            color: var(--deep-pink);
-            font-weight: bold;
-            display: none;
-            animation: blink 1s infinite;
+        /* 加载遮罩 */
+        #loading-mask {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.5s;
         }
 
-        @keyframes blink { 50% { opacity: 0.4; } }
+        .ai-progress-bar {
+            height: 4px;
+            background: #ddd;
+            width: 100%;
+            position: fixed;
+            top: 0;
+            z-index: 50;
+        }
+        #ai-progress-inner {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(to right, #f472b6, #60a5fa);
+            transition: width 0.3s;
+        }
     </style>
 </head>
 <body>
 
-    <header class="glass">
-        <img src="7.png" alt="🌸" id="config-btn" onerror="this.src='https://api.dicebear.com/7.x/adventurer/svg?seed=7&backgroundColor=ffc2d1'">
-        <nav>
-            <button class="tab-btn active" onclick="switchTab('editor')">✨ 魔法分析</button>
-            <button class="tab-btn" onclick="switchTab('library')">📚 回忆书架</button>
-            <button class="tab-btn" onclick="switchTab('wiki')">📖 禁咒百科</button>
-        </nav>
-    </header>
-
-    <div class="container">
-        <main>
-            <section id="editor" class="tab-content active">
-                <div class="glass" style="padding: 25px;">
-                    <textarea id="lyrics-input" placeholder="输入日语歌词，AI 老师会为你咏唱深度解析..."></textarea>
-                    <div style="display: flex; align-items: center; gap: 20px;">
-                        <button id="analyze-btn" class="action-btn" onclick="processLyrics()" disabled>正在初始化法阵...</button>
-                        <span id="loading-indicator" class="loading-text">🎀 正在连接星辰灵气 (AI 分析中)...</span>
-                    </div>
-                </div>
-                
-                <div id="kuromoji-result" class="glass result-box" style="display:none; margin-top: 20px; padding: 25px;"></div>
-                <div id="ai-result" class="glass result-box" style="display:none; margin-top: 20px; padding: 25px;"></div>
-            </section>
-
-            <section id="library" class="tab-content" style="display:none;"></section>
-            <section id="wiki" class="tab-content" style="display:none;">
-                <div id="wiki-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;"></div>
-            </section>
-        </main>
-
-        <aside class="glass" style="padding: 20px; height: fit-content;">
-            <h3>🎀 单词便签</h3>
-            <div id="word-details">
-                <p style="text-align:center; opacity:0.6;">点击单词，查看隐藏的奥秘</p>
-            </div>
-        </aside>
+    <div id="loading-mask">
+        <div class="text-2xl font-bold text-pink-400 mb-4 animate-bounce">ふわり加载中...</div>
+        <div class="text-sm text-gray-400">正在准备 Kuromoji 字典与配置</div>
     </div>
 
-<script>
-    // ================= 配置区 =================
-    const GEMINI_API_KEY = "AIzaSyBd99vT-P-IkpRifkKvXy4G86ZmPS8_9cs"; 
-    const DICT_PATH = "dict/"; // 指向你 GitHub 仓库中的 dict 文件夹
-    let tokenizer = null;
+    <div class="ai-progress-bar">
+        <div id="ai-progress-inner"></div>
+    </div>
 
-    // 初始化分词器
-    kuromoji.builder({ dicPath: DICT_PATH }).build(function (err, _tokenizer) {
-        if (err) {
-            console.error("词典加载失败:", err);
-            document.getElementById('analyze-btn').innerText = "法阵损坏(词典错误)";
-            return;
-        }
-        tokenizer = _tokenizer;
-        document.getElementById('analyze-btn').innerText = "✨ 启动分析魔法";
-        document.getElementById('analyze-btn').disabled = false;
-    });
+    <div class="container mx-auto p-4 max-w-4xl">
+        <header class="flex justify-between items-center mb-6 px-4">
+            <h1 class="text-2xl font-bold text-white drop-shadow-md">Fuwako 日语学习</h1>
+            <button onclick="toggleSettings()" class="glass-card px-4 py-2 text-sm">Settings</button>
+        </header>
 
-    // ================= 逻辑区 =================
-    function switchTab(id) {
-        document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(id).style.display = 'block';
-        event.target.classList.add('active');
-        if(id === 'library') renderLibrary();
-    }
+        <section class="glass-card p-6 mb-8">
+            <h2 class="text-lg font-bold mb-4 flex items-center">
+                <span class="mr-2">📚</span> 语法快速速查
+            </h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div class="bg-white/40 p-3 rounded-xl text-sm hover:bg-white/60 cursor-pointer">
+                    <div class="font-bold text-pink-500">动词-て形</div>
+                    <div class="text-xs text-gray-500">五段/一段/サ变</div>
+                </div>
+                </div>
+        </section>
 
-    async function processLyrics() {
-        const text = document.getElementById('lyrics-input').value.trim();
-        if(!text) return;
+        <main id="app-router">
+            <div id="view-shelf" class="space-y-4">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl font-bold">我的歌词库</h2>
+                    <button onclick="showEditor()" class="bg-pink-400 text-white px-4 py-2 rounded-full shadow-lg">+ 新歌词</button>
+                </div>
+                <div id="lyrics-list" class="grid gap-4">
+                    </div>
+            </div>
 
-        const btn = document.getElementById('analyze-btn');
-        const loader = document.getElementById('loading-indicator');
-        btn.disabled = true;
-        loader.style.display = "inline";
+            <div id="view-detail" class="hidden">
+                <button onclick="showShelf()" class="mb-4 text-gray-500">← 返回书架</button>
+                <div class="flex flex-col md:flex-row gap-6">
+                    <div id="lyrics-display" class="glass-card p-8 flex-1 leading-loose text-xl">
+                        </div>
+                    <div id="side-panel" class="w-full md:w-72 space-y-4">
+                        <div class="glass-card p-4">
+                            <h3 class="font-bold border-b pb-2 mb-2">释义/语法</h3>
+                            <div id="side-content" class="text-sm text-gray-600">点击单词或“讲解”按钮显示内容</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
 
-        try {
-            const tokens = tokenizer.tokenize(text);
-            renderTokens(tokens);
+    <div id="modal-settings" class="fixed inset-0 bg-black/20 hidden flex items-center justify-center">
+        <div class="glass-card p-8 w-80">
+            <h3 class="font-bold mb-4">设置 GitHub Token</h3>
+            <input id="input-token" type="password" placeholder="ghp_..." class="w-full p-2 rounded-lg border mb-4">
+            <div class="flex justify-end gap-2">
+                <button onclick="toggleSettings()" class="text-gray-400">取消</button>
+                <button onclick="saveSettings()" class="bg-blue-400 text-white px-4 py-1 rounded-lg">保存</button>
+            </div>
+        </div>
+    </div>
 
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: `你是一位专业且可爱的中二病日语老师。请分析这段歌词：${text}。必须以 JSON 格式返回：{"sentence_structure":"","grammar":"","core_vocabulary":[],"translation":""}。保持中二且粉嫩的语气。` }] }]
-                })
+    <script type="module">
+        import { Octokit } from "https://cdn.skypack.dev/@octokit/core";
+
+        // --- 全局状态 ---
+        let tokenizer = null;
+        let lyricsData = [];
+        let dictData = {}; // 约5000词的本地词库
+
+        const CONFIG = {
+            owner: 'YOUR_USERNAME', // 你的 GitHub 用户名
+            repo: 'YOUR_REPO_NAME',  // 你的仓库名
+            path: 'lyrics_data.json',
+            token: localStorage.getItem('gh_token') || ''
+        };
+
+        // --- 初始化 ---
+        async function init() {
+            // 1. 加载 Kuromoji
+            kuromoji.builder({ dicPath: "https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/" }).build((err, _tokenizer) => {
+                if (err) return console.error(err);
+                tokenizer = _tokenizer;
+                document.getElementById('loading-mask').style.opacity = '0';
+                setTimeout(() => document.getElementById('loading-mask').remove(), 500);
             });
 
-            const result = await response.json();
-            let rawJson = result.candidates[0].content.parts[0].text.replace(/```json|```/g, '').trim();
-            const aiData = JSON.parse(rawJson);
-            renderAI(aiData);
-            saveHistory(text, aiData, tokens);
-        } catch (e) {
-            alert("魔法咒语念错了: " + e.message);
-        } finally {
-            btn.disabled = false;
-            loader.style.display = "none";
+            // 2. 拉取云端数据并合并
+            await syncCloudData();
+            renderShelf();
         }
-    }
 
-    function renderTokens(tokens) {
-        const box = document.getElementById('kuromoji-result');
-        box.style.display = "block";
-        box.innerHTML = "<h4>🔍 语法透视镜</h4>";
-        let html = "";
-        tokens.forEach(t => {
-            let cls = t.pos === "名詞" ? "pos-名词" : (t.pos === "助詞" ? "pos-助词" : (t.pos === "動詞" ? "pos-动词" : ""));
-            html += `<span class="token ${cls}" onclick="showDetail('${t.surface_form}','${t.pos}','${t.pos_detail_1}','${t.basic_form}')">${t.surface_form}</span>`;
-        });
-        box.innerHTML += `<div>${html}</div>`;
-    }
+        // --- GitHub 持久化模块 ---
+        async function syncCloudData() {
+            if (!CONFIG.token) return;
+            const octokit = new Octokit({ auth: CONFIG.token });
+            try {
+                const res = await octokit.request('GET /repos/{owner}/{repo}/contents/{path}', CONFIG);
+                const cloudJson = JSON.parse(atob(res.data.content));
+                
+                // 合并逻辑 (按 timestamp 去重)
+                const localData = JSON.parse(localStorage.getItem('lyrics_local') || '[]');
+                const combined = [...cloudJson, ...localData];
+                const unique = Array.from(new Map(combined.map(item => [item.id, item])).values());
+                
+                lyricsData = unique.sort((a, b) => b.timestamp - a.timestamp);
+                localStorage.setItem('lyrics_local', JSON.stringify(lyricsData));
+            } catch (e) {
+                console.warn("Cloud sync failed, using local data.");
+            }
+        }
 
-    function showDetail(s, p, p1, b) {
-        document.getElementById('word-details').innerHTML = `
-            <div style="background:white; padding:15px; border-radius:15px;">
-                <p><b>本体:</b> ${s}</p>
-                <p><b>真名:</b> ${b}</p>
-                <p><b>属性:</b> <span style="color:#fb6f92">${p}</span></p>
-                <p><b>阶级:</b> ${p1}</p>
-            </div>
-        `;
-    }
+        async function pushToCloud() {
+            if (!CONFIG.token) return;
+            const octokit = new Octokit({ auth: CONFIG.token });
+            
+            // 需要先获取当前的 SHA 才能更新
+            const getRes = await octokit.request('GET /repos/{owner}/{repo}/contents/{path}', CONFIG);
+            const sha = getRes.data.sha;
 
-    function renderAI(data) {
-        const box = document.getElementById('ai-result');
-        box.style.display = "block";
-        box.innerHTML = `
-            <h3>🔮 AI 老师的启示录</h3>
-            <div class="ai-section"><h4>🌟 结构脉络</h4><p>${data.sentence_structure}</p></div>
-            <div class="ai-section"><h4>📜 禁咒解读</h4><p>${data.grammar}</p></div>
-            <div class="ai-section"><h4>💎 核心灵石</h4><p>${data.core_vocabulary.join(' | ')}</p></div>
-            <div class="ai-section"><h4>🏮 命运意译</h4><p>${data.translation}</p></div>
-        `;
-    }
+            await octokit.request('PUT /repos/{owner}/{repo}/contents/{path}', {
+                ...CONFIG,
+                message: 'Update lyrics data',
+                content: btoa(unescape(encodeURIComponent(JSON.stringify(lyricsData)))),
+                sha: sha
+            });
+        }
 
-    function saveHistory(t, ai, tk) {
-        let history = JSON.parse(localStorage.getItem('fuwari_history') || '[]');
-        history.unshift({t: t.slice(0,15), full: t, ai: ai, tk: tk});
-        localStorage.setItem('fuwari_history', JSON.stringify(history.slice(0,10)));
-    }
+        // --- Gemini AI 预处理模块 ---
+        async function fetchGeminiAnalysis(lyricsText, songId) {
+            document.getElementById('ai-progress-inner').style.width = '30%';
+            
+            // 构造 Prompt
+            const prompt = `请分析以下日语歌词，返回一个JSON数组，格式为 [{"t": "中文翻译", "e": "核心语法点"}]，行数必须与原歌词一致：\n${lyricsText}`;
 
-    function renderLibrary() {
-        const history = JSON.parse(localStorage.getItem('fuwari_history') || '[]');
-        const lib = document.getElementById('library');
-        lib.innerHTML = history.map((item, i) => `
-            <div class="glass" style="padding:15px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
-                <span>${item.t}...</span>
-                <button class="tab-btn" onclick="restoreHistory(${i})">召唤</button>
-            </div>
-        `).join('') || '<p style="text-align:center;">这里还没有任何契约...</p>';
-    }
+            // 调用 Gemini API (此处需替换为你的 API Endpoint 和 Key)
+            // 建议：GitHub Actions 或 后端转发以保护 Key，此处演示直接请求
+            const res = await fetch('YOUR_GEMINI_API_URL', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt })
+            });
+            const analysis = await res.json(); 
 
-    function restoreHistory(index) {
-        const history = JSON.parse(localStorage.getItem('fuwari_history') || '[]');
-        const item = history[index];
-        switchTab('editor');
-        document.getElementById('lyrics-input').value = item.full;
-        renderTokens(item.tk);
-        renderAI(item.ai);
-    }
+            // 保存到云端对应的解析文件 (例如 analysis_{id}.json)
+            // ... Octokit PUT 逻辑 ...
 
-    // Wiki 内容
-    const wikiData = [
-        { "t": "人称代词", "c": "私/ 僕/ 俺/ あなた/ 彼/ 彼女。例：俺はこの世界の神になる！" },
-        { "t": "格助词", "c": "は（主题）\nを（宾语）\nが（主语）\nの（所属）" },
-        { "t": "动词变形", "c": "て形（连接）\nた形（过去）\nない形（否定）" },
-        { "t": "终助词", "c": "ぞ（强调）\nな（禁止/感叹）\nよ（告知）" }
-    ];
+            document.getElementById('ai-progress-inner').style.width = '100%';
+            setTimeout(() => document.getElementById('ai-progress-inner').style.width = '0', 1000);
+            return analysis;
+        }
 
-    function initWiki() {
-        const grid = document.getElementById('wiki-grid');
-        grid.innerHTML = wikiData.map(d => `
-            <div class="glass wiki-card" style="padding:15px;">
-                <h3>${d.t}</h3>
-                ${d.c.split('\n').map(l => `<div class="wiki-example">${l}</div>`).join('')}
-            </div>
-        `).join('');
-    }
+        // --- 分词与渲染 ---
+        window.renderLyricsDetail = async function(id) {
+            const song = lyricsData.find(s => s.id === id);
+            const container = document.getElementById('lyrics-display');
+            container.innerHTML = '';
 
-    window.onload = initWiki;
-</script>
+            const lines = song.content.split('\n');
+            lines.forEach((line, index) => {
+                const lineEl = document.createElement('div');
+                lineEl.className = 'mb-4 flex items-start';
+
+                const tokens = tokenizer.tokenize(line);
+                const tokenContainer = document.createElement('div');
+                tokenContainer.className = 'flex-1';
+
+                tokens.forEach(token => {
+                    const span = document.createElement('span');
+                    span.className = `token-block ${getPosClass(token.pos)}`;
+                    span.innerText = token.surface_form;
+                    span.onclick = () => lookupWord(token.surface_form);
+                    tokenContainer.appendChild(span);
+                });
+
+                // 讲解按钮
+                const btn = document.createElement('button');
+                btn.className = 'ml-4 text-xs bg-white/50 px-2 py-1 rounded shadow-sm';
+                btn.innerText = '解説';
+                btn.onclick = () => showAIExplanation(song.id, index);
+
+                lineEl.appendChild(tokenContainer);
+                lineEl.appendChild(btn);
+                container.appendChild(lineEl);
+            });
+
+            switchView('detail');
+        };
+
+        function getPosClass(pos) {
+            if (pos === '動詞') return 'pos-verb';
+            if (pos === '助詞') return 'pos-particle';
+            if (pos === '名詞') return 'pos-noun';
+            return '';
+        }
+
+        function lookupWord(word) {
+            const sense = dictData[word] || "本地词库暂未收录该词释义。";
+            document.getElementById('side-content').innerHTML = `
+                <div class="text-lg font-bold text-pink-500">${word}</div>
+                <p class="mt-2">${sense}</p>
+            `;
+        }
+
+        // --- 路由与交互 ---
+        window.switchView = function(view) {
+            document.getElementById('view-shelf').classList.toggle('hidden', view !== 'shelf');
+            document.getElementById('view-detail').classList.toggle('hidden', view !== 'detail');
+        };
+
+        // 初始化启动
+        window.onload = init;
+    </script>
 </body>
 </html>
