@@ -10,13 +10,13 @@
             --primary: #ffb7b2;
             --bg-color: #fce4ec;
             --text-main: #4a4a4a;
-            --glass-bg: rgba(255, 255, 255, 0.6);
+            --glass-bg: rgba(255, 255, 255, 0.7);
             --glass-border: rgba(255, 255, 255, 0.8);
         }
 
         body, html {
             margin: 0; padding: 0; height: 100%;
-            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
             background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
             color: var(--text-main);
             overflow: hidden;
@@ -31,128 +31,131 @@
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
         }
 
-        /* 全局加载遮罩 */
         #loading-mask {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: var(--bg-color); z-index: 9999;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
-            transition: opacity 0.5s ease;
         }
-        .spinner {
-            width: 50px; height: 50px; border: 5px solid #fff; 
-            border-top-color: var(--primary); border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
 
         #ai-progress-bar {
-            position: fixed; top: 0; left: 0; height: 4px; background: #a2c2e6;
+            position: fixed; top: 0; left: 0; height: 4px; background: #ffb7b2;
             width: 0%; transition: width 0.3s; z-index: 1000;
         }
 
         header {
             display: flex; justify-content: space-between; align-items: center;
-            padding: 15px 30px; position: relative; z-index: 10;
+            padding: 15px 30px; z-index: 10;
         }
         .tabs button {
-            background: transparent; border: none; font-size: 1.2rem;
-            margin-right: 20px; cursor: pointer; color: #888; transition: 0.3s;
+            background: transparent; border: none; font-size: 1.1rem;
+            margin-right: 20px; cursor: pointer; color: #888;
         }
         .tabs button.active { color: var(--primary); font-weight: bold; border-bottom: 2px solid var(--primary); }
-        #settings-btn { width: 40px; height: 40px; cursor: pointer; border-radius: 50%; transition: transform 0.3s; }
+
+        #settings-btn { width: 40px; height: 40px; cursor: pointer; border-radius: 50%; }
 
         .container { padding: 20px; height: calc(100vh - 100px); overflow-y: auto; }
         .tab-content { display: none; height: 100%; }
         .tab-content.active { display: block; }
 
-        /* 歌词模块输入框样式 */
+        /* 歌词模块输入区 */
         .input-area { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; padding: 20px; }
         .input-area input, .input-area textarea {
-            border: 1px solid rgba(0,0,0,0.1); border-radius: 10px; padding: 10px;
-            background: rgba(255,255,255,0.5); font-family: inherit;
+            border: 1px solid rgba(0,0,0,0.1); border-radius: 10px; padding: 12px;
+            background: rgba(255,255,255,0.6); font-family: inherit;
         }
-        .input-area textarea { height: 100px; resize: none; }
-        .btn-group { display: flex; gap: 10px; }
-        .primary-btn { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; }
+        .input-area textarea { height: 80px; }
+
+        .primary-btn { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-weight: bold; }
         .secondary-btn { background: #a2c2e6; color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; }
 
-        /* 歌词展示 */
-        .grammar-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
-        .lyric-card { padding: 15px; text-align: center; cursor: pointer; }
+        .grammar-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; }
+        .lyric-card { padding: 15px; text-align: center; cursor: pointer; transition: 0.2s; }
+        .lyric-card:hover { transform: scale(1.02); }
 
-        #lyrics-detail { display: flex; gap: 20px; height: 100%; display: none; position: relative; }
-        .lyrics-list { flex: 2; overflow-y: auto; padding: 40px 20px 20px; line-height: 2.5; font-size: 1.2rem; }
+        #lyrics-detail { display: none; gap: 20px; height: 100%; position: relative; }
+        .lyrics-list { flex: 2; overflow-y: auto; padding: 40px 20px 20px; line-height: 2.5; font-size: 1.3rem; }
         .sidebar { flex: 1; padding: 20px; overflow-y: auto; }
 
-        /* 词性高亮 */
+        /* 词性颜色 */
         .pos-名词 { color: #2c3e50; }
         .pos-動詞 { color: #e74c3c; font-weight: bold; }
-        .pos-助詞 { color: #27ae60; font-size: 0.9em; }
-        .token { cursor: pointer; margin: 0 2px; }
-        .token:hover { text-decoration: underline; }
+        .pos-助詞 { color: #27ae60; }
+        .pos-形容詞 { color: #f39c12; }
+        .token { cursor: pointer; margin: 0 2px; padding: 0 2px; border-radius: 4px; }
+        .token:hover { background: rgba(255,183,178,0.3); }
 
-        .lyric-line { display: flex; justify-content: space-between; border-bottom: 1px solid rgba(0,0,0,0.05); padding: 5px 0; }
-        .explain-btn { font-size: 0.8rem; padding: 4px 8px; background: var(--primary); color: white; border: none; border-radius: 10px; cursor: pointer; }
+        .lyric-line { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.05); padding: 8px 0; }
+        .explain-btn { font-size: 0.75rem; padding: 5px 10px; background: #eee; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; }
+        .explain-btn:hover { background: var(--primary); color: white; }
 
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); z-index: 100; justify-content: center; align-items: center; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 1000; justify-content: center; align-items: center; }
+        
+        /* 响应式调整 */
+        @media (max-width: 768px) {
+            #lyrics-detail { flex-direction: column; }
+            .sidebar { height: 300px; }
+        }
     </style>
 </head>
 <body>
 
 <div id="loading-mask">
-    <div class="spinner"></div>
-    <h3 style="color: #666; margin-top: 20px;">Fuwako 引擎启动中...</h3>
+    <div class="spinner" style="width:40px; height:40px; border:4px solid #fff; border-top-color:var(--primary); border-radius:50%; animation:spin 1s linear infinite;"></div>
+    <p style="margin-top:15px; color:#999;">正在加载日语词库...</p>
 </div>
+<style> @keyframes spin { 100% { transform: rotate(360deg); } } </style>
 
 <div id="ai-progress-bar"></div>
 
 <header>
     <div class="tabs">
-        <button class="active" onclick="switchTab('grammar')">语法模块</button>
-        <button onclick="switchTab('lyrics')">歌词模块</button>
+        <button id="tab-grammar" class="active" onclick="switchTab('grammar')">语法</button>
+        <button id="tab-lyrics" onclick="switchTab('lyrics')">歌词</button>
     </div>
-    <img src="7.png" id="settings-btn" alt="Settings" onclick="openSettings()" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\'><circle cx=\'50\' cy=\'50\' r=\'40\' fill=\'#ffb7b2\'/></svg>'">
+    <img src="7.png" id="settings-btn" onclick="openSettings()" alt="Settings" onerror="this.style.background='#ffb7b2'">
 </header>
 
 <div class="container">
     <div id="grammar" class="tab-content active">
         <div class="grammar-grid">
-            <div class="glass-panel lyric-card"><h3>动词变形</h3><p>基础语法块</p></div>
-            <div class="glass-panel lyric-card"><h3>授受关系</h3><p>基础语法块</p></div>
+            <div class="glass-panel lyric-card"><h3>五段动词变形</h3><p>基础模块</p></div>
+            <div class="glass-panel lyric-card"><h3>判断句</h3><p>基础模块</p></div>
         </div>
     </div>
 
     <div id="lyrics" class="tab-content">
         <div id="lyrics-bookshelf">
             <div class="glass-panel input-area">
-                <input type="text" id="new-lyric-title" placeholder="歌曲名称 (例如: Lemon)">
-                <textarea id="new-lyric-content" placeholder="在此粘贴歌词内容..."></textarea>
-                <div class="btn-group">
-                    <button class="primary-btn" onclick="saveNewLyrics()">保存并上传歌词</button>
-                    <button class="secondary-btn" onclick="syncLyrics()">从云端同步</button>
+                <input type="text" id="lyric-title" placeholder="输入歌词标题...">
+                <textarea id="lyric-content" placeholder="在此粘贴日语歌词正文..."></textarea>
+                <div style="display:flex; gap:10px;">
+                    <button class="primary-btn" onclick="saveLyrics()">保存并备份</button>
+                    <button class="secondary-btn" onclick="syncFromCloud()">云端同步</button>
                 </div>
             </div>
             <div id="bookshelf-list" class="grammar-grid"></div>
         </div>
 
         <div id="lyrics-detail">
-            <button onclick="backToBookshelf()" style="position: absolute; top: 0; left: 0; z-index: 5;">返回</button>
-            <div class="glass-panel lyrics-list" id="lyric-lines-container"></div>
-            <div class="glass-panel sidebar" id="right-sidebar">
-                <h3>解析面板</h3>
-                <div id="sidebar-content">点击单词查看释义，或点击讲解。</div>
+            <button onclick="backToBookshelf()" style="position:absolute; top:0; left:0; border:none; background:none; cursor:pointer; font-weight:bold; color:var(--primary);">← 返回书架</button>
+            <div class="glass-panel lyrics-list" id="detail-lines"></div>
+            <div class="glass-panel sidebar">
+                <h4 style="margin-top:0;">释义与分析</h4>
+                <div id="side-content" style="font-size:0.95rem; color:#555; line-height:1.6;">点击单词发音并查看解释</div>
             </div>
         </div>
     </div>
 </div>
 
 <div id="settings-modal" class="modal">
-    <div class="glass-panel" style="padding: 20px; width: 300px; text-align: center;">
-        <h3>配置中心</h3>
-        <input type="password" id="gh-token-input" placeholder="GitHub Token" style="width: 80%; margin: 10px 0; padding: 8px;">
-        <input type="password" id="ai-key-input" placeholder="AI API Key" style="width: 80%; margin: 10px 0; padding: 8px;">
-        <button class="primary-btn" onclick="saveSettings()">确认</button>
-        <button onclick="closeModal()" style="margin-left: 10px;">取消</button>
+    <div class="glass-panel" style="padding:25px; width:280px; text-align:center;">
+        <h3 style="margin-top:0;">API 配置</h3>
+        <input type="password" id="set-gh-token" placeholder="GitHub Token" style="width:100%; margin:10px 0; padding:10px; box-sizing:border-box;">
+        <input type="password" id="set-ai-key" placeholder="SiliconFlow API Key" style="width:100%; margin:10px 0; padding:10px; box-sizing:border-box;">
+        <p style="font-size:0.7rem; color:#888;">Token 将保存在本地浏览器中</p>
+        <button class="primary-btn" style="width:100%;" onclick="saveSettings()">完成配置</button>
+        <button onclick="closeSettings()" style="margin-top:10px; background:none; border:none; color:#999; cursor:pointer;">取消</button>
     </div>
 </div>
 
@@ -161,198 +164,203 @@
     let tokenizer = null;
     let localDict = {};
     let isAIFetching = false;
-    let currentLyricsId = null;
 
-    const utoa = (str) => btoa(unescape(encodeURIComponent(str)));
-    const atou = (str) => decodeURIComponent(escape(atob(str)));
+    // 辅助工具：UTF-8 安全的 Base64 转换
+    const utoa = (s) => btoa(unescape(encodeURIComponent(s)));
+    const atou = (s) => decodeURIComponent(escape(atob(s)));
 
     window.onload = async () => {
         // 加载词典
-        fetch('dict.json').then(r => r.json()).then(d => localDict = d).catch(e => console.warn("No local dict.json"));
-        // 加载分词器
+        fetch('dict.json').then(r => r.json()).then(d => localDict = d).catch(() => console.log("无本地词库"));
+        
+        // 初始化分词器
         kuromoji.builder({ dicPath: "dict/" }).build((err, _tokenizer) => {
-            if (err) return alert("字典加载失败，请检查 dict 目录");
+            if (err) {
+                console.error("Kuromoji 加载失败", err);
+                alert("词典加载失败，请检查根目录下是否存有 dict 文件夹");
+                return;
+            }
             tokenizer = _tokenizer;
             document.getElementById('loading-mask').style.display = 'none';
             renderBookshelf();
         });
     };
 
-    /* 修改点 2：API 路径处理 */
-    // GitHub API 标准路径是 /repos/owner/repo/contents/FILENAME
-    // 这里 path 传入 'lyrics_data.json'，文件会保存在仓库根目录（与 index.html 同级）
-    async function ghFetch(path, method = 'GET', body = null) {
+    // GitHub API 核心请求
+    async function ghReq(path, method = 'GET', body = null) {
         const token = localStorage.getItem('gh_token');
-        if (!token) throw new Error('MISSING_TOKEN');
-        const res = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
-            method,
-            headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.v3+json' },
-            body: body ? JSON.stringify(body) : null
-        });
+        if (!token) {
+            alert("请先设置 GitHub Token");
+            openSettings();
+            throw "MISSING_TOKEN";
+        }
+        const headers = { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.v3+json' };
+        const url = `https://api.github.com/repos/${REPO}/contents/${path}`;
+        const res = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : null });
         return res;
     }
 
-    async function saveNewLyrics() {
-        const title = document.getElementById('new-lyric-title').value.trim();
-        const content = document.getElementById('new-lyric-content').value.trim();
-        if (!title || !content) return alert("请填写标题和内容");
+    // 保存歌词到本地和云端
+    async function saveLyrics() {
+        const title = document.getElementById('lyric-title').value.trim();
+        const content = document.getElementById('lyric-content').value.trim();
+        if (!title || !content) return alert("标题内容不能为空");
 
-        const newEntry = { id: 'lyric_' + Date.now(), title, content, timestamp: Date.now() };
-        let local = JSON.parse(localStorage.getItem('fuwako_lyrics') || '[]');
-        local.push(newEntry);
-        localStorage.setItem('fuwako_lyrics', JSON.stringify(local));
-        
+        const newLyric = { id: 'l_' + Date.now(), title, content, timestamp: Date.now() };
+        let local = JSON.parse(localStorage.getItem('f_lyrics') || '[]');
+        local.push(newLyric);
+        localStorage.setItem('f_lyrics', JSON.stringify(local));
         renderBookshelf();
-        document.getElementById('new-lyric-title').value = '';
-        document.getElementById('new-lyric-content').value = '';
 
-        // 静默推送到云端根目录
+        // 静默同步到根目录 lyrics_data.json
         try {
-            const getRes = await ghFetch('lyrics_data.json');
+            const check = await ghReq('lyrics_data.json');
             let sha = null;
-            if (getRes.status === 200) {
-                const info = await getRes.json();
-                sha = info.sha;
-            }
-            await ghFetch('lyrics_data.json', 'PUT', {
-                message: `Update lyrics: ${title}`,
-                content: utoa(JSON.stringify(local, null, 2)),
+            if (check.ok) { const meta = await check.json(); sha = meta.sha; }
+            await ghReq('lyrics_data.json', 'PUT', {
+                message: "update lyrics",
+                content: utoa(JSON.stringify(local)),
                 sha: sha
             });
-            console.log("云端同步成功");
-        } catch (e) { console.error("云端同步失败", e); }
+        } catch (e) { console.error("同步失败", e); }
     }
 
-    async function syncLyrics() {
+    async function syncFromCloud() {
         try {
-            const res = await ghFetch('lyrics_data.json');
-            if (res.status !== 200) return alert("云端尚无数据文件");
+            const res = await ghReq('lyrics_data.json');
+            if (!res.ok) return alert("云端无备份数据");
             const data = await res.json();
-            const cloud = JSON.parse(atou(data.content));
-            let local = JSON.parse(localStorage.getItem('fuwako_lyrics') || '[]');
-            
-            // 按 timestamp 合并去重
-            const map = new Map();
-            local.forEach(l => map.set(l.id, l));
-            cloud.forEach(c => {
-                if (!map.has(c.id) || map.get(c.id).timestamp < c.timestamp) map.set(c.id, c);
-            });
-            localStorage.setItem('fuwako_lyrics', JSON.stringify(Array.from(map.values())));
+            localStorage.setItem('f_lyrics', atou(data.content));
             renderBookshelf();
-            alert("同步完成");
-        } catch (e) { alert("同步出错，请检查 Token"); }
+            alert("同步成功");
+        } catch (e) { console.error(e); }
     }
 
     function renderBookshelf() {
-        const list = JSON.parse(localStorage.getItem('fuwako_lyrics') || '[]');
-        const container = document.getElementById('bookshelf-list');
-        container.innerHTML = '';
+        const list = JSON.parse(localStorage.getItem('f_lyrics') || '[]');
+        const box = document.getElementById('bookshelf-list');
+        box.innerHTML = '';
         list.forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'glass-panel lyric-card';
-            div.innerHTML = `<h3>${item.title}</h3>`;
-            div.onclick = () => openDetail(item);
-            container.appendChild(div);
+            const el = document.createElement('div');
+            el.className = 'glass-panel lyric-card';
+            el.innerHTML = `<h3>${item.title}</h3>`;
+            el.onclick = () => showDetail(item);
+            box.appendChild(el);
         });
     }
 
-    function openDetail(item) {
-        currentLyricsId = item.id;
+    function showDetail(item) {
         document.getElementById('lyrics-bookshelf').style.display = 'none';
         document.getElementById('lyrics-detail').style.display = 'flex';
-        const container = document.getElementById('lyric-lines-container');
+        const container = document.getElementById('detail-lines');
         container.innerHTML = `<h2>${item.title}</h2>`;
-        
+
         const lines = item.content.split('\n').filter(l => l.trim());
         lines.forEach((line, idx) => {
             const tokens = tokenizer.tokenize(line);
-            const lineDiv = document.createElement('div');
-            lineDiv.className = 'lyric-line';
-            let html = `<div>`;
+            const row = document.createElement('div');
+            row.className = 'lyric-line';
+            let wordHtml = `<div>`;
             tokens.forEach(t => {
-                html += `<span class="token pos-${t.pos}" onclick="lookup('${t.surface_form}','${t.basic_form}')">${t.surface_form}</span>`;
+                wordHtml += `<span class="token pos-${t.pos}" onclick="handleWordClick('${t.surface_form}', '${t.basic_form}')">${t.surface_form}</span>`;
             });
-            html += `</div><button class="explain-btn" onclick="handleAI(${idx}, ${encodeURIComponent(JSON.stringify(lines))})">讲解</button>`;
-            lineDiv.innerHTML = html;
-            container.appendChild(lineDiv);
+            wordHtml += `</div><button class="explain-btn" onclick="askAI(${idx}, '${utoa(JSON.stringify(lines))}', '${item.id}')">讲解</button>`;
+            row.innerHTML = wordHtml;
+            container.appendChild(row);
         });
     }
 
-    async function handleAI(lineIdx, encodedLines) {
+    // 修复点：添加朗读功能
+    function handleWordClick(surface, basic) {
+        // 1. 发音
+        const msg = new SpeechSynthesisUtterance(surface);
+        msg.lang = 'ja-JP';
+        window.speechSynthesis.speak(msg);
+
+        // 2. 查词
+        const word = (basic && basic !== '*') ? basic : surface;
+        const def = localDict[word] || localDict[surface] || "本地词库未收录，请点击讲解使用AI分析。";
+        document.getElementById('side-content').innerHTML = `
+            <h3 style="color:var(--primary);">${surface}</h3>
+            <p><b>原形:</b> ${word}</p>
+            <p><b>释义:</b> ${def}</p>
+        `;
+    }
+
+    // 修复点：改进 AI 讲解逻辑与缓存路径
+    async function askAI(lineIdx, encodedAllLines, lyricId) {
         const aiKey = localStorage.getItem('ai_key');
         if (!aiKey) return openSettings();
         
-        const lines = JSON.parse(decodeURIComponent(encodedLines));
-        const fileName = `${currentLyricsId}_ai.json`; // AI 解析结果也存在根目录
+        const lines = JSON.parse(atou(encodedAllLines));
+        const cacheFile = `${lyricId}_ai.json`;
 
-        // 1. 检查本地/云端缓存
-        document.getElementById('sidebar-content').innerHTML = "正在检索解析...";
+        // 1. 尝试读缓存
+        document.getElementById('side-content').innerHTML = "正在检索解析数据...";
         try {
-            const res = await ghFetch(fileName);
-            if (res.status === 200) {
-                const data = await res.json();
+            const cacheRes = await ghReq(cacheFile);
+            if (cacheRes.ok) {
+                const data = await cacheRes.json();
                 const json = JSON.parse(atou(data.content));
-                showAI(json, lineIdx);
+                renderAIResult(json[lineIdx]);
                 return;
             }
-        } catch (e) {}
+        } catch (e) { console.log("无缓存，准备调用AI"); }
 
         if (isAIFetching) return;
         isAIFetching = true;
-        document.getElementById('ai-progress-bar').style.width = '50%';
+        document.getElementById('ai-progress-bar').style.width = '40%';
 
-        // 2. 发起请求
+        // 2. 调用 AI
         try {
-            const prompt = `请分析以下日语歌词并返回JSON数组(长度与行数一致)，格式:[{"t":"翻译","e":"语法解析"}]。歌词:\n${lines.join('\n')}`;
-            const aiRes = await fetch('https://api.siliconflow.cn/v1/chat/completions', {
+            const prompt = `你是一个日语老师。请将这段歌词翻译并解析语法。返回JSON数组格式，每项包含 t (翻译) 和 e (极简语法点)。歌词内容：\n${lines.join('\n')}`;
+            const apiRes = await fetch('https://api.siliconflow.cn/v1/chat/completions', {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${aiKey}`, 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     model: "deepseek-ai/DeepSeek-V2.5",
-                    messages: [{role: "user", content: prompt}]
+                    messages: [{ role: "user", content: prompt }]
                 })
             });
-            const result = await aiRes.json();
-            let content = result.choices[0].message.content.trim();
-            if (content.includes('```json')) content = content.split('```json')[1].split('```')[0];
-            const json = JSON.parse(content);
 
-            // 存储缓存到仓库根目录
-            await ghFetch(fileName, 'PUT', {
+            const raw = await apiRes.json();
+            let content = raw.choices[0].message.content;
+            // 清洗 Markdown JSON 标记
+            content = content.replace(/```json/g, '').replace(/```/g, '').trim();
+            const jsonResult = JSON.parse(content);
+
+            // 存入 GitHub 根目录缓存
+            await ghReq(cacheFile, 'PUT', {
                 message: "AI Cache",
-                content: utoa(JSON.stringify(json, null, 2))
+                content: utoa(JSON.stringify(jsonResult))
             });
 
-            isAIFetching = false;
             document.getElementById('ai-progress-bar').style.width = '100%';
-            showAI(json, lineIdx);
+            renderAIResult(jsonResult[lineIdx]);
+            setTimeout(() => document.getElementById('ai-progress-bar').style.width = '0', 1000);
         } catch (e) {
+            console.error(e);
+            document.getElementById('side-content').innerHTML = "AI 解析失败，请检查 API Key 或网络";
+        } finally {
             isAIFetching = false;
-            document.getElementById('sidebar-content').innerHTML = "AI 请求失败";
         }
     }
 
-    function showAI(json, idx) {
-        const item = json[idx];
-        document.getElementById('sidebar-content').innerHTML = `
-            <div class="glass-panel" style="padding:10px;">
-                <p><strong>译:</strong> ${item.t}</p>
-                <p style="font-size:0.9em;"><strong>析:</strong> ${item.e}</p>
+    function renderAIResult(item) {
+        if (!item) return;
+        document.getElementById('side-content').innerHTML = `
+            <div style="background:#fff; padding:15px; border-radius:10px;">
+                <p><b>翻译:</b><br>${item.t}</p>
+                <p><b>语法点:</b><br>${item.e}</p>
             </div>
         `;
-    }
-
-    function lookup(s, b) {
-        const word = (b && b !== '*') ? b : s;
-        const def = localDict[word] || localDict[s] || "未收录";
-        document.getElementById('sidebar-content').innerHTML = `<b>${s}</b> (${word})<br>${def}`;
     }
 
     function switchTab(id) {
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
         document.getElementById(id).classList.add('active');
         document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
-        event.target.classList.add('active');
+        document.getElementById('tab-' + id).classList.add('active');
     }
 
     function backToBookshelf() {
@@ -361,11 +369,12 @@
     }
 
     function openSettings() { document.getElementById('settings-modal').style.display = 'flex'; }
-    function closeModal() { document.getElementById('settings-modal').style.display = 'none'; }
+    function closeSettings() { document.getElementById('settings-modal').style.display = 'none'; }
     function saveSettings() {
-        localStorage.setItem('gh_token', document.getElementById('gh-token-input').value);
-        localStorage.setItem('ai_key', document.getElementById('ai-key-input').value);
-        closeModal();
+        localStorage.setItem('gh_token', document.getElementById('set-gh-token').value.trim());
+        localStorage.setItem('ai_key', document.getElementById('set-ai-key').value.trim());
+        closeSettings();
+        alert("配置已保存");
     }
 </script>
 </body>
