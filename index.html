@@ -180,323 +180,390 @@
     </div>
 
     <script>
-        // --- 核心配置 ---
-        const CONFIG = {
-            repo: "Ancenchan/fuwako",
-            lyricsFile: "lyrics_data.json",
-            grammarFile: "grammar.json",
-            dictFile: "dict.json",
-            kuromojiDir: "dict" // 对应仓库根目录下的 dict 文件夹
-        };
+// --- 1. 核心配置与状态管理 ---
+const CONFIG = {
+    repo: "Ancenchan/fuwako",
+    lyricsFile: "lyrics_data.json",
+    grammarFile: "grammar.json",
+    dictFile: "dict.json",
+    kuromojiDir: "dict" // 确保你的仓库根目录下有这个文件夹，且包含词典文件
+};
 
-        let tokenizer = null;
-        let localDict = {};
-        let currentLyrics = [];
-        let activeLyric = null;
-        let isAnalyzing = false;
+let tokenizer = null;
+let localDict = {};
+let currentLyrics = [];
+let activeLyric = null;
+let isAnalyzing = false;
 
-        // --- 初始化 ---
-        window.onload = async () => {
-            initKuromoji();
-            loadGrammar();
-            loadLocalDict();
-            syncData();
-        };
+// --- 2. 初始化流程 ---
+window.onload = async () => {
+    console.log("🌸 Fuwako 启动中...");
+    
+    // 初始化分词引擎
+    initKuromoji();
 
-        // 1. Kuromoji 初始化 (带百分比遮罩)
-        function initKuromoji() {
-            const bar = document.getElementById('progress-bar');
-            const text = document.getElementById('progress-text');
-            
-            // 模拟进度 (因为 kuromoji.builder 没有原生进度回调，我们根据阶段模拟)
-            let prog = 0;
-            const timer = setInterval(() => {
-                prog += (90 - prog) * 0.1;
-                bar.style.width = prog + '%';
-                text.innerText = Math.floor(prog) + '%';
-            }, 200);
+    // 基础数据加载
+    loadGrammar();
+    loadLocalDict();
+    
+    // 同步云端数据
+    await syncData();
 
-            kuromoji.builder({ dicPath: CONFIG.kuromojiDir }).build((err, _tokenizer) => {
-                clearInterval(timer);
-                if (err) { console.error(err); return; }
-                tokenizer = _tokenizer;
-                bar.style.width = '100%';
-                text.innerText = '100%';
-                setTimeout(() => {
-                    document.getElementById('loading-mask').style.opacity = '0';
-                    setTimeout(() => document.getElementById('loading-mask').classList.add('hidden'), 500);
-                }, 500);
+    // 默认展示第一个 Tab
+    switchTab('grammar');
+    
+    // 安全检查：5秒后如果遮罩还在，强行移除（防止词典加载卡死导致页面不可用）
+    setTimeout(() => {
+        const mask = document.getElementById('loading-mask');
+        if (mask && !mask.classList.contains('hidden')) {
+            console.warn("词典加载超时，强行解锁 UI");
+            hideLoadingMask();
+        }
+    }, 5000);
+};
+
+// --- 3. UI 交互逻辑 ---
+
+function hideLoadingMask() {
+    const mask = document.getElementById('loading-mask');
+    mask.style.opacity = '0';
+    mask.style.pointerEvents = 'none'; // 关键：允许点击穿透
+    setTimeout(() => mask.classList.add('hidden'), 500);
+}
+
+function switchTab(tab) {
+    console.log("切换标签至:", tab);
+    // 按钮状态
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(`tab-${tab}`).classList.add('active');
+
+    // 视图切换
+    const vGrammar = document.getElementById('view-grammar');
+    const vLyrics = document.getElementById('view-lyrics');
+
+    if (tab === 'grammar') {
+        vGrammar.classList.remove('hidden');
+        vLyrics.classList.add('hidden');
+    } else {
+        vGrammar.classList.add('hidden');
+        vLyrics.classList.remove('hidden');
+        renderLyricsShelf(); // 切换到歌词页时刷新书架
+    }
+}
+
+// 弹窗控制
+function openTokenModal() {
+    document.getElementById('modal-overlay').classList.remove('hidden');
+    document.getElementById('token-modal').classList.remove('hidden');
+    document.getElementById('gh-token').value = localStorage.getItem('gh_token') || '';
+}
+
+function showUploadModal() {
+    document.getElementById('modal-overlay').classList.remove('hidden');
+    document.getElementById('upload-modal').classList.remove('hidden');
+}
+
+function closeModal() {
+    document.getElementById('modal-overlay').classList.add('hidden');
+    document.getElementById('token-modal').classList.add('hidden');
+    document.getElementById('upload-modal').classList.add('hidden');
+}
+
+// --- 4. 核心功能实现 ---
+
+// A. 词典与分词
+function initKuromoji() {
+    const bar = document.getElementById('progress-bar');
+    const text = document.getElementById('progress-text');
+    
+    if (typeof kuromoji === 'undefined') {
+        console.error("未检测到 kuromoji.js 库");
+        return;
+    }
+
+    kuromoji.builder({ dicPath: CONFIG.kuromojiDir }).build((err, _tokenizer) => {
+        if (err) {
+            console.error("Kuromoji 加载失败:", err);
+            hideLoadingMask();
+            return;
+        }
+        tokenizer = _tokenizer;
+        bar.style.width = '100%';
+        text.innerText = '100%';
+        console.log("Tokenizer 就绪");
+        setTimeout(hideLoadingMask, 600);
+    });
+}
+
+// B. 数据同步 (GitHub API)
+async function syncData() {
+    const token = localStorage.getItem('gh_token');
+    let cloudData = [];
+
+    if (token) {
+        try {
+            const res = await fetch(`https://api.github.com/repos/${CONFIG.repo}/contents/${CONFIG.lyricsFile}`, {
+                headers: { Authorization: `token ${token}` }
+            });
+            if (res.ok) {
+                const json = await res.json();
+                const content = decodeURIComponent(escape(atob(json.content)));
+                cloudData = JSON.parse(content);
+            }
+        } catch (e) { console.warn("无法拉取云端数据:", e); }
+    }
+
+    const localData = JSON.parse(localStorage.getItem('lyrics_cache') || '[]');
+    
+    // 合并逻辑：最新时间戳优先
+    const mergedMap = new Map();
+    [...cloudData, ...localData].forEach(item => {
+        const existing = mergedMap.get(item.id);
+        if (!existing || item.timestamp > existing.timestamp) {
+            mergedMap.set(item.id, item);
+        }
+    });
+
+    currentLyrics = Array.from(mergedMap.values()).sort((a, b) => b.timestamp - a.timestamp);
+    localStorage.setItem('lyrics_cache', JSON.stringify(currentLyrics));
+}
+
+// 静默保存
+async function pushToCloud() {
+    const token = localStorage.getItem('gh_token');
+    if (!token) {
+        console.warn("未设置 Token，仅本地保存");
+        return;
+    }
+
+    try {
+        const getFile = await fetch(`https://api.github.com/repos/${CONFIG.repo}/contents/${CONFIG.lyricsFile}`, {
+            headers: { Authorization: `token ${token}` }
+        });
+        const fileData = await getFile.json();
+        const sha = fileData.sha;
+
+        const content = btoa(unescape(encodeURIComponent(JSON.stringify(currentLyrics, null, 2))));
+        
+        await fetch(`https://api.github.com/repos/${CONFIG.repo}/contents/${CONFIG.lyricsFile}`, {
+            method: 'PUT',
+            headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                message: "🌸 Fuwako Sync: Update Lyrics",
+                content: content,
+                sha: sha
+            })
+        });
+        console.log("云端同步成功");
+    } catch (e) { console.error("静默推送失败:", e); }
+}
+
+// C. 歌词渲染逻辑
+function renderLyricContent(text) {
+    if (!tokenizer) return text.replace(/\n/g, '<br>');
+    
+    const lines = text.split('\n');
+    return lines.map(line => {
+        if (!line.trim()) return '<div class="h-4"></div>';
+        const tokens = tokenizer.tokenize(line);
+        const html = tokens.map(t => {
+            let posClass = "";
+            // 根据词性着色
+            if (t.pos === "助詞") posClass = "pos-particle";
+            else if (t.pos === "動詞") posClass = "pos-verb";
+            else if (t.pos === "名詞") posClass = "pos-noun";
+            else if (t.pos === "形容詞") posClass = "pos-adjective";
+
+            return `<span class="token ${posClass}" onclick="lookupWord('${t.surface_form}')">${t.surface_form}</span>`;
+        }).join('');
+        return `<div class="lyric-line mb-1">${html}</div>`;
+    }).join('');
+}
+
+function lookupWord(word) {
+    const display = document.getElementById('dict-display');
+    const result = localDict[word];
+    if (result) {
+        display.innerHTML = `<div class="animate-fade-in"><b class="text-pink-500 text-lg">${word}</b><p class="mt-2 text-gray-700">${result}</p></div>`;
+    } else {
+        display.innerHTML = `<b class="text-gray-400">${word}</b><p class="mt-2">未收录于本地词库</p>`;
+    }
+}
+
+// D. AI 解析逻辑
+async function startAIAnalysis() {
+    if (isAnalyzing || !activeLyric) return;
+
+    const token = localStorage.getItem('gh_token');
+    const analysisPath = `analysis_${activeLyric.id}.json`;
+    const aiDisplay = document.getElementById('ai-display');
+    const prog = document.getElementById('ai-progress');
+
+    // 1. 尝试读取云端已有文件
+    try {
+        const check = await fetch(`https://api.github.com/repos/${CONFIG.repo}/contents/${analysisPath}`, {
+            headers: { Authorization: `token ${token}` }
+        });
+        if (check.ok) {
+            const json = await check.json();
+            const data = JSON.parse(decodeURIComponent(escape(atob(json.content))));
+            displayAIResults(data);
+            return;
+        }
+    } catch(e) {}
+
+    // 2. 发起新请求
+    const apiKey = localStorage.getItem('sf_api_key') || prompt("请输入硅基流动 API Key (OpenAI 兼容):");
+    if (!apiKey) return;
+    localStorage.setItem('sf_api_key', apiKey);
+
+    isAnalyzing = true;
+    document.getElementById('ai-btn').innerText = "⚡ 解析中...";
+    prog.style.width = '30%';
+
+    try {
+        const response = await fetch('https://api.siliconflow.cn/v1/chat/completions', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: "deepseek-ai/DeepSeek-V3", 
+                messages: [{
+                    role: "user",
+                    content: `你是一个日语老师。请解析以下日语歌词，强制返回纯JSON数组格式，不要有任何客套话。格式：[{"t": "整句中文翻译", "e": "详细语法点、单词变形说明"}]。要求数组长度与歌词行数(${activeLyric.content.split('\n').filter(l=>l.trim()).length})完全一致。歌词内容：\n${activeLyric.content}`
+                }],
+                temperature: 0.1
+            })
+        });
+
+        prog.style.width = '80%';
+        const resJson = await response.json();
+        const rawContent = resJson.choices[0].message.content.replace(/```json|```/g, '').trim();
+        const analysisData = JSON.parse(rawContent);
+        
+        displayAIResults(analysisData);
+        prog.style.width = '100%';
+
+        // 3. 异步保存到 GitHub (静默)
+        if (token) {
+            const encodedContent = btoa(unescape(encodeURIComponent(JSON.stringify(analysisData, null, 2))));
+            fetch(`https://api.github.com/repos/${CONFIG.repo}/contents/${analysisPath}`, {
+                method: 'PUT',
+                headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: "Save AI Analysis", content: encodedContent })
             });
         }
 
-        // 2. 数据拉取与合并 (基于 Timestamp)
-        async function syncData() {
-            const token = localStorage.getItem('gh_token');
-            let cloudData = [];
+    } catch (e) {
+        console.error(e);
+        aiDisplay.innerText = "解析失败，请检查 API Key 或网络环境。";
+    } finally {
+        isAnalyzing = false;
+        document.getElementById('ai-btn').innerText = "✨ AI 语法深度解析";
+        setTimeout(() => prog.style.width = '0%', 1000);
+    }
+}
 
-            if (token) {
-                try {
-                    const res = await fetch(`https://api.github.com/repos/${CONFIG.repo}/contents/${CONFIG.lyricsFile}`, {
-                        headers: { Authorization: `token ${token}` }
-                    });
-                    if (res.ok) {
-                        const json = await res.json();
-                        cloudData = JSON.parse(decodeURIComponent(escape(atob(json.content))));
-                    }
-                } catch (e) { console.warn("Cloud sync failed, using local."); }
-            }
+function displayAIResults(data) {
+    const container = document.getElementById('ai-display');
+    container.innerHTML = data.map((item, idx) => `
+        <div class="mb-4 pb-3 border-b border-pink-100 last:border-0">
+            <div class="text-[10px] font-bold text-blue-300 uppercase">Line ${idx + 1}</div>
+            <div class="text-gray-600 font-medium my-1">译: ${item.t}</div>
+            <div class="bg-white/50 p-2 rounded-lg text-xs leading-relaxed text-gray-500">${item.e}</div>
+        </div>
+    `).join('');
+}
 
-            const localData = JSON.parse(localStorage.getItem('lyrics_cache') || '[]');
-            
-            // 合并逻辑：以 ID 为主键，保留 Timestamp 最新的
-            const mergedMap = new Map();
-            [...cloudData, ...localData].forEach(item => {
-                const existing = mergedMap.get(item.id);
-                if (!existing || item.timestamp > existing.timestamp) {
-                    mergedMap.set(item.id, item);
-                }
-            });
+// --- 5. UI 更新辅助 ---
 
-            currentLyrics = Array.from(mergedMap.values()).sort((a, b) => b.timestamp - a.timestamp);
-            localStorage.setItem('lyrics_cache', JSON.stringify(currentLyrics));
-            renderLyricsShelf();
-        }
+function renderLyricsShelf() {
+    const list = document.getElementById('lyrics-list');
+    if (currentLyrics.length === 0) {
+        list.innerHTML = `<div class="text-center py-10 opacity-40 italic">书架空空如也，点上方添加吧~</div>`;
+        return;
+    }
+    list.innerHTML = currentLyrics.map(item => `
+        <div onclick="viewDetail('${item.id}')" class="glass-card p-5 cursor-pointer hover:bg-white/80 transition-all group flex justify-between items-center border-l-4 border-transparent hover:border-pink-300">
+            <div>
+                <div class="font-bold text-lg text-pink-500">${item.title}</div>
+                <div class="text-[10px] opacity-40 uppercase mt-1">${new Date(item.timestamp).toLocaleString()}</div>
+            </div>
+            <span class="text-pink-300 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">学习 →</span>
+        </div>
+    `).join('');
+}
 
-        // 3. 静默推送至 GitHub
-        async function pushToCloud() {
-            const token = localStorage.getItem('gh_token');
-            if (!token) return;
+function viewDetail(id) {
+    activeLyric = currentLyrics.find(l => l.id === id);
+    document.getElementById('lyrics-shelf').classList.add('hidden');
+    document.getElementById('lyrics-detail').classList.remove('hidden');
+    document.getElementById('detail-title').innerText = activeLyric.title;
+    document.getElementById('detail-content').innerHTML = renderLyricContent(activeLyric.content);
+    document.getElementById('ai-display').innerHTML = '<p class="opacity-40 italic">等待解析...</p>';
+}
 
-            try {
-                // 先获取文件的 SHA
-                const getFile = await fetch(`https://api.github.com/repos/${CONFIG.repo}/contents/${CONFIG.lyricsFile}`, {
-                    headers: { Authorization: `token ${token}` }
-                });
-                const fileData = await getFile.json();
-                const sha = fileData.sha;
+function backToShelf() {
+    document.getElementById('lyrics-shelf').classList.remove('hidden');
+    document.getElementById('lyrics-detail').classList.add('hidden');
+    activeLyric = null;
+}
 
-                const content = btoa(unescape(encodeURIComponent(JSON.stringify(currentLyrics, null, 2))));
-                
-                await fetch(`https://api.github.com/repos/${CONFIG.repo}/contents/${CONFIG.lyricsFile}`, {
-                    method: 'PUT',
-                    headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        message: "Sync Lyrics",
-                        content: content,
-                        sha: sha
-                    })
-                });
-            } catch (e) { console.error("Push failed", e); }
-        }
+function handleUpload() {
+    const title = document.getElementById('lyric-title').value;
+    const text = document.getElementById('lyric-text').value;
+    if (!title.trim() || !text.trim()) return;
 
-        // 4. 文本解析渲染
-        function renderLyricContent(text) {
-            if (!tokenizer) return text;
-            const lines = text.split('\n');
-            return lines.map(line => {
-                const tokens = tokenizer.tokenize(line);
-                const html = tokens.map(t => {
-                    let posClass = "";
-                    if (t.pos === "助詞") posClass = "pos-particle";
-                    else if (t.pos === "動詞") posClass = "pos-verb";
-                    else if (t.pos === "名詞") posClass = "pos-noun";
-                    else if (t.pos === "形容詞") posClass = "pos-adjective";
+    const newItem = {
+        id: 'id_' + Date.now(),
+        title: title,
+        content: text,
+        timestamp: Date.now()
+    };
 
-                    return `<span class="token ${posClass}" onclick="lookupWord('${t.surface_form}')">${t.surface_form}</span>`;
-                }).join('');
-                return `<div class="lyric-line mb-2">${html}</div>`;
-            }).join('');
-        }
+    currentLyrics.unshift(newItem);
+    localStorage.setItem('lyrics_cache', JSON.stringify(currentLyrics));
+    
+    renderLyricsShelf();
+    closeModal();
+    pushToCloud(); // 静默同步
 
-        // 5. 单词查询 (本地 dict.json)
-        function lookupWord(word) {
-            const display = document.getElementById('dict-display');
-            if (localDict[word]) {
-                display.innerHTML = `<b class="text-pink-500 text-lg">${word}</b><br>${localDict[word]}`;
-            } else {
-                display.innerHTML = `<b class="text-gray-400">${word}</b><br>未收录于本地库`;
-            }
-        }
+    // 清空表单
+    document.getElementById('lyric-title').value = '';
+    document.getElementById('lyric-text').value = '';
+}
 
-        // 6. 硅基流动 AI 解析
-        async function startAIAnalysis() {
-            if (isAnalyzing || !activeLyric) return;
+function saveToken() {
+    const val = document.getElementById('gh-token').value;
+    if (val) {
+        localStorage.setItem('gh_token', val);
+        alert("Token 已保存，正在同步数据...");
+        closeModal();
+        syncData().then(() => renderLyricsShelf());
+    }
+}
 
-            // 检查云端是否已有结果 (analysis_{id}.json)
-            const token = localStorage.getItem('gh_token');
-            const analysisPath = `analysis_${activeLyric.id}.json`;
-            
-            // 尝试读取已有解析
-            try {
-                const check = await fetch(`https://api.github.com/repos/${CONFIG.repo}/contents/${analysisPath}`, {
-                    headers: { Authorization: `token ${token}` }
-                });
-                if (check.ok) {
-                    const json = await check.json();
-                    const data = JSON.parse(decodeURIComponent(escape(atob(json.content))));
-                    displayAIResults(data);
-                    return;
-                }
-            } catch(e) {}
+async function loadGrammar() {
+    try {
+        const res = await fetch(CONFIG.grammarFile);
+        if (!res.ok) return;
+        const data = await res.json();
+        document.getElementById('view-grammar').innerHTML = data.map(g => `
+            <div class="glass-card p-6 hover:shadow-md transition-shadow">
+                <h4 class="font-bold text-pink-500 border-b border-pink-100 pb-2 mb-3 flex items-center">
+                    <span class="mr-2">🔖</span> ${g.title}
+                </h4>
+                <div class="text-sm space-y-2 text-gray-600">${g.content}</div>
+            </div>
+        `).join('');
+    } catch (e) { console.warn("未找到 grammar.json"); }
+}
 
-            // 发起 AI 请求
-            const apiKey = localStorage.getItem('sf_api_key') || prompt("请输入硅基流动 API Key:");
-            if (!apiKey) return;
-            localStorage.setItem('sf_api_key', apiKey);
-
-            isAnalyzing = true;
-            document.getElementById('ai-btn').innerText = "⚡ 解析中...";
-            const progress = document.getElementById('ai-progress');
-            
-            try {
-                const response = await fetch('https://api.siliconflow.cn/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${apiKey}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        model: "deepseek-ai/DeepSeek-V3", // 这里可以换成你习惯的模型
-                        messages: [{
-                            role: "user",
-                            content: `请解析以下歌词，强制返回JSON数组格式 [{"t":"翻译","e":"语法/变形点"}]，要求行数一致，语言简洁：\n${activeLyric.content}`
-                        }],
-                        temperature: 0.1
-                    })
-                });
-
-                // 模拟进度条
-                progress.style.width = '50%';
-                const result = await response.json();
-                const analysisData = JSON.parse(result.choices[0].message.content.replace(/```json|```/g, ''));
-                
-                progress.style.width = '100%';
-                displayAIResults(analysisData);
-
-                // 保存到 GitHub
-                const content = btoa(unescape(encodeURIComponent(JSON.stringify(analysisData, null, 2))));
-                await fetch(`https://api.github.com/repos/${CONFIG.repo}/contents/${analysisPath}`, {
-                    method: 'PUT',
-                    headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: "AI Analysis", content: content })
-                });
-
-            } catch (e) {
-                alert("AI 解析失败，请检查 API Key 或网络");
-            } finally {
-                isAnalyzing = false;
-                document.getElementById('ai-btn').innerText = "✨ AI 语法深度解析";
-                setTimeout(() => progress.style.width = '0%', 1000);
-            }
-        }
-
-        // --- 辅助 UI 函数 ---
-        function switchTab(tab) {
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(`tab-${tab}`).classList.add('active');
-            document.getElementById('view-grammar').classList.toggle('hidden', tab !== 'grammar');
-            document.getElementById('view-lyrics').classList.toggle('hidden', tab !== 'lyrics');
-        }
-
-        function openTokenModal() {
-            document.getElementById('modal-overlay').classList.remove('hidden');
-            document.getElementById('token-modal').classList.remove('hidden');
-            document.getElementById('gh-token').value = localStorage.getItem('gh_token') || '';
-        }
-
-        function saveToken() {
-            localStorage.setItem('gh_token', document.getElementById('gh-token').value);
-            closeModal();
-            syncData();
-        }
-
-        function showUploadModal() {
-            document.getElementById('modal-overlay').classList.remove('hidden');
-            document.getElementById('upload-modal').classList.remove('hidden');
-        }
-
-        function closeModal() {
-            document.getElementById('modal-overlay').classList.add('hidden');
-            document.querySelectorAll('#modal-overlay > div').forEach(d => d.classList.add('hidden'));
-        }
-
-        function handleUpload() {
-            const title = document.getElementById('lyric-title').value;
-            const text = document.getElementById('lyric-text').value;
-            if (!title || !text) return;
-
-            const newItem = {
-                id: 'id_' + Date.now(),
-                title: title,
-                content: text,
-                timestamp: Date.now()
-            };
-
-            currentLyrics.unshift(newItem);
-            localStorage.setItem('lyrics_cache', JSON.stringify(currentLyrics));
-            renderLyricsShelf();
-            closeModal();
-            pushToCloud();
-        }
-
-        function renderLyricsShelf() {
-            const list = document.getElementById('lyrics-list');
-            list.innerHTML = currentLyrics.map(item => `
-                <div onclick="viewDetail('${item.id}')" class="glass-card p-5 cursor-pointer hover:bg-white/60 transition group flex justify-between items-center">
-                    <div>
-                        <div class="font-bold text-lg text-pink-500">${item.title}</div>
-                        <div class="text-xs opacity-40">${new Date(item.timestamp).toLocaleString()}</div>
-                    </div>
-                    <span class="opacity-0 group-hover:opacity-100 transition">🌸 进入学习</span>
-                </div>
-            `).join('');
-        }
-
-        function viewDetail(id) {
-            activeLyric = currentLyrics.find(l => l.id === id);
-            document.getElementById('lyrics-shelf').classList.add('hidden');
-            document.getElementById('lyrics-detail').classList.remove('hidden');
-            document.getElementById('detail-title').innerText = activeLyric.title;
-            document.getElementById('detail-content').innerHTML = renderLyricContent(activeLyric.content);
-            document.getElementById('ai-display').innerHTML = "点击上方按钮开启 AI 解析...";
-        }
-
-        function backToShelf() {
-            document.getElementById('lyrics-shelf').classList.remove('hidden');
-            document.getElementById('lyrics-detail').classList.add('hidden');
-            activeLyric = null;
-        }
-
-        function displayAIResults(data) {
-            const container = document.getElementById('ai-display');
-            container.innerHTML = data.map((item, idx) => `
-                <div class="mb-4 pb-2 border-b border-pink-100">
-                    <div class="text-xs font-bold text-blue-400">#Line ${idx + 1}</div>
-                    <div class="text-gray-600 mb-1">译: ${item.t}</div>
-                    <div class="bg-pink-50/50 p-2 rounded text-xs">${item.e}</div>
-                </div>
-            `).join('');
-        }
-
-        async function loadGrammar() {
-            try {
-                const res = await fetch(CONFIG.grammarFile);
-                const data = await res.json();
-                document.getElementById('view-grammar').innerHTML = data.map(g => `
-                    <div class="glass-card p-6">
-                        <h4 class="font-bold text-pink-500 border-b pb-2 mb-3">${g.title}</h4>
-                        <div class="text-sm space-y-2">${g.content}</div>
-                    </div>
-                `).join('');
-            } catch (e) { console.log("Grammar file not found."); }
-        }
-
-        async function loadLocalDict() {
-            try {
-                const res = await fetch(CONFIG.dictFile);
-                localDict = await res.json();
-            } catch (e) { console.log("Dict file not found."); }
-        }
+async function loadLocalDict() {
+    try {
+        const res = await fetch(CONFIG.dictFile);
+        if (res.ok) localDict = await res.json();
+    } catch (e) { console.warn("未找到 dict.json"); }
+}
     </script>
 </body>
 </html>
