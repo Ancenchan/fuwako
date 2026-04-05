@@ -10,7 +10,6 @@
         :root {
             --primary-pink: #ffdae0;
             --primary-blue: #d4f1f9;
-            --primary-yellow: #fef5d4;
             --text-color: #5a5a5a;
             --glass-bg: rgba(255, 255, 255, 0.6);
             --accent-pink: #ff85a2;
@@ -19,184 +18,74 @@
         body {
             font-family: 'Zen Maru Gothic', sans-serif;
             background: linear-gradient(135deg, var(--primary-pink), var(--primary-blue));
-            margin: 0;
-            color: var(--text-color);
-            min-height: 100vh;
-            overflow-x: hidden;
+            margin: 0; color: var(--text-color); min-height: 100vh;
         }
 
-        /* --- Loading Mask --- */
+        /* Loading Mask */
         #loading-mask {
-            position: fixed;
-            inset: 0;
-            background: white;
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            position: fixed; inset: 0; background: white; z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
             transition: opacity 0.5s;
         }
 
-        /* --- AI Progress Bar --- */
+        /* Progress Bar */
         #ai-progress-container {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 5px;
-            background: transparent; z-index: 1001;
+            position: fixed; top: 0; left: 0; width: 100%; height: 5px; z-index: 1001;
         }
         #ai-progress-bar {
-            width: 0%; height: 100%;
-            background: linear-gradient(90deg, #ff9a9e, #fad0c4);
+            width: 0%; height: 100%; background: linear-gradient(90deg, #ff9a9e, #fad0c4);
             transition: width 0.4s ease;
         }
 
-        /* --- Glassmorphism UI Components --- */
+        /* Glass Cards */
         .glass-card {
             background: var(--glass-bg);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            border-radius: 24px;
-            border: 1px solid rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            border-radius: 24px; border: 1px solid rgba(255, 255, 255, 0.4);
             box-shadow: 0 8px 32px rgba(0,0,0,0.05);
         }
 
-        /* --- Navigation --- */
-        nav {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            padding: 25px;
-        }
+        /* Tabs */
+        nav { display: flex; justify-content: center; gap: 15px; padding: 25px; }
         .tab-btn {
-            padding: 12px 30px;
-            border: none;
-            border-radius: 50px;
-            background: var(--glass-bg);
-            cursor: pointer;
-            font-weight: bold;
-            font-family: inherit;
+            padding: 12px 30px; border: none; border-radius: 50px;
+            background: var(--glass-bg); cursor: pointer; font-family: inherit; font-weight: bold;
             transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-        .tab-btn.active {
-            background: white;
-            transform: scale(1.1);
-            color: var(--accent-pink);
-            box-shadow: 0 4px 15px rgba(255, 133, 162, 0.2);
-        }
+        .tab-btn.active { background: white; transform: scale(1.1); color: var(--accent-pink); }
 
-        /* --- Settings Icon --- */
-        #github-settings {
-            position: fixed;
-            top: 20px; right: 20px;
-            cursor: pointer; z-index: 100;
-        }
-        #github-settings img {
-            width: 50px; height: 50px;
-            border-radius: 50%;
-            border: 3px solid white;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-            transition: transform 0.3s;
-        }
-        #github-settings img:hover { transform: rotate(15deg) scale(1.1); }
+        /* Settings Icon */
+        #github-settings { position: fixed; top: 20px; right: 20px; cursor: pointer; z-index: 100; }
+        #github-settings img { width: 50px; height: 50px; border-radius: 50%; border: 3px solid white; transition: transform 0.3s; }
 
-        /* --- Modules --- */
+        /* Layout */
         .module { display: none; padding: 20px; max-width: 1100px; margin: 0 auto; }
         .module.active { display: block; animation: fadeIn 0.5s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* --- Grammar Module --- */
-        .grammar-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 20px;
-        }
-        .grammar-item { padding: 20px; text-align: center; line-height: 1.6; }
-        .grammar-tag {
-            display: inline-block;
-            padding: 2px 8px;
-            background: var(--primary-yellow);
-            border-radius: 8px;
-            font-size: 0.8rem;
-            margin-bottom: 8px;
-        }
+        .analysis-container { display: grid; grid-template-columns: 1fr 380px; gap: 25px; margin-top: 20px; }
+        .lyric-line { padding: 12px; border-bottom: 1px solid rgba(0,0,0,0.03); display: flex; align-items: center; justify-content: space-between; }
+        .explanation-panel { padding: 25px; max-height: 75vh; overflow-y: auto; position: sticky; top: 20px; }
 
-        /* --- Lyrics & Bookshelf --- */
-        .bookshelf {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-            gap: 25px;
-        }
-        .lyric-card {
-            padding: 30px;
-            cursor: pointer;
-            text-align: center;
-            transition: transform 0.3s;
-        }
-        .lyric-card:hover { transform: translateY(-5px); background: rgba(255,255,255,0.8); }
+        /* Tokens */
+        .pos-助词 { color: #d35400; } .pos-动词 { color: #27ae60; font-weight: bold; }
+        .pos-名词 { color: #2980b9; } .pos-形容词 { color: #8e44ad; }
 
-        /* --- Detail View --- */
-        .analysis-container {
-            display: grid;
-            grid-template-columns: 1fr 380px;
-            gap: 25px;
-            margin-top: 20px;
-        }
-        .lyric-line {
-            padding: 12px;
-            border-bottom: 1px solid rgba(0,0,0,0.03);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            transition: background 0.2s;
-        }
-        .lyric-line:hover { background: rgba(255,255,255,0.4); border-radius: 12px; }
-        .tokens span { cursor: help; margin-right: 2px; padding: 2px 0; border-bottom: 2px solid transparent; }
-        .tokens span:hover { border-bottom-color: currentColor; opacity: 0.7; }
-        
-        .explanation-panel {
-            padding: 25px;
-            max-height: 75vh;
-            overflow-y: auto;
-            position: sticky;
-            top: 20px;
-        }
-
-        /* Token Colors */
-        .pos-助詞 { color: #d35400; }
-        .pos-动词 { color: #27ae60; font-weight: bold; }
-        .pos-名词 { color: #2980b9; }
-        .pos-形容词 { color: #8e44ad; }
-        .pos-副词 { color: #f39c12; }
-
-        /* --- Custom Modal --- */
+        /* Custom Modal */
         .modal-overlay {
-            position: fixed; inset: 0;
-            background: rgba(0,0,0,0.15);
-            backdrop-filter: blur(6px);
-            z-index: 2000;
-            display: none; align-items: center; justify-content: center;
+            position: fixed; inset: 0; background: rgba(0,0,0,0.15); backdrop-filter: blur(6px);
+            z-index: 2000; display: none; align-items: center; justify-content: center;
         }
-        .modal-content {
-            width: 90%; max-width: 450px;
-            padding: 35px;
-            animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        @keyframes modalPop { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-content { width: 90%; max-width: 450px; padding: 35px; }
         .modal-body input, .modal-body textarea {
-            width: 100%; padding: 14px; margin: 12px 0;
-            border-radius: 15px; border: 1px solid rgba(0,0,0,0.05);
-            background: rgba(255,255,255,0.8); font-family: inherit; box-sizing: border-box;
+            width: 100%; padding: 14px; margin: 12px 0; border-radius: 15px;
+            border: 1px solid rgba(0,0,0,0.05); background: rgba(255,255,255,0.8); font-family: inherit; box-sizing: border-box;
         }
-        .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
-
         .cute-btn {
-            background: white; border: none; padding: 10px 20px;
-            border-radius: 15px; cursor: pointer; font-family: inherit; font-weight: bold;
-            transition: all 0.2s;
+            background: white; border: none; padding: 10px 20px; border-radius: 15px;
+            cursor: pointer; font-family: inherit; font-weight: bold; transition: all 0.2s;
         }
-        .cute-btn:active { transform: scale(0.95); }
         .cute-btn.primary { background: var(--accent-pink); color: white; }
-
     </style>
 </head>
 <body>
@@ -209,14 +98,14 @@
     <div id="ai-progress-container"><div id="ai-progress-bar"></div></div>
 
     <div id="github-settings" onclick="openSettings()">
-        <img src="7.png" alt="Settings" onerror="this.src='https://via.placeholder.com/50?text=S'">
+        <img src="7.png" alt="Settings" onerror="this.src='https://via.placeholder.com/50?text=Set'">
     </div>
 
     <div id="custom-modal" class="modal-overlay">
         <div class="glass-card modal-content">
             <h3 id="modal-title" style="margin-top:0;">标题</h3>
             <div id="modal-body"></div>
-            <div class="modal-footer">
+            <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
                 <button class="cute-btn" onclick="closeModal()">取消</button>
                 <button class="cute-btn primary" id="modal-confirm">确认</button>
             </div>
@@ -229,31 +118,18 @@
     </nav>
 
     <div id="grammar" class="module active">
-        <div class="grammar-grid">
-            <div class="glass-card grammar-item">
-                <span class="grammar-tag">动词</span><br>
-                <strong>~ます形</strong><br>礼貌用语的基础，去词尾「う」段变「い」段加ます。
-            </div>
-            <div class="glass-card grammar-item">
-                <span class="grammar-tag">连用</span><br>
-                <strong>~て形</strong><br>表示动作接续、因果、或请求（ください）。
-            </div>
-            <div class="glass-card grammar-item">
-                <span class="grammar-tag">否定</span><br>
-                <strong>~ない形</strong><br>用于否定或禁止，是简体表达的核心。
-            </div>
-            <div class="glass-card grammar-item">
-                <span class="grammar-tag">过去</span><br>
-                <strong>~た形</strong><br>表示过去发生的动作或曾经有的经验。
-            </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px;">
+            <div class="glass-card" style="padding:20px; text-align:center;"><strong>~ます形</strong><br>礼貌体变形</div>
+            <div class="glass-card" style="padding:20px; text-align:center;"><strong>~て形</strong><br>连接与请求</div>
+            <div class="glass-card" style="padding:20px; text-align:center;"><strong>~ない形</strong><br>否定表达</div>
+            <div class="glass-card" style="padding:20px; text-align:center;"><strong>~た形</strong><br>过去式</div>
         </div>
     </div>
 
     <div id="lyrics" class="module">
         <div id="bookshelf-view">
             <button class="cute-btn primary" style="margin-bottom: 25px;" onclick="uploadLyric()">+ 上传新歌词</button>
-            <div class="bookshelf" id="lyric-list">
-                </div>
+            <div id="lyric-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 25px;"></div>
         </div>
 
         <div id="detail-view" style="display: none;">
@@ -263,7 +139,7 @@
                 <div class="glass-card" id="lyric-content" style="padding: 15px;"></div>
                 <div class="glass-card explanation-panel">
                     <div id="ai-explanation-content">
-                        <p style="color: #aaa; text-align: center; margin-top: 50px;">点击右侧“讲解”按钮<br>获取 Gemini 的详细语法解析</p>
+                        <p style="color: #aaa; text-align: center; margin-top: 50px;">点击右侧“讲解”按钮获取解析</p>
                     </div>
                 </div>
             </div>
@@ -271,35 +147,26 @@
     </div>
 
     <script>
-        // --- 全局状态 ---
         let tokenizer = null;
         let localDict = {};
         let currentAnalysis = [];
         const REPO = "Ancenchan/fuwako";
         const GITHUB_TOKEN = () => localStorage.getItem('fuwako_github_token');
-        const GEMINI_KEY = () => localStorage.getItem('fuwako_gemini_key');
+        const GEMINI_KEY = () => localStorage.getItem('fuwako_gemini_key')?.trim();
 
-        // --- 初始化 ---
+        // 初始化
         window.onload = async () => {
-            // 加载 Kuromoji 字典
             kuromoji.builder({ dicPath: "dict/" }).build((err, _tokenizer) => {
-                if (err) {
-                    console.error("字典加载失败，请确认 dict 目录存在:", err);
-                    document.querySelector('#loading-mask p').innerText = "字典加载失败，请检查路径";
-                    return;
-                }
+                if (err) return;
                 tokenizer = _tokenizer;
                 document.getElementById('loading-mask').style.opacity = '0';
                 setTimeout(() => document.getElementById('loading-mask').style.display = 'none', 500);
             });
-
-            // 加载本地词库
             fetch('dict.json').then(r => r.json()).then(d => localDict = d).catch(() => {});
-            
             syncAndRender();
         };
 
-        // --- UI 逻辑 ---
+        // UI 逻辑
         function switchTab(tab) {
             document.querySelectorAll('.module').forEach(m => m.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -326,14 +193,15 @@
 
         function closeModal() { document.getElementById('custom-modal').style.display = 'none'; }
 
-        // --- GitHub API ---
+        // GitHub API 优化版：静默处理 404
         async function githubApi(path, method = "GET", body = null) {
             const url = `https://api.github.com/repos/${REPO}/contents/${path}`;
             const headers = { "Authorization": `token ${GITHUB_TOKEN()}`, "Accept": "application/vnd.github.v3+json" };
             
             try {
                 const resp = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : null });
-                if (resp.status === 404 && method === "GET") return null;
+                if (resp.status === 404) return null; // 404 返回 null，不报错
+                if (!resp.ok) return null;
                 const data = await resp.json();
                 if (method === "GET" && data.content) {
                     return JSON.parse(decodeURIComponent(escape(atob(data.content.replace(/\s/g, '')))));
@@ -348,25 +216,23 @@
             }).then(r => r.json()).catch(() => ({}));
 
             const body = {
-                message: "Sync Fuwako Data",
+                message: "Update Fuwako",
                 content: btoa(unescape(encodeURIComponent(JSON.stringify(content)))),
                 sha: file.sha || undefined
             };
             return githubApi(path, "PUT", body);
         }
 
-        // --- 核心业务逻辑 ---
         async function syncAndRender() {
             const local = JSON.parse(localStorage.getItem('fuwako_lyrics') || "[]");
             renderBookshelf(local);
-            
             if (GITHUB_TOKEN()) {
                 const cloud = await githubApi('lyrics_data.json');
                 if (cloud) {
                     const merged = [...local, ...cloud].reduce((acc, cur) => {
                         if (!acc.find(i => i.id === cur.id)) acc.push(cur);
                         return acc;
-                    }, []).sort((a, b) => b.timestamp - a.timestamp);
+                    }, []);
                     localStorage.setItem('fuwako_lyrics', JSON.stringify(merged));
                     renderBookshelf(merged);
                 }
@@ -374,27 +240,21 @@
         }
 
         function renderBookshelf(data) {
-            const list = document.getElementById('lyric-list');
-            list.innerHTML = data.map(l => `
-                <div class="glass-card lyric-card" onclick="openLyric(${l.id})">
+            document.getElementById('lyric-list').innerHTML = data.map(l => `
+                <div class="glass-card" style="padding:30px; cursor:pointer; text-align:center;" onclick="openLyric(${l.id})">
                     <h3 style="color:var(--accent-pink)">${l.title}</h3>
-                    <p style="font-size:0.9rem; opacity:0.7;">${l.text.length} Lines</p>
+                    <p>${l.text.length} 行</p>
                 </div>
             `).join('');
         }
 
         function uploadLyric() {
-            showModal("添加新歌词", [
-                { id: 'title', type: 'text', placeholder: '歌名 (例如: 夜に駆ける)' },
-                { id: 'content', type: 'textarea', placeholder: '粘贴歌词，每一句占一行...' }
+            showModal("上传新歌词", [
+                { id: 'title', type: 'text', placeholder: '歌曲名称' },
+                { id: 'content', type: 'textarea', placeholder: '每行一句歌词...' }
             ], async (data) => {
                 if (!data.title || !data.content) return;
-                const newItem = {
-                    id: Date.now(),
-                    title: data.title,
-                    text: data.content.split('\n').filter(s => s.trim()),
-                    timestamp: Date.now()
-                };
+                const newItem = { id: Date.now(), title: data.title, text: data.content.split('\n').filter(s=>s.trim()), timestamp: Date.now() };
                 let lyrics = JSON.parse(localStorage.getItem('fuwako_lyrics') || "[]");
                 lyrics.unshift(newItem);
                 localStorage.setItem('fuwako_lyrics', JSON.stringify(lyrics));
@@ -407,19 +267,15 @@
             const lyrics = JSON.parse(localStorage.getItem('fuwako_lyrics') || "[]");
             const item = lyrics.find(l => l.id === id);
             document.getElementById('detail-title').innerText = item.title;
-            
-            // 加载详情 UI
             document.getElementById('lyric-content').innerHTML = item.text.map((line, idx) => `
                 <div class="lyric-line">
                     <div class="tokens">${doTokenize(line)}</div>
                     <button class="cute-btn" onclick="explainLine(${id}, ${idx})">讲解</button>
                 </div>
             `).join('');
-
             document.getElementById('bookshelf-view').style.display = 'none';
             document.getElementById('detail-view').style.display = 'block';
-            
-            // 尝试拉取已存在的解析
+            // 静默尝试获取解析，404 不再弹窗
             currentAnalysis = await githubApi(`analysis/ans_${id}.json`) || [];
         }
 
@@ -427,61 +283,43 @@
             if (!tokenizer) return text;
             return tokenizer.tokenize(text).map(t => {
                 const pos = t.pos === '助詞' ? '助词' : t.pos === '動詞' ? '动词' : t.pos === '名詞' ? '名词' : t.pos === '形容詞' ? '形容词' : t.pos;
-                return `<span class="pos-${pos}" title="${t.reading || ''}" onclick="lookup('${t.surface_form}')">${t.surface_form}</span>`;
+                return `<span class="pos-${pos}" title="${t.reading || ''}">${t.surface_form}</span>`;
             }).join('');
         }
 
-        function lookup(word) {
-            if (localDict[word]) {
-                showModal("词义查询", [{ id: 'res', type: 'text', value: `${word} : ${localDict[word]}` }], () => {});
-            }
-        }
-
+        // Gemini 解析：处理 429 频率限制
         async function explainLine(songId, idx) {
             const panel = document.getElementById('ai-explanation-content');
-            
-            // 如果已有缓存，直接显示
-            if (currentAnalysis.length > 0 && currentAnalysis[idx]) {
+            if (currentAnalysis[idx]) {
                 displayAiResult(currentAnalysis[idx]);
                 return;
             }
 
-            // 发起 Gemini 请求
             const bar = document.getElementById('ai-progress-bar');
             bar.style.width = '30%';
-            panel.innerHTML = '<p style="text-align:center; margin-top:50px;">Gemini 正在分析中...</p>';
+            panel.innerHTML = '<p style="text-align:center; margin-top:50px;">AI 正在分析...</p>';
 
-            const lyrics = JSON.parse(localStorage.getItem('fuwako_lyrics') || "[]");
-            const song = lyrics.find(l => l.id === songId);
-            
-            const prompt = `你是一位精通日语教学的AI老师。请分析以下歌词并严格返回JSON格式数组。
-            要求：
-            1. 数组长度必须等于歌词行数(${song.text.length})。
-            2. 格式：[{"t": "翻译", "e": "核心语法点/单词变形/简洁解释"}, ...]
-            3. 语言简洁，无客套话。
-            歌词内容：\n${song.text.join('\n')}`;
+            const song = JSON.parse(localStorage.getItem('fuwako_lyrics')).find(l => l.id === songId);
+            const prompt = `分析以下日语歌词，返回JSON数组：[{"t": "翻译", "e": "语法讲解"}]。歌词：\n${song.text.join('\n')}`;
 
             try {
                 const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY()}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }] }],
-                        generationConfig: { response_mime_type: "application/json" }
-                    })
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { response_mime_type: "application/json" } })
                 });
-                
+
+                if (resp.status === 429) {
+                    panel.innerHTML = '<p style="color:red; text-align:center;">[429] 哎呀，AI 累了（请求过快），请过 1 分钟再试哦 ~</p>';
+                    return;
+                }
+
                 const resJson = await resp.json();
-                const aiData = JSON.parse(resJson.candidates[0].content.parts[0].text);
-                
-                currentAnalysis = aiData;
-                displayAiResult(aiData[idx]);
-                
-                // 静默上传到 GitHub 供下次使用
-                pushToCloud(`analysis/ans_${songId}.json`, aiData);
-                
+                currentAnalysis = JSON.parse(resJson.candidates[0].content.parts[0].text);
+                displayAiResult(currentAnalysis[idx]);
+                pushToCloud(`analysis/ans_${songId}.json`, currentAnalysis);
             } catch (e) {
-                panel.innerHTML = `<p style="color:red;">解析失败: ${e.message}<br>请检查 Gemini API Key 是否正确。</p>`;
+                panel.innerHTML = '<p style="color:red;">解析失败，请检查配置。</p>';
             } finally {
                 bar.style.width = '100%';
                 setTimeout(() => bar.style.width = '0', 800);
@@ -490,22 +328,19 @@
 
         function displayAiResult(data) {
             document.getElementById('ai-explanation-content').innerHTML = `
-                <div style="animation: fadeIn 0.3s">
-                    <h3 style="color:var(--accent-pink)">句子解析</h3>
-                    <p><strong>翻译：</strong><br>${data.t}</p>
-                    <hr style="opacity:0.1; margin:20px 0;">
-                    <p><strong>语法要点：</strong><br>${data.e.replace(/\n/g, '<br>')}</p>
-                </div>
+                <h3 style="color:var(--accent-pink)">句子解析</h3>
+                <p><strong>翻译：</strong><br>${data.t}</p>
+                <p><strong>语法：</strong><br>${data.e.replace(/\n/g, '<br>')}</p>
             `;
         }
 
         function openSettings() {
             showModal("开发者设置", [
-                { id: 'gt', type: 'password', placeholder: 'GitHub Personal Access Token', value: GITHUB_TOKEN() },
+                { id: 'gt', type: 'password', placeholder: 'GitHub Token', value: GITHUB_TOKEN() },
                 { id: 'gk', type: 'password', placeholder: 'Gemini API Key', value: GEMINI_KEY() }
             ], (data) => {
-                if (data.gt) localStorage.setItem('fuwako_github_token', data.gt);
-                if (data.gk) localStorage.setItem('fuwako_gemini_key', data.gk);
+                localStorage.setItem('fuwako_github_token', data.gt);
+                localStorage.setItem('fuwako_gemini_key', data.gk);
                 location.reload();
             });
         }
