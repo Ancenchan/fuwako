@@ -328,7 +328,7 @@
             const prompt = `分析日语歌词，返回JSON数组：[{"t": "翻译", "e": "语法/词汇讲解"}]。数组长度必须为 ${song.text.length}。歌词：\n${song.text.join('\n')}`;
 
             try {
-                const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY()}`, {
+                const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY()}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
