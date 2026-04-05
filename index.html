@@ -1,693 +1,395 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fuwako - 软绵绵日语学习</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/build/kuromoji.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;700&display=swap" rel="stylesheet">
     
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        macaron: {
-                            pink: '#FFD1DC',
-                            blue: '#AEC6CF',
-                            green: '#77DD77',
-                            yellow: '#FDFD96',
-                            purple: '#B39EB5'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
     <style>
-        /* Fuwari 风格：毛玻璃、高透明度、圆润边角 */
-        body {
-            background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
-            min-height: 100vh;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            color: #333;
+        :root {
+            --fuwari-pink: #ffd1dc;
+            --fuwari-blue: #bfeaf5;
+            --fuwari-purple: #e0dbff;
+            --fuwari-green: #d4f0d4;
+            --glass-bg: rgba(255, 255, 255, 0.45);
         }
 
-        .fuwari-glass {
-            background: rgba(255, 255, 255, 0.4);
+        body {
+            font-family: 'Zen Maru Gothic', 'PingFang SC', sans-serif;
+            background: linear-gradient(135deg, #fff5f7 0%, #f0f7ff 100%);
+            min-height: 100vh;
+            color: #5a5a5a;
+            overflow-x: hidden;
+        }
+
+        /* Fuwari Glassmorphism */
+        .glass-card {
+            background: var(--glass-bg);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.5);
+            border: 2px solid rgba(255, 255, 255, 0.6);
             border-radius: 24px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
-        .fuwari-card {
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-        }
-        
-        .fuwari-card:hover {
-            transform: scale(1.02);
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+        .glass-card:hover {
+            transform: scale(1.01);
         }
 
-        /* 词性高亮样式 */
-        .pos-verb { color: #FF9AA2; font-weight: 500; cursor: pointer; } /* 动词-粉色 */
-        .pos-particle { color: #AEC6CF; font-weight: 500; cursor: pointer; } /* 助词-蓝色 */
-        .pos-noun { color: #B39EB5; cursor: pointer; } /* 名词-紫色 */
-        .pos-adjective { color: #FDFD96; text-shadow: 0 0 1px #ccc; cursor: pointer; } /* 形容词-黄色 */
-        .pos-unknown { color: #555; cursor: pointer; }
+        /* POS Coloring */
+        .pos-verb { border-bottom: 3px solid #ffacc5; background: #fff0f3; } /* 动词-粉色 */
+        .pos-particle { border-bottom: 3px solid #89d4ff; background: #f0f9ff; } /* 助词-蓝色 */
+        .pos-noun { border-bottom: 3px solid #d1d1d1; }
+        .pos-adj { border-bottom: 3px solid #ffd966; }
 
-        /* 隐藏滚动条但保持可滚动 */
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-        /* Loading 遮罩过渡 */
+        /* Loading Mask */
         #loading-mask {
+            position: fixed;
+            inset: 0;
+            background: white;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             transition: opacity 0.5s ease;
         }
+
+        .loader-bar {
+            width: 200px;
+            height: 8px;
+            background: #eee;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        #loader-progress {
+            width: 0%;
+            height: 100%;
+            background: var(--fuwari-pink);
+            transition: width 0.3s;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: var(--fuwari-pink); border-radius: 10px; }
+
+        /* Tab Transition */
+        .tab-content { display: none; animation: fadeIn 0.4s ease; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* AI Progress Bar */
+        #ai-progress-container {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 4px; z-index: 60;
+            background: transparent;
+        }
+        #ai-progress-bar { width: 0%; height: 100%; background: var(--fuwari-blue); transition: width 0.3s; }
     </style>
 </head>
-<body class="overflow-x-hidden">
+<body class="p-4 md:p-8">
 
-    <div id="loading-mask" class="fixed inset-0 z-50 flex flex-col items-center justify-center fuwari-glass bg-white/70">
-        <div class="text-4xl animate-bounce mb-4">☁️</div>
-        <h2 class="text-2xl font-bold text-gray-700 mb-2">Fuwako 加载中...</h2>
-        <div class="text-gray-500" id="loading-text">准备初始化 (0%)</div>
+    <div id="loading-mask">
+        <div class="text-2xl font-bold mb-4" style="color: var(--fuwari-pink)">Fuwako Loading...</div>
+        <div class="loader-bar"><div id="loader-progress"></div></div>
+        <div id="loader-text" class="mt-2 text-sm text-gray-400">正在唤醒词典 0%</div>
     </div>
 
-    <header class="fixed top-0 w-full z-40 p-4">
-        <div class="max-w-6xl mx-auto fuwari-glass flex justify-between items-center px-6 py-3">
-            <div class="flex items-center gap-2">
-                <span class="text-2xl">🌸</span>
-                <h1 class="text-xl font-bold tracking-wider text-gray-700">Fuwako</h1>
-            </div>
-            
-            <div class="flex gap-4">
-                <button onclick="switchTab('grammar')" id="tab-grammar" class="px-4 py-2 rounded-full font-medium transition-colors bg-white/60 shadow-sm text-gray-800">Grammar</button>
-                <button onclick="switchTab('lyrics')" id="tab-lyrics" class="px-4 py-2 rounded-full font-medium transition-colors hover:bg-white/60 text-gray-500">Lyrics</button>
-            </div>
+    <div id="ai-progress-container"><div id="ai-progress-bar"></div></div>
 
-            <button onclick="toggleSettings()" class="w-10 h-10 rounded-full overflow-hidden fuwari-card border-2 border-white">
-                <img src="7.png" alt="Settings" class="w-full h-full object-cover" onerror="this.src='https://ui-avatars.com/api/?name=GH&background=random'">
-            </button>
+    <header class="max-w-5xl mx-auto mb-8 flex justify-between items-center">
+        <div class="flex items-center space-x-4">
+            <h1 class="text-3xl font-bold text-gray-700">Fuwako</h1>
+            <nav class="flex bg-white/50 rounded-full p-1 border border-white">
+                <button onclick="switchTab('grammar')" class="px-6 py-2 rounded-full hover:bg-white transition" id="tab-btn-grammar">语法</button>
+                <button onclick="switchTab('lyrics')" class="px-6 py-2 rounded-full hover:bg-white transition" id="tab-btn-lyrics">歌词</button>
+            </nav>
         </div>
+        <img src="7.png" onclick="openSettings()" class="w-10 h-10 cursor-pointer hover:rotate-12 transition-transform" alt="Settings">
     </header>
 
-    <main class="pt-28 pb-12 px-4 max-w-6xl mx-auto min-h-screen flex gap-6">
+    <main class="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        <div class="flex-1 transition-all">
+        <div class="lg:col-span-2 space-y-6">
             
-            <div id="view-grammar" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div class="fuwari-glass fuwari-card p-6 text-center text-gray-500">
-                    数据加载中... (读取 grammar.json)
-                </div>
+            <div id="grammar-tab" class="tab-content active">
+                <div id="grammar-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    </div>
             </div>
 
-            <div id="view-lyrics" class="hidden flex-col gap-6">
-                <div id="lyrics-bookshelf" class="w-full">
-                    <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-2xl font-bold text-gray-700">📚 我的歌词库</h2>
-                        <button onclick="triggerUpload()" class="fuwari-glass px-6 py-2 rounded-full hover:bg-white/80 font-bold text-macaron-green transition-colors">
-                            + 上传歌词
-                        </button>
-                        <input type="file" id="lyric-upload" class="hidden" accept=".txt,.json">
-                    </div>
-                    <div id="bookshelf-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        </div>
+            <div id="lyrics-tab" class="tab-content">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold">书架系统</h2>
+                    <button onclick="showUploadModal()" class="bg-white px-4 py-2 rounded-full shadow-sm hover:shadow-md transition">+ 新增歌词</button>
                 </div>
-
-                <div id="lyrics-reader" class="hidden w-full flex flex-col gap-4">
-                    <div class="flex justify-between items-center bg-white/30 p-4 rounded-2xl">
-                        <button onclick="backToBookshelf()" class="text-gray-500 hover:text-gray-800">← 返回</button>
-                        <h2 id="reader-title" class="font-bold text-lg">歌词标题</h2>
-                        <button onclick="analyzeFullLyrics()" class="fuwari-glass px-4 py-2 rounded-full text-macaron-blue text-sm font-bold hover:bg-white/80">
-                            ✨ AI 语法讲解
-                        </button>
-                    </div>
-                    
-                    <div id="ai-progress-container" class="hidden w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-                        <div id="ai-progress-bar" class="h-full bg-macaron-blue transition-all duration-300" style="width: 0%"></div>
+                <div id="lyrics-shelf" class="grid grid-cols-2 md:grid-cols-3 gap-4">
                     </div>
 
-                    <div id="reader-content" class="fuwari-glass p-8 text-lg leading-loose min-h-[60vh] whitespace-pre-wrap font-serif">
+                <div id="lyrics-reader" class="hidden mt-8 p-6 glass-card">
+                    <div class="flex justify-between items-start mb-6">
+                        <h3 id="reader-title" class="text-2xl font-bold"></h3>
+                        <button onclick="analyzeWithAI()" id="ai-btn" class="text-sm bg-[#e0dbff] px-4 py-2 rounded-full hover:brightness-95 transition">AI 语法讲解</button>
+                    </div>
+                    <div id="reader-content" class="leading-loose text-lg space-y-4">
                         </div>
                 </div>
             </div>
         </div>
 
-        <div id="sidebar" class="hidden w-80 fuwari-glass p-6 sticky top-28 h-[calc(100vh-8rem)] overflow-y-auto no-scrollbar flex-col gap-4">
-            <h3 class="text-xl font-bold text-gray-700 border-b border-gray-200 pb-2">解析面板</h3>
-            
-            <div id="sidebar-" class="bg-white/50 p-4 rounded-xl">
-                <p class="text-sm text-gray-400">点击左侧高亮单词查看释义</p>
-                <div id="-content" class="mt-2 hidden">
-                    <h4 id="-word" class="font-bold text-lg text-macaron-pink"></h4>
-                    <p id="dict-meaning" class="text-gray-700 mt-1"></p>
+        <aside class="space-y-6">
+            <div class="glass-card p-6 min-h-[300px]">
+                <h3 class="text-lg font-bold mb-4 border-b pb-2">词汇解析</h3>
+                <div id="sidebar-content" class="text-gray-600 italic">
+                    点击下方歌词词块或“解析”按钮查看内容...
                 </div>
             </div>
-
-            <div id="sidebar-ai" class="bg-white/50 p-4 rounded-xl hidden">
-                <h4 class="font-bold text-macaron-blue mb-2">AI 句意解析</h4>
-                <div id="ai-explanation" class="text-sm text-gray-700 space-y-2">
-                    </div>
-            </div>
-        </div>
+        </aside>
     </main>
 
-    <div id="settings-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/20 backdrop-blur-sm">
-        <div class="fuwari-glass bg-white/90 p-8 w-96 flex flex-col gap-4">
-            <h2 class="text-xl font-bold">配置 Token</h2>
-            <p class="text-xs text-gray-500">请输入具有 repo 权限的 GitHub Token 以同步数据。</p>
-            <input type="password" id="gh-token-input" placeholder="ghp_xxxxxxxxxxxx" class="w-full px-4 py-2 rounded-xl border border-gray-300 focus:outline-none focus:border-macaron-blue bg-white/50">
-            
-            <p class="text-xs text-gray-500 mt-2">硅基流动 API Key (用于 AI 解析)</p>
-            <input type="password" id="ai-token-input" placeholder="sk-xxxxxxxxxxxx" class="w-full px-4 py-2 rounded-xl border border-gray-300 focus:outline-none focus:border-macaron-purple bg-white/50">
-            
-            <div class="flex justify-end gap-2 mt-4">
-                <button onclick="toggleSettings()" class="px-4 py-2 rounded-xl text-gray-500 hover:bg-gray-100">取消</button>
-                <button onclick="saveTokens()" class="px-4 py-2 rounded-xl bg-gray-800 text-white hover:bg-gray-700">保存</button>
+    <div id="settings-modal" class="fixed inset-0 bg-black/20 backdrop-blur-sm hidden flex items-center justify-center z-50">
+        <div class="bg-white p-8 rounded-[32px] w-96 shadow-xl">
+            <h3 class="text-xl font-bold mb-4">GitHub 配置</h3>
+            <input type="password" id="gh-token" placeholder="输入 GitHub Token" class="w-full p-3 bg-gray-100 rounded-xl mb-4 outline-none border-2 border-transparent focus:border-[#ffd1dc]">
+            <div class="flex justify-end space-x-2">
+                <button onclick="closeSettings()" class="px-4 py-2">取消</button>
+                <button onclick="saveSettings()" class="bg-[#ffd1dc] px-6 py-2 rounded-full font-bold">保存</button>
             </div>
+        </div>
+    </div>
+
+    <div id="api-modal" class="fixed inset-0 bg-black/20 backdrop-blur-sm hidden flex items-center justify-center z-50">
+        <div class="bg-white p-8 rounded-[32px] w-96 shadow-xl">
+            <h3 class="text-xl font-bold mb-4">硅基流动 API 设置</h3>
+            <input type="password" id="sf-api-key" placeholder="输入 SiliconFlow API Key" class="w-full p-3 bg-gray-100 rounded-xl mb-4 outline-none">
+            <button onclick="confirmAIAnalysis()" class="w-full bg-[#e0dbff] py-3 rounded-full font-bold">开始解析</button>
         </div>
     </div>
 
     <script>
-        /* ================= App 状态与配置 ================= */
-        const APP_CONFIG = {
-            repoOwner: 'Ancenchan', // 请修改为你的 GitHub 用户名
-            repoName: 'fuwako',    // 请修改为你的仓库名
-            dictPath: 'dict',     // Kuromoji 字典路径
-            aiEndpoint: 'https://api.siliconflow.cn/v1/chat/completions',
-            aiModel: 'Qwen/Qwen2.5-7B-Instruct' // 根据硅基流动支持的模型修改
+        // --- 全局变量 ---
+        let tokenizer = null;
+        let localDict = {};
+        let lyricsData = [];
+        let currentLyricId = null;
+        let isAnalyzing = false;
+
+        // --- 初始化 ---
+        window.onload = async () => {
+            initKuromoji();
+            loadLocalDict();
+            loadGrammar();
+            syncLyrics();
         };
 
-        const state = {
-            currentTab: 'grammar',
-            tokenizer: null,
-            lyricsData: [],
-            localDict: {},
-            grammarData: [],
-            currentReadingId: null,
-            aiCache: {} // 缓存当前解析
-        };
+        function initKuromoji() {
+            kuromoji.builder({ dicPath: "dict/" }).build((err, _tokenizer) => {
+                if (err) { console.error(err); return; }
+                tokenizer = _tokenizer;
+                document.getElementById('loader-progress').style.width = '100%';
+                document.getElementById('loader-text').innerText = '词典加载完成 100%';
+                setTimeout(() => {
+                    document.getElementById('loading-mask').style.opacity = '0';
+                    setTimeout(() => document.getElementById('loading-mask').style.display = 'none', 500);
+                }, 800);
+            });
+        }
 
-        /* ================= 初始化与加载逻辑 ================= */
-        document.addEventListener('DOMContentLoaded', async () => {
-            updateLoadingStatus('正在加载分词引擎...', 20);
-            
-            // 1. 异步加载 Kuromoji
+        async function loadLocalDict() {
             try {
-                await new Promise((resolve, reject) => {
-                    kuromoji.builder({ dicPath: APP_CONFIG.dictPath }).build((err, tokenizer) => {
-                        if (err) {
-                            console.warn("Kuromoji 加载失败(可能路径不对), 继续运行...", err);
-                            resolve(); // 容错处理
-                        } else {
-                            state.tokenizer = tokenizer;
-                            resolve();
+                const res = await fetch('dict.json');
+                localDict = await res.json();
+            } catch (e) { console.warn("未找到 dict.json"); }
+        }
+
+        async function loadGrammar() {
+            try {
+                const res = await fetch('grammar.json');
+                const data = await res.json();
+                const container = document.getElementById('grammar-list');
+                container.innerHTML = data.map(item => `
+                    <div class="glass-card p-6">
+                        <div class="text-xs text-pink-400 font-bold mb-1">${item.level || 'N/A'}</div>
+                        <div class="text-xl font-bold mb-2">${item.title}</div>
+                        <div class="text-sm text-gray-500">${item.meaning}</div>
+                    </div>
+                `).join('');
+            } catch (e) { console.warn("未找到 grammar.json"); }
+        }
+
+        // --- 核心逻辑：歌词处理 ---
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.getElementById(`${tab}-tab`).classList.add('active');
+        }
+
+        async function syncLyrics() {
+            // 1. 获取本地
+            let local = JSON.parse(localStorage.getItem('fuwako_lyrics') || '[]');
+            
+            // 2. 尝试获取云端 (此处仅展示逻辑框架，需替换为你的 GitHub Repo 详情)
+            const token = localStorage.getItem('gh_token');
+            if (token) {
+                try {
+                    // 实际项目中请替换 URL: https://api.github.com/repos/OWNER/REPO/contents/lyrics_data.json
+                    const res = await fetch('lyrics_data.json'); 
+                    const remote = await res.json();
+                    
+                    // 合并去重逻辑 (基于 timestamp)
+                    let combined = [...local, ...remote];
+                    let unique = {};
+                    combined.forEach(item => {
+                        if (!unique[item.id] || item.timestamp > unique[item.id].timestamp) {
+                            unique[item.id] = item;
                         }
                     });
-                });
-            } catch (e) { console.error(e); }
+                    lyricsData = Object.values(unique);
+                    localStorage.setItem('fuwako_lyrics', JSON.stringify(lyricsData));
+                } catch (e) {
+                    lyricsData = local;
+                }
+            } else {
+                lyricsData = local;
+            }
+            renderShelf();
+        }
 
-            updateLoadingStatus('正在同步本地数据...', 60);
+        function renderShelf() {
+            const shelf = document.getElementById('lyrics-shelf');
+            shelf.innerHTML = lyricsData.map(l => `
+                <div onclick="openLyric('${l.id}')" class="glass-card p-4 cursor-pointer text-center aspect-square flex flex-col justify-center">
+                    <div class="text-lg font-bold truncate">${l.title}</div>
+                    <div class="text-xs text-gray-400 mt-2">${new Date(l.timestamp).toLocaleDateString()}</div>
+                </div>
+            `).join('');
+        }
 
-            // 2. 加载本地基础数据 (mock)
-            await loadInitialData();
+        function openLyric(id) {
+            const lyric = lyricsData.find(l => l.id == id);
+            if (!lyric) return;
+            currentLyricId = id;
+            document.getElementById('reader-title').innerText = lyric.title;
+            document.getElementById('lyrics-reader').classList.remove('hidden');
+            
+            const contentDiv = document.getElementById('reader-content');
+            contentDiv.innerHTML = lyric.text.map((line, idx) => {
+                const isJP = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]/.test(line);
+                if (!isJP) return `<div class="text-gray-400 text-sm">${line}</div>`;
+                
+                // 对日语行进行分词
+                const tokens = tokenizer.tokenize(line);
+                const tokenHtml = tokens.map(t => {
+                    let cls = "";
+                    if (t.pos === "動詞") cls = "pos-verb";
+                    else if (t.pos === "助詞") cls = "pos-particle";
+                    else if (t.pos === "名詞") cls = "pos-noun";
+                    return `<span class="cursor-help px-1 rounded ${cls}" onclick="lookupWord('${t.surface_form}')">${t.surface_form}</span>`;
+                }).join('');
 
-            // 3. 同步 GitHub 数据
-            updateLoadingStatus('正在拉取云端存档...', 80);
-            await syncLyricsData();
+                return `
+                    <div class="flex justify-between items-center group">
+                        <div class="flex-1">${tokenHtml}</div>
+                        <button onclick="showLineAnalysis(${idx})" class="opacity-0 group-hover:opacity-100 text-xs bg-gray-100 px-2 py-1 rounded ml-2 transition">解析</button>
+                    </div>
+                `;
+            }).join('');
+            
+            // 滚动到阅读器
+            document.getElementById('lyrics-reader').scrollIntoView({ behavior: 'smooth' });
+        }
 
-            // 完成加载
-            updateLoadingStatus('加载完成!', 100);
-            setTimeout(() => {
-                const mask = document.getElementById('loading-mask');
-                mask.style.opacity = '0';
-                mask.style.pointerEvents = 'none'; // 关键：取消指针事件防止遮挡按钮
+        function lookupWord(word) {
+            const sidebar = document.getElementById('sidebar-content');
+            const meaning = localDict[word] || "未收录至本地词库。";
+            sidebar.innerHTML = `<div class="text-2xl font-bold text-pink-400 mb-2">${word}</div><div>${meaning}</div>`;
+        }
+
+        // --- AI 解析功能 ---
+        function analyzeWithAI() {
+            if (isAnalyzing) return;
+            const apiKey = localStorage.getItem('sf_api_key');
+            if (!apiKey) {
+                document.getElementById('api-modal').classList.remove('hidden');
+            } else {
+                confirmAIAnalysis();
+            }
+        }
+
+        async function confirmAIAnalysis() {
+            const apiKey = document.getElementById('sf-api-key').value;
+            if (apiKey) localStorage.setItem('sf_api_key', apiKey);
+            document.getElementById('api-modal').classList.add('hidden');
+            
+            const lyric = lyricsData.find(l => l.id == currentLyricId);
+            isAnalyzing = true;
+            document.getElementById('ai-btn').innerText = "解析中...";
+            
+            // 模拟进度条
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 5;
+                document.getElementById('ai-progress-bar').style.width = progress + '%';
+                if (progress >= 90) clearInterval(interval);
             }, 500);
 
-            // 初始渲染
-            renderGrammar();
-            renderBookshelf();
-        });
-
-        function updateLoadingStatus(text, percent) {
-            document.getElementById('loading-text').innerText = `${text} (${percent}%)`;
-        }
-
-        async function loadInitialData() {
-            // 尝试加载 dict.json 和 grammar.json (此处做容错，若没有文件则用空数据)
             try {
-                const dictRes = await fetch('dict.json');
-                if (dictRes.ok) state.localDict = await dictRes.json();
-            } catch(e) { console.log('dict.json 未找到，使用空词典'); }
-
-            try {
-                const gramRes = await fetch('grammar.json');
-                if (gramRes.ok) state.grammarData = await gramRes.json();
-                else state.grammarData = [{title: "示例语法", desc: "这是一个占位语法。请在根目录创建 grammar.json"}];
-            } catch(e) { console.log('grammar.json 未找到'); }
-        }
-
-        /* ================= UI 交互控制 ================= */
-        function switchTab(tabId) {
-            state.currentTab = tabId;
-            document.getElementById('view-grammar').style.display = tabId === 'grammar' ? 'grid' : 'none';
-            document.getElementById('view-lyrics').style.display = tabId === 'lyrics' ? 'flex' : 'none';
-            
-            // 按钮样式切换
-            const gBtn = document.getElementById('tab-grammar');
-            const lBtn = document.getElementById('tab-lyrics');
-            
-            if (tabId === 'grammar') {
-                gBtn.className = "px-4 py-2 rounded-full font-medium transition-colors bg-white/60 shadow-sm text-gray-800";
-                lBtn.className = "px-4 py-2 rounded-full font-medium transition-colors hover:bg-white/60 text-gray-500";
-                document.getElementById('sidebar').classList.add('hidden'); // 语法页默认不需要侧边栏
-            } else {
-                lBtn.className = "px-4 py-2 rounded-full font-medium transition-colors bg-white/60 shadow-sm text-gray-800";
-                gBtn.className = "px-4 py-2 rounded-full font-medium transition-colors hover:bg-white/60 text-gray-500";
-                if(state.currentReadingId) document.getElementById('sidebar').classList.remove('hidden');
-            }
-        }
-
-        function toggleSettings() {
-            const modal = document.getElementById('settings-modal');
-            if (modal.classList.contains('hidden')) {
-                modal.classList.remove('hidden');
-                modal.classList.add('flex');
-                document.getElementById('gh-token-input').value = localStorage.getItem('gh_token') || '';
-                document.getElementById('ai-token-input').value = localStorage.getItem('ai_token') || '';
-            } else {
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-            }
-        }
-
-        function saveTokens() {
-            localStorage.setItem('gh_token', document.getElementById('gh-token-input').value);
-            localStorage.setItem('ai_token', document.getElementById('ai-token-input').value);
-            toggleSettings();
-            alert('Tokens 已保存！');
-        }
-
-        /* ================= 语法模块 (Grammar) ================= */
-        function renderGrammar() {
-            const container = document.getElementById('view-grammar');
-            container.innerHTML = '';
-            
-            if (!state.grammarData || state.grammarData.length === 0) {
-                container.innerHTML = `<div class="col-span-full text-center text-gray-400">暂无语法数据</div>`;
-                return;
-            }
-
-            state.grammarData.forEach(item => {
-                const card = document.createElement('div');
-                card.className = 'fuwari-glass fuwari-card p-6 flex flex-col gap-2';
-                card.innerHTML = `
-                    <h3 class="text-xl font-bold text-macaron-blue">${item.title}</h3>
-                    <p class="text-gray-600 text-sm mt-2">${item.desc}</p>
-                    ${item.rules ? `<div class="mt-4 bg-white/40 p-3 rounded-lg text-xs font-mono whitespace-pre-wrap">${item.rules}</div>` : ''}
-                `;
-                container.appendChild(card);
-            });
-        }
-
-        /* ================= 歌词模块 (Lyrics) - 书架 ================= */
-        function renderBookshelf() {
-            const list = document.getElementById('bookshelf-list');
-            list.innerHTML = '';
-            
-            // 排序：最新修改在前
-            const sortedData = [...state.lyricsData].sort((a, b) => b.timestamp - a.timestamp);
-
-            sortedData.forEach(lyric => {
-                const card = document.createElement('div');
-                card.className = 'fuwari-glass fuwari-card p-4 flex justify-between items-center cursor-pointer';
-                card.onclick = () => openReader(lyric.id);
-                
-                const date = new Date(lyric.timestamp).toLocaleDateString();
-                card.innerHTML = `
-                    <div>
-                        <h3 class="font-bold text-gray-700">${lyric.title}</h3>
-                        <p class="text-xs text-gray-400 mt-1">更新于: ${date}</p>
-                    </div>
-                    <span class="text-2xl opacity-50">📖</span>
-                `;
-                list.appendChild(card);
-            });
-        }
-
-        function triggerUpload() {
-            document.getElementById('lyric-upload').click();
-        }
-
-        document.getElementById('lyric-upload').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = async (event) => {
-                const content = event.target.result;
-                const newLyric = {
-                    id: 'lyric_' + Date.now(),
-                    title: file.name.replace(/\.[^/.]+$/, ""), // 移除扩展名
-                    content: content,
-                    timestamp: Date.now()
-                };
-
-                state.lyricsData.push(newLyric);
-                saveLocalLyrics();
-                renderBookshelf();
-                
-                // 静默推送至 GitHub
-                await silentPushLyrics();
-            };
-            reader.readAsText(file);
-        });
-
-        /* ================= 歌词模块 (Lyrics) - 阅读器 & 分词 ================= */
-        function openReader(id) {
-            const lyric = state.lyricsData.find(l => l.id === id);
-            if (!lyric) return;
-
-            state.currentReadingId = id;
-            document.getElementById('lyrics-bookshelf').classList.add('hidden');
-            document.getElementById('lyrics-reader').classList.remove('hidden');
-            document.getElementById('sidebar').classList.remove('hidden');
-            document.getElementById('sidebar').classList.add('flex');
-            
-            document.getElementById('reader-title').innerText = lyric.title;
-            
-            renderLyricsContent(lyric.content);
-        }
-
-        function backToBookshelf() {
-            state.currentReadingId = null;
-            document.getElementById('lyrics-reader').classList.add('hidden');
-            document.getElementById('lyrics-bookshelf').classList.remove('hidden');
-            document.getElementById('sidebar').classList.add('hidden');
-            document.getElementById('sidebar').classList.remove('flex');
-        }
-
-        function isJapaneseLine(text) {
-            // 简单正则：包含平假名、片假名或部分汉字
-            return /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]/.test(text);
-        }
-
-        function renderLyricsContent(content) {
-            const container = document.getElementById('reader-content');
-            container.innerHTML = '';
-            
-            const lines = content.split('\n');
-            lines.forEach((line, index) => {
-                if (line.trim() === '') {
-                    container.appendChild(document.createElement('br'));
-                    return;
-                }
-
-                const lineDiv = document.createElement('div');
-                lineDiv.className = 'group flex items-start gap-4 mb-2 p-2 hover:bg-white/40 rounded-xl transition-colors';
-
-                const textSpan = document.createElement('div');
-                textSpan.className = 'flex-1 leading-loose';
-
-                if (isJapaneseLine(line) && state.tokenizer) {
-                    // 分词渲染
-                    const tokens = state.tokenizer.tokenize(line);
-                    tokens.forEach(token => {
-                        const wordSpan = document.createElement('span');
-                        wordSpan.innerText = token.surface_form;
-                        
-                        // 根据词性着色
-                        if (token.pos === '动词') wordSpan.classList.add('pos-verb');
-                        else if (token.pos === '助词') wordSpan.classList.add('pos-particle');
-                        else if (token.pos === '名词') wordSpan.classList.add('pos-noun');
-                        else if (token.pos === '形容词') wordSpan.classList.add('pos-adjective');
-                        else wordSpan.classList.add('pos-unknown');
-
-                        // 绑定点击查词事件
-                        wordSpan.onclick = () => lookupDictionary(token.surface_form, token.basic_form);
-                        
-                        textSpan.appendChild(wordSpan);
-                    });
-
-                    // 添加单行解析按钮
-                    const analyzeBtn = document.createElement('button');
-                    analyzeBtn.className = 'opacity-0 group-hover:opacity-100 transition-opacity text-xs bg-macaron-purple text-white px-2 py-1 rounded-lg ml-2';
-                    analyzeBtn.innerText = '解析';
-                    analyzeBtn.onclick = () => displayLineAnalysis(index, line);
-                    
-                    lineDiv.appendChild(textSpan);
-                    lineDiv.appendChild(analyzeBtn);
-                } else {
-                    // 非日语（中文翻译/罗马音）直接展示
-                    textSpan.innerText = line;
-                    textSpan.className = 'flex-1 text-gray-500 text-base';
-                    lineDiv.appendChild(textSpan);
-                }
-
-                container.appendChild(lineDiv);
-            });
-        }
-
-        /* ================= 词典与 AI 侧边栏逻辑 ================= */
-        function lookupDictionary(surface, basic) {
-            const dictWord = document.getElementById('dict-word');
-            const dictMeaning = document.getElementById('dict-meaning');
-            
-            document.getElementById('dict-content').classList.remove('hidden');
-            
-            // 优先查原型，其次查表层形式
-            const target = state.localDict[basic] ? basic : surface;
-            dictWord.innerText = target;
-            
-            if (state.localDict[target]) {
-                dictMeaning.innerText = state.localDict[target];
-            } else {
-                dictMeaning.innerText = '暂未收录';
-            }
-        }
-
-        function displayLineAnalysis(lineIndex, text) {
-            const aiSidebar = document.getElementById('sidebar-ai');
-            const aiContent = document.getElementById('ai-explanation');
-            aiSidebar.classList.remove('hidden');
-            
-            if (state.aiCache[state.currentReadingId] && state.aiCache[state.currentReadingId][lineIndex]) {
-                // 读取缓存
-                const data = state.aiCache[state.currentReadingId][lineIndex];
-                renderAiSidebar(text, data);
-            } else {
-                aiContent.innerHTML = `<p class="text-xs text-gray-400 animate-pulse">请先点击右上角 [✨ AI 语法讲解] 进行全文解析...</p>`;
-            }
-        }
-
-        function renderAiSidebar(originalText, analysisData) {
-            const container = document.getElementById('ai-explanation');
-            let html = `<p class="text-xs font-bold text-gray-500 bg-white/60 p-2 rounded">${originalText}</p>`;
-            
-            if(Array.isArray(analysisData)) {
-                analysisData.forEach(item => {
-                    html += `
-                        <div class="mt-2 bg-white/60 p-3 rounded-lg border-l-4 border-macaron-blue">
-                            <p class="font-bold text-sm mb-1">${item.t || ''}</p>
-                            <p class="text-xs text-gray-600">${item.e || ''}</p>
-                        </div>
-                    `;
-                });
-            }
-            container.innerHTML = html;
-        }
-
-        /* ================= AI 深度解析请求 ================= */
-        async function analyzeFullLyrics() {
-            const aiToken = localStorage.getItem('ai_token');
-            if (!aiToken) {
-                alert("请先在设置中配置 硅基流动 API Key");
-                toggleSettings();
-                return;
-            }
-
-            const lyric = state.lyricsData.find(l => l.id === state.currentReadingId);
-            if (!lyric) return;
-
-            // 防抖/缓存拦截
-            if (state.aiCache[state.currentReadingId]) {
-                alert("已经解析完成！点击具体行的[解析]按钮查看。");
-                return;
-            }
-
-            // UI 反馈
-            const pContainer = document.getElementById('ai-progress-container');
-            const pBar = document.getElementById('ai-progress-bar');
-            pContainer.classList.remove('hidden');
-            pBar.style.width = '10%';
-
-            // 提取所有日文行
-            const lines = lyric.content.split('\n');
-            const jpLines = lines.map((l, i) => ({ text: l, index: i })).filter(item => isJapaneseLine(item.text));
-
-            if (jpLines.length === 0) {
-                alert("没有找到需要解析的日文行。");
-                pContainer.classList.add('hidden');
-                return;
-            }
-
-            const textToAnalyze = jpLines.map((l, i) => `[Line ${l.index}] ${l.text}`).join('\n');
-            
-            const prompt = `
-            作为专业的日语老师，请分析以下歌词。
-            必须严格返回 JSON 格式的对象，键名为行号(如 "0", "1")，值为数组，格式要求：[{"t": "直译", "e": "语法点讲解"}]。
-            除了合法的 JSON，不要输出任何其他字符(如 Markdown 标记)。
-            歌词内容：\n${textToAnalyze}
-            `;
-
-            try {
-                pBar.style.width = '40%';
-                
-                // 请求硅基流动 API
-                const response = await fetch(APP_CONFIG.aiEndpoint, {
+                // 调用硅基流动 API (简化版请求)
+                const response = await fetch('https://api.siliconflow.cn/v1/chat/completions', {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${aiToken}`,
+                        'Authorization': `Bearer ${localStorage.getItem('sf_api_key')}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        model: APP_CONFIG.aiModel,
-                        messages: [{ role: "user", content: prompt }],
-                        stream: false // 为保证 JSON 完整性，单次返回。如需 stream 需要更复杂的 buffer 解析
+                        model: "vendor/model-name", // 替换为具体模型
+                        messages: [{role: "user", content: `请解析以下日语歌词的语法，强制返回JSON数组格式 [{"t": "翻译", "e": "语法解析"}]：\n${lyric.text.join('\n')}`}]
                     })
                 });
-
-                if (!response.ok) throw new Error("API 请求失败");
-                pBar.style.width = '80%';
-
-                const resData = await response.json();
-                let aiResultText = resData.choices[0].message.content.trim();
                 
-                // 剔除可能包含的 markdown json 块标记
-                if (aiResultText.startsWith('```json')) {
-                    aiResultText = aiResultText.replace(/```json/g, '').replace(/```/g, '');
-                }
-
-                const parsedData = JSON.parse(aiResultText);
-                state.aiCache[state.currentReadingId] = parsedData;
+                const result = await response.json();
+                // 假设解析成功，存入本地/云端
+                const analysisData = JSON.parse(result.choices[0].message.content);
+                localStorage.setItem(`analysis_${currentLyricId}`, JSON.stringify(analysisData));
                 
-                pBar.style.width = '100%';
-                setTimeout(() => pContainer.classList.add('hidden'), 1000);
-                alert("解析完成！请点击句子右侧的[解析]按钮查看。");
-
-                // 尝试静默保存解析结果到云端
-                saveLocalAiCache();
-
-            } catch (error) {
-                console.error(error);
-                alert("AI 解析出错: " + error.message);
-                pContainer.classList.add('hidden');
-            }
-        }
-
-        /* ================= GitHub 双端同步核心逻辑 ================= */
-        function saveLocalLyrics() {
-            localStorage.setItem('fuwako_lyrics', JSON.stringify(state.lyricsData));
-        }
-        function saveLocalAiCache() {
-            localStorage.setItem('fuwako_ai_cache', JSON.stringify(state.aiCache));
-        }
-
-        async function syncLyricsData() {
-            const localDataStr = localStorage.getItem('fuwako_lyrics');
-            let localData = localDataStr ? JSON.parse(localDataStr) : [];
-            
-            const ghToken = localStorage.getItem('gh_token');
-            if (!ghToken) {
-                // 如果没有 Token，只使用本地数据
-                state.lyricsData = localData;
-                return;
-            }
-
-            try {
-                // 1. 获取云端数据
-                const cloudRes = await githubApiCall('lyrics_data.json');
-                let cloudData = [];
-                let sha = null;
-                
-                if (cloudRes && cloudRes.content) {
-                    cloudData = JSON.parse(decodeURIComponent(escape(atob(cloudRes.content))));
-                    sha = cloudRes.sha;
-                }
-
-                // 2. 根据 timestamp 合并去重
-                const map = new Map();
-                localData.forEach(item => map.set(item.id, item));
-                cloudData.forEach(item => {
-                    const existing = map.get(item.id);
-                    if (!existing || item.timestamp > existing.timestamp) {
-                        map.set(item.id, item); // 云端较新或本地不存在
-                    }
-                });
-
-                state.lyricsData = Array.from(map.values());
-                saveLocalLyrics();
-
-                // 3. 如果合并后的数据比云端多或更新，推送回云端 (静默)
-                // 此处简化判断逻辑，实际可比对 hash
-                if (JSON.stringify(state.lyricsData) !== JSON.stringify(cloudData)) {
-                    await githubApiPut('lyrics_data.json', JSON.stringify(state.lyricsData, null, 2), sha, "Sync lyrics data");
-                }
-
+                document.getElementById('ai-progress-bar').style.width = '100%';
+                setTimeout(() => document.getElementById('ai-progress-bar').style.width = '0%', 1000);
             } catch (e) {
-                console.error("同步失败，回退到本地数据", e);
-                state.lyricsData = localData;
+                alert("AI 解析失败，请检查 API Key 或网络");
+            } finally {
+                isAnalyzing = false;
+                document.getElementById('ai-btn').innerText = "AI 语法讲解";
+                clearInterval(interval);
             }
         }
 
-        async function silentPushLyrics() {
-            const ghToken = localStorage.getItem('gh_token');
-            if (!ghToken) return;
-
-            try {
-                // 先获取最新的 sha
-                const cloudRes = await githubApiCall('lyrics_data.json');
-                const sha = cloudRes ? cloudRes.sha : null;
-                
-                await githubApiPut('lyrics_data.json', JSON.stringify(state.lyricsData, null, 2), sha, "Update lyrics via Fuwako App");
-                console.log("云端同步成功");
-            } catch (e) {
-                console.error("静默推送失败", e);
+        function showLineAnalysis(index) {
+            const analysis = JSON.parse(localStorage.getItem(`analysis_${currentLyricId}`) || '[]');
+            const sidebar = document.getElementById('sidebar-content');
+            if (analysis[index]) {
+                sidebar.innerHTML = `
+                    <div class="text-sm text-gray-400 mb-2">句子解析</div>
+                    <div class="text-lg font-bold mb-4">${analysis[index].t}</div>
+                    <div class="bg-white/50 p-3 rounded-lg border border-white">${analysis[index].e}</div>
+                `;
+            } else {
+                sidebar.innerHTML = "尚未生成 AI 解析，请先点击右上角“AI 语法讲解”。";
             }
         }
 
-        // GitHub API 封装
-        async function githubApiCall(path) {
-            const token = localStorage.getItem('gh_token');
-            const url = `https://api.github.com/repos/${APP_CONFIG.repoOwner}/${APP_CONFIG.repoName}/contents/${path}`;
-            const res = await fetch(url, {
-                headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' }
-            });
-            if (res.status === 404) return null;
-            if (!res.ok) throw new Error("GitHub API Request Failed");
-            return await res.json();
+        // --- 设置管理 ---
+        function openSettings() { document.getElementById('settings-modal').classList.remove('hidden'); }
+        function closeSettings() { document.getElementById('settings-modal').classList.add('hidden'); }
+        function saveSettings() {
+            const token = document.getElementById('gh-token').value;
+            if (token) localStorage.setItem('gh_token', token);
+            closeSettings();
+            syncLyrics();
         }
-
-        async function githubApiPut(path, contentStr, sha, message) {
-            const token = localStorage.getItem('gh_token');
-            const url = `https://api.github.com/repos/${APP_CONFIG.repoOwner}/${APP_CONFIG.repoName}/contents/${path}`;
-            
-            const contentBase64 = btoa(unescape(encodeURIComponent(contentStr)));
-            const body = { message, content: contentBase64 };
-            if (sha) body.sha = sha;
-
-            const res = await fetch(url, {
-                method: 'PUT',
-                headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' },
-                body: JSON.stringify(body)
-            });
-            if (!res.ok) throw new Error("GitHub PUT Failed");
-            return await res.json();
-        }
-
     </script>
 </body>
 </html>
