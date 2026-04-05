@@ -18,26 +18,19 @@
         body {
             font-family: 'Zen Maru Gothic', sans-serif;
             background: linear-gradient(135deg, var(--primary-pink), var(--primary-blue));
-            margin: 0; color: var(--text-color); min-height: 100vh;
+            margin: 0; color: var(--text-color); min-height: 100vh; overflow-x: hidden;
         }
 
-        /* Loading Mask */
+        /* --- 遮罩与进度条 --- */
         #loading-mask {
             position: fixed; inset: 0; background: white; z-index: 9999;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             transition: opacity 0.5s;
         }
+        #ai-progress-container { position: fixed; top: 0; left: 0; width: 100%; height: 5px; z-index: 1001; }
+        #ai-progress-bar { width: 0%; height: 100%; background: linear-gradient(90deg, #ff9a9e, #fad0c4); transition: width 0.4s ease; }
 
-        /* Progress Bar */
-        #ai-progress-container {
-            position: fixed; top: 0; left: 0; width: 100%; height: 5px; z-index: 1001;
-        }
-        #ai-progress-bar {
-            width: 0%; height: 100%; background: linear-gradient(90deg, #ff9a9e, #fad0c4);
-            transition: width 0.4s ease;
-        }
-
-        /* Glass Cards */
+        /* --- 玻璃拟态组件 --- */
         .glass-card {
             background: var(--glass-bg);
             backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
@@ -45,7 +38,6 @@
             box-shadow: 0 8px 32px rgba(0,0,0,0.05);
         }
 
-        /* Tabs */
         nav { display: flex; justify-content: center; gap: 15px; padding: 25px; }
         .tab-btn {
             padding: 12px 30px; border: none; border-radius: 50px;
@@ -54,11 +46,10 @@
         }
         .tab-btn.active { background: white; transform: scale(1.1); color: var(--accent-pink); }
 
-        /* Settings Icon */
         #github-settings { position: fixed; top: 20px; right: 20px; cursor: pointer; z-index: 100; }
-        #github-settings img { width: 50px; height: 50px; border-radius: 50%; border: 3px solid white; transition: transform 0.3s; }
+        #github-settings img { width: 50px; height: 50px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
 
-        /* Layout */
+        /* --- 模块布局 --- */
         .module { display: none; padding: 20px; max-width: 1100px; margin: 0 auto; }
         .module.active { display: block; animation: fadeIn 0.5s ease; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -67,16 +58,23 @@
         .lyric-line { padding: 12px; border-bottom: 1px solid rgba(0,0,0,0.03); display: flex; align-items: center; justify-content: space-between; }
         .explanation-panel { padding: 25px; max-height: 75vh; overflow-y: auto; position: sticky; top: 20px; }
 
-        /* Tokens */
-        .pos-助词 { color: #d35400; } .pos-动词 { color: #27ae60; font-weight: bold; }
-        .pos-名词 { color: #2980b9; } .pos-形容词 { color: #8e44ad; }
+        /* --- 单词样式 --- */
+        .tokens span { cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; padding: 0 2px; }
+        .tokens span:hover { background: rgba(255,255,255,0.8); border-bottom-color: var(--accent-pink); }
+        .pos-助词 { color: #d35400; } 
+        .pos-动词 { color: #27ae60; font-weight: bold; }
+        .pos-名词 { color: #2980b9; } 
+        .pos-形容词 { color: #8e44ad; }
+        .pos-副词 { color: #f39c12; }
 
-        /* Custom Modal */
+        /* --- 自定义弹窗 --- */
         .modal-overlay {
             position: fixed; inset: 0; background: rgba(0,0,0,0.15); backdrop-filter: blur(6px);
             z-index: 2000; display: none; align-items: center; justify-content: center;
         }
-        .modal-content { width: 90%; max-width: 450px; padding: 35px; }
+        .modal-content { width: 90%; max-width: 450px; padding: 35px; animation: pop 0.3s ease; }
+        @keyframes pop { from { transform: scale(0.9); opacity: 0; } }
+        
         .modal-body input, .modal-body textarea {
             width: 100%; padding: 14px; margin: 12px 0; border-radius: 15px;
             border: 1px solid rgba(0,0,0,0.05); background: rgba(255,255,255,0.8); font-family: inherit; box-sizing: border-box;
@@ -92,13 +90,13 @@
 
     <div id="loading-mask">
         <h2 style="color: var(--accent-pink);">ふわこ (Fuwako)</h2>
-        <p>正在努力加载字典中...</p>
+        <p>正在初始化字典...</p>
     </div>
 
     <div id="ai-progress-container"><div id="ai-progress-bar"></div></div>
 
     <div id="github-settings" onclick="openSettings()">
-        <img src="7.png" alt="Settings" onerror="this.src='https://via.placeholder.com/50?text=Set'">
+        <img src="7.png" alt="Settings" onerror="this.src='https://via.placeholder.com/50?text=S'">
     </div>
 
     <div id="custom-modal" class="modal-overlay">
@@ -139,7 +137,7 @@
                 <div class="glass-card" id="lyric-content" style="padding: 15px;"></div>
                 <div class="glass-card explanation-panel">
                     <div id="ai-explanation-content">
-                        <p style="color: #aaa; text-align: center; margin-top: 50px;">点击右侧“讲解”按钮获取解析</p>
+                        <p style="color: #aaa; text-align: center; margin-top: 50px;">点击单词看释义<br>点击“讲解”获取 AI 详细分析</p>
                     </div>
                 </div>
             </div>
@@ -147,14 +145,22 @@
     </div>
 
     <script>
+        // --- 全局变量 ---
         let tokenizer = null;
         let localDict = {};
         let currentAnalysis = [];
+        let isAnalyzing = false; // AI 锁定开关
         const REPO = "Ancenchan/fuwako";
+        
         const GITHUB_TOKEN = () => localStorage.getItem('fuwako_github_token');
         const GEMINI_KEY = () => localStorage.getItem('fuwako_gemini_key')?.trim();
 
-        // 初始化
+        // 工具：读音转换
+        function kanaToHira(str) {
+            return str.replace(/[\u30a1-\u30f6]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0x60));
+        }
+
+        // --- 初始化 ---
         window.onload = async () => {
             kuromoji.builder({ dicPath: "dict/" }).build((err, _tokenizer) => {
                 if (err) return;
@@ -166,7 +172,7 @@
             syncAndRender();
         };
 
-        // UI 逻辑
+        // --- UI 基础逻辑 ---
         function switchTab(tab) {
             document.querySelectorAll('.module').forEach(m => m.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -180,7 +186,7 @@
             document.getElementById('modal-title').innerText = title;
             body.innerHTML = fields.map(f => f.type === 'textarea' 
                 ? `<textarea id="m-${f.id}" placeholder="${f.placeholder}" rows="6"></textarea>`
-                : `<input type="${f.type}" id="m-${f.id}" placeholder="${f.placeholder}" value="${f.value || ''}">`
+                : `<input type="${f.type}" id="m-${f.id}" placeholder="${f.placeholder}" value="${f.value || ''}" ${f.readonly ? 'readonly' : ''}>`
             ).join('');
             modal.style.display = 'flex';
             document.getElementById('modal-confirm').onclick = () => {
@@ -193,19 +199,15 @@
 
         function closeModal() { document.getElementById('custom-modal').style.display = 'none'; }
 
-        // GitHub API 优化版：静默处理 404
+        // --- 数据接口 ---
         async function githubApi(path, method = "GET", body = null) {
             const url = `https://api.github.com/repos/${REPO}/contents/${path}`;
             const headers = { "Authorization": `token ${GITHUB_TOKEN()}`, "Accept": "application/vnd.github.v3+json" };
-            
             try {
                 const resp = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : null });
-                if (resp.status === 404) return null; // 404 返回 null，不报错
-                if (!resp.ok) return null;
+                if (resp.status === 404) return null; // 静默处理 404
                 const data = await resp.json();
-                if (method === "GET" && data.content) {
-                    return JSON.parse(decodeURIComponent(escape(atob(data.content.replace(/\s/g, '')))));
-                }
+                if (method === "GET" && data.content) return JSON.parse(decodeURIComponent(escape(atob(data.content.replace(/\s/g, '')))));
                 return data;
             } catch (e) { return null; }
         }
@@ -214,15 +216,15 @@
             const file = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
                 headers: { "Authorization": `token ${GITHUB_TOKEN()}` }
             }).then(r => r.json()).catch(() => ({}));
-
             const body = {
-                message: "Update Fuwako",
+                message: "Sync Data",
                 content: btoa(unescape(encodeURIComponent(JSON.stringify(content)))),
                 sha: file.sha || undefined
             };
             return githubApi(path, "PUT", body);
         }
 
+        // --- 业务逻辑 ---
         async function syncAndRender() {
             const local = JSON.parse(localStorage.getItem('fuwako_lyrics') || "[]");
             renderBookshelf(local);
@@ -243,14 +245,14 @@
             document.getElementById('lyric-list').innerHTML = data.map(l => `
                 <div class="glass-card" style="padding:30px; cursor:pointer; text-align:center;" onclick="openLyric(${l.id})">
                     <h3 style="color:var(--accent-pink)">${l.title}</h3>
-                    <p>${l.text.length} 行</p>
+                    <p>${l.text.length} Lines</p>
                 </div>
             `).join('');
         }
 
         function uploadLyric() {
-            showModal("上传新歌词", [
-                { id: 'title', type: 'text', placeholder: '歌曲名称' },
+            showModal("添加歌词", [
+                { id: 'title', type: 'text', placeholder: '歌名' },
                 { id: 'content', type: 'textarea', placeholder: '每行一句歌词...' }
             ], async (data) => {
                 if (!data.title || !data.content) return;
@@ -275,52 +277,84 @@
             `).join('');
             document.getElementById('bookshelf-view').style.display = 'none';
             document.getElementById('detail-view').style.display = 'block';
-            // 静默尝试获取解析，404 不再弹窗
+            
+            // 预加载解析文件（如果已存在）
             currentAnalysis = await githubApi(`analysis/ans_${id}.json`) || [];
         }
 
         function doTokenize(text) {
             if (!tokenizer) return text;
             return tokenizer.tokenize(text).map(t => {
-                const pos = t.pos === '助詞' ? '助词' : t.pos === '動詞' ? '动词' : t.pos === '名詞' ? '名词' : t.pos === '形容詞' ? '形容词' : t.pos;
-                return `<span class="pos-${pos}" title="${t.reading || ''}">${t.surface_form}</span>`;
+                const posMap = { '助詞': '助词', '動詞': '动词', '名詞': '名词', '形容詞': '形容词', '副詞': '副词' };
+                const posCn = posMap[t.pos] || t.pos;
+                return `<span class="pos-${posCn}" onclick="lookup('${t.surface_form}', '${t.pos}', '${t.reading || ''}')">${t.surface_form}</span>`;
             }).join('');
         }
 
-        // Gemini 解析：处理 429 频率限制
+        function lookup(word, pos, reading) {
+            const def = localDict[word] || "本地词库未收录该词。";
+            const hira = reading ? kanaToHira(reading) : "无";
+            showModal("单词详情", [
+                { id: 'w', type: 'text', value: `单词: ${word} 【${hira}】`, readonly: true },
+                { id: 'p', type: 'text', value: `词性: ${pos}`, readonly: true },
+                { id: 'd', type: 'text', value: `释义: ${def}`, readonly: true }
+            ], () => {});
+        }
+
+        // --- AI 讲解核心（带锁定与缓存逻辑） ---
         async function explainLine(songId, idx) {
             const panel = document.getElementById('ai-explanation-content');
-            if (currentAnalysis[idx]) {
+            const bar = document.getElementById('ai-progress-bar');
+
+            // 1. 检查内存缓存
+            if (currentAnalysis.length > 0 && currentAnalysis[idx]) {
                 displayAiResult(currentAnalysis[idx]);
                 return;
             }
 
-            const bar = document.getElementById('ai-progress-bar');
-            bar.style.width = '30%';
-            panel.innerHTML = '<p style="text-align:center; margin-top:50px;">AI 正在分析...</p>';
+            // 2. 检查锁定状态
+            if (isAnalyzing) {
+                panel.innerHTML = '<p style="text-align:center; margin-top:50px; color:var(--accent-pink);">AI 老师正在分析整首歌，请稍候...</p>';
+                return;
+            }
 
-            const song = JSON.parse(localStorage.getItem('fuwako_lyrics')).find(l => l.id === songId);
-            const prompt = `分析以下日语歌词，返回JSON数组：[{"t": "翻译", "e": "语法讲解"}]。歌词：\n${song.text.join('\n')}`;
+            // 3. 发起新请求
+            isAnalyzing = true;
+            bar.style.width = '30%';
+            panel.innerHTML = '<p style="text-align:center; margin-top:50px;">正在呼唤 Gemini 进行深度分析...</p>';
+
+            const lyrics = JSON.parse(localStorage.getItem('fuwako_lyrics') || "[]");
+            const song = lyrics.find(l => l.id === songId);
+            const prompt = `分析日语歌词，返回JSON数组：[{"t": "翻译", "e": "语法/词汇讲解"}]。数组长度必须为 ${song.text.length}。歌词：\n${song.text.join('\n')}`;
 
             try {
                 const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY()}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { response_mime_type: "application/json" } })
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: { response_mime_type: "application/json" }
+                    })
                 });
 
                 if (resp.status === 429) {
-                    panel.innerHTML = '<p style="color:red; text-align:center;">[429] 哎呀，AI 累了（请求过快），请过 1 分钟再试哦 ~</p>';
+                    panel.innerHTML = '<p style="color:red; text-align:center;">[429] Gemini 老师忙不过来了，请一分钟后再试。</p>';
                     return;
                 }
 
                 const resJson = await resp.json();
-                currentAnalysis = JSON.parse(resJson.candidates[0].content.parts[0].text);
-                displayAiResult(currentAnalysis[idx]);
-                pushToCloud(`analysis/ans_${songId}.json`, currentAnalysis);
+                const aiData = JSON.parse(resJson.candidates[0].content.parts[0].text);
+                
+                currentAnalysis = aiData;
+                displayAiResult(aiData[idx]);
+                
+                // 异步上传 GitHub
+                pushToCloud(`analysis/ans_${songId}.json`, aiData);
+
             } catch (e) {
-                panel.innerHTML = '<p style="color:red;">解析失败，请检查配置。</p>';
+                panel.innerHTML = '<p style="color:red;">解析失败，请检查 API Key。</p>';
             } finally {
+                isAnalyzing = false;
                 bar.style.width = '100%';
                 setTimeout(() => bar.style.width = '0', 800);
             }
@@ -328,9 +362,12 @@
 
         function displayAiResult(data) {
             document.getElementById('ai-explanation-content').innerHTML = `
-                <h3 style="color:var(--accent-pink)">句子解析</h3>
-                <p><strong>翻译：</strong><br>${data.t}</p>
-                <p><strong>语法：</strong><br>${data.e.replace(/\n/g, '<br>')}</p>
+                <div style="animation: fadeIn 0.4s ease">
+                    <h3 style="color:var(--accent-pink)">句子解析</h3>
+                    <p><strong>翻译：</strong><br>${data.t}</p>
+                    <hr style="opacity:0.1; margin:15px 0;">
+                    <p><strong>语法点：</strong><br>${data.e.replace(/\n/g, '<br>')}</p>
+                </div>
             `;
         }
 
