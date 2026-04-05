@@ -122,7 +122,17 @@
                 <div id="grammar-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     </div>
             </div>
-
+<div id="upload-modal" class="fixed inset-0 bg-black/20 backdrop-blur-sm hidden flex items-center justify-center z-50">
+    <div class="bg-white p-8 rounded-[32px] w-[500px] max-w-[90%] shadow-xl">
+        <h3 class="text-xl font-bold mb-4">新增歌词</h3>
+        <input type="text" id="lyric-title" placeholder="歌词标题 (例如: yueguang)" class="w-full p-3 bg-gray-100 rounded-xl mb-4 outline-none border-2 border-transparent focus:border-[#ffd1dc]">
+        <textarea id="lyric-text" placeholder="在此粘贴歌词内容..." class="w-full h-48 p-3 bg-gray-100 rounded-xl mb-4 outline-none border-2 border-transparent focus:border-[#ffd1dc] resize-none"></textarea>
+        <div class="flex justify-end space-x-2">
+            <button onclick="closeUploadModal()" class="px-4 py-2">取消</button>
+            <button onclick="saveNewLyric()" class="bg-[#ffd1dc] px-6 py-2 rounded-full font-bold text-gray-700">保存并上传</button>
+        </div>
+    </div>
+</div>
             <div id="lyrics-tab" class="tab-content">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-xl font-bold">书架系统</h2>
@@ -390,6 +400,58 @@
             closeSettings();
             syncLyrics();
         }
+        // --- 歌词上传与管理函数 ---
+
+function showUploadModal() {
+    document.getElementById('upload-modal').classList.remove('hidden');
+}
+
+function closeUploadModal() {
+    document.getElementById('upload-modal').classList.add('hidden');
+    // 清空输入框
+    document.getElementById('lyric-title').value = '';
+    document.getElementById('lyric-text').value = '';
+}
+
+async function saveNewLyric() {
+    const title = document.getElementById('lyric-title').value.trim();
+    const rawText = document.getElementById('lyric-text').value.trim();
+
+    if (!title || !rawText) {
+        alert("标题和内容都不能为空哦~");
+        return;
+    }
+
+    const timestamp = Date.now();
+    const newEntry = {
+        id: timestamp,
+        title: title,
+        // 将文本按行分割成数组，符合你的数据结构约定
+        text: rawText.split('\n').filter(line => line.trim() !== ""),
+        timestamp: timestamp
+    };
+
+    // 1. 更新本地状态
+    lyricsData.push(newEntry);
+    localStorage.setItem('fuwako_lyrics', JSON.stringify(lyricsData));
+    
+    // 2. 立即刷新 UI
+    renderShelf();
+    closeUploadModal();
+
+    // 3. 尝试静默推送到 GitHub (如果有 Token)
+    const token = localStorage.getItem('gh_token');
+    if (token) {
+        pushToGithub(lyricsData);
+    }
+}
+
+async function pushToGithub(updatedData) {
+    console.log("正在尝试同步到云端...");
+    // 注意：这里需要替换为你真实的 GitHub 仓库信息
+    // 逻辑流：先 GET 获取文件的 SHA，再 PUT 更新内容
+    // 由于涉及敏感信息，建议此处根据你的 Repo 路径补充 fetch 请求
+}
     </script>
 </body>
 </html>
