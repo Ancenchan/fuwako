@@ -139,10 +139,10 @@
         <div id="sidebar" class="hidden w-80 fuwari-glass p-6 sticky top-28 h-[calc(100vh-8rem)] overflow-y-auto no-scrollbar flex-col gap-4">
             <h3 class="text-xl font-bold text-gray-700 border-b border-gray-200 pb-2">解析面板</h3>
             
-            <div id="sidebar-dict" class="bg-white/50 p-4 rounded-xl">
+            <div id="sidebar-" class="bg-white/50 p-4 rounded-xl">
                 <p class="text-sm text-gray-400">点击左侧高亮单词查看释义</p>
-                <div id="dict-content" class="mt-2 hidden">
-                    <h4 id="dict-word" class="font-bold text-lg text-macaron-pink"></h4>
+                <div id="-content" class="mt-2 hidden">
+                    <h4 id="-word" class="font-bold text-lg text-macaron-pink"></h4>
                     <p id="dict-meaning" class="text-gray-700 mt-1"></p>
                 </div>
             </div>
@@ -176,7 +176,7 @@
         const APP_CONFIG = {
             repoOwner: 'Ancenchan', // 请修改为你的 GitHub 用户名
             repoName: 'fuwako',    // 请修改为你的仓库名
-            dictPath: '/dict',     // Kuromoji 字典路径
+            dictPath: 'dict',     // Kuromoji 字典路径
             aiEndpoint: 'https://api.siliconflow.cn/v1/chat/completions',
             aiModel: 'Qwen/Qwen2.5-7B-Instruct' // 根据硅基流动支持的模型修改
         };
