@@ -365,7 +365,7 @@
     // 强化 Prompt：明确要求不要废话
     const promptText = `请解析以下日语，仅返回一个 JSON 数组，格式为 [{"t": "翻译", "e": "语法句式解析"}]。严禁包含任何说明文字、Markdown 格式或换行符。（特别要求：解析内容中如果需要使用引号，请务必使用单引号 ' 代替双引号 "，以防 JSON 解析错误）内容：\n${jpLines.join('\n')}`;
 
-    try {
+try {
         const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -377,43 +377,48 @@
             body: JSON.stringify({
                 model: "z-ai/glm-4.5-air:free",
                 messages: [
-                    { role: "system", content: "你是一个只输出纯净 JSON 数组的机器人，不回答任何额外内容。" },
+                    { role: "system", content: "你是一个只输出 JSON 数组的日语助手。严禁输出任何 Markdown 标签或解释文字。" },
                     { role: "user", content: promptText }
                 ],
-                temperature: 0.3 // 降低随机性，让它更听话
+                temperature: 0.1 // 极低随机性，确保输出稳定
             })
         });
 
         const result = await response.json();
-        const rawContent = result.choices[0].message.content;
-        
-        // --- 核心修复：强力提取 JSON ---
-        let cleanJson = "";
-        try {
-            // 1. 尝试寻找第一个 [ 和最后一个 ] 之间的内容
-            const match = rawContent.match(/\[[\s\S]*\]/);
-            if (match) {
-                cleanJson = match[0];
-            } else {
-                cleanJson = rawContent;
-            }
+        let rawContent = result.choices[0].message.content;
 
-            // 2. 去除可能的 Markdown 代码块标记和非法换行
-            cleanJson = cleanJson.replace(/```json|```/g, '').trim();
-            
+        // --- 终极净魔逻辑 ---
+        let cleanJson = rawContent
+            .replace(/```json|```/g, '') // 移除代码块
+            .replace(/[\u0000-\u001F\u007F-\u009F]/g, "") // 移除所有不可见的控制字符（换行/制表符等）
+            .trim();
+
+        // 尝试从文本中截取第一个 [ 到最后一个 ]
+        const startIdx = cleanJson.indexOf('[');
+        const endIdx = cleanJson.lastIndexOf(']');
+        if (startIdx !== -1 && endIdx !== -1) {
+            cleanJson = cleanJson.substring(startIdx, endIdx + 1);
+        }
+
+        try {
+            // 执行解析
             const analysisData = JSON.parse(cleanJson);
-            
             bar.style.width = "100%";
             displayAIAnalysis(analysisData, jpLines);
-            
-        } catch (parseError) {
-            console.error("解析失败的内容是：", rawContent);
-            throw new Error("AI 返回的魔法卷轴格式错乱，请重试一次。");
+        } catch (innerError) {
+            // 如果还是解析失败，尝试手动修复常见的“未转义双引号”问题
+            console.warn("常规解析失败，尝试魔法修复引号...");
+            const fixedJson = cleanJson.replace(/:\s*"([\s\S]*?)"\s*([,}])/g, (m, p1, p2) => {
+                return `: "${p1.replace(/"/g, '\"')}"${p2}`;
+            });
+            const analysisData = JSON.parse(fixedJson);
+            bar.style.width = "100%";
+            displayAIAnalysis(analysisData, jpLines);
         }
-        
+
     } catch (error) {
-        console.error("咏唱中断：", error);
-        alert(error.message);
+        console.error("咏唱彻底中断，原始内容：", error);
+        alert("魔法卷轴依然混淆，建议稍后再次尝试。");
     } finally {
         btn.disabled = false;
         btn.innerText = "✨ AI 深度解析";
