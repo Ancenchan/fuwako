@@ -276,7 +276,32 @@
                 container.appendChild(card);
             });
         }
+/**
+ * 魔法渲染：将 AI 解析结果展示在右侧详情栏
+ */
+function displayAIAnalysis(data, originalJpLines) {
+    const aside = document.getElementById('aside-content');
+    if (!aside) return;
 
+    // 清空当前内容并添加标题
+    aside.innerHTML = `<h4 class="font-black text-purple-500 mb-4 flex items-center">
+                        <span class="mr-2">✨</span> AI 语法结界
+                      </h4>`;
+    
+    // 遍历 AI 返回的数据进行展示
+    data.forEach((item, index) => {
+        const section = document.createElement('div');
+        section.className = "mb-4 p-4 glass bg-white/60 rounded-2xl border-l-4 border-pink-400 animate-fadeIn";
+        
+        // 这里的 originalJpLines[index] 对应原文，item.t 对应翻译，item.e 对应解析
+        section.innerHTML = `
+            <div class="text-xs font-bold text-gray-400 mb-1">原文：${originalJpLines[index] || '---'}</div>
+            <div class="text-sm font-black text-pink-500 mb-1">译：${item.t}</div>
+            <div class="text-xs text-gray-600 leading-relaxed italic">析：${item.e}</div>
+        `;
+        aside.appendChild(section);
+    });
+}
         function openLyricsDetail(item) {
             currentLyrics = item;
             document.getElementById('lyrics-list-view').classList.add('hidden');
