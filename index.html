@@ -339,24 +339,99 @@
             alert("同步配置已保存！⭐");
         }
 
-        async function analyzeWithAI() {
-            let apiKey = localStorage.getItem('fuwako_sf_key');
-            
-            if (!apiKey) {
-                const key = prompt("请输入 SiliconFlow API Key 以开启 AI 深度解析：");
-                if (key) {
-                    localStorage.setItem('fuwako_sf_key', key);
-                    apiKey = key;
-                } else return;
-            }
+       async function analyzeWithAI() {
+    let apiKey = localStorage.getItem('fuwako_sf_key');
+    
+    // 1. 校验 API Key
+    if (!apiKey) {
+        const key = prompt("✨ 魔法校验：请输入 SiliconFlow API Key 以开启 AI 深度解析：");
+        if (key) {
+            localStorage.setItem('fuwako_sf_key', key);
+            apiKey = key;
+        } else return;
+    }
 
-            document.getElementById('ai-progress-container').classList.remove('hidden');
-            const bar = document.getElementById('ai-progress-bar');
-            bar.style.width = "30%";
+    if (!currentLyrics) return;
+
+    // 2. 准备 UI 状态
+    const btn = document.getElementById('ai-analyze-btn');
+    const progContainer = document.getElementById('ai-progress-container');
+    const bar = document.getElementById('ai-progress-bar');
+    
+    btn.disabled = true;
+    btn.innerText = "正在咏唱中...";
+    progContainer.classList.remove('hidden');
+    bar.style.width = "10%";
+
+    // 3. 过滤并构造 Prompt (仅针对日语行进行解析)
+    const jpLines = currentLyrics.text.filter(line => /[ぁ-んァ-ヶ]/.test(line));
+    const promptText = `你是一个专业的日语老师。请解析以下歌词，为每一行提供中文翻译和核心语法点。
+    要求：
+    1. 严格返回 JSON 数组格式，不得有任何额外文字。
+    2. 数组长度必须与输入行数一致。
+    格式示例：[{"t": "翻译", "e": "语法解析"}]
+    内容：\n${jpLines.join('\n')}`;
+
+    try {
+        // 4. 正式发起调用 (使用硅基流动 OpenAI 兼容接口)
+        const response = await fetch('https://api.siliconflow.cn/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: "deepseek-ai/DeepSeek-V3", // 你可以根据需要更换模型，如 Qwen 等
+                messages: [
+                    { role: "system", content: "你是一个只输出 JSON 的日语解析器。" },
+                    { role: "user", content: promptText }
+                ],
+                temperature: 0.7,
+                stream: false // 此处先用非流式以确保 JSON 解析稳定
+            })
+        });
+
+        const result = await response.json();
+        bar.style.width = "100%";
+
+        if (result.choices && result.choices[0].message.content) {
+            // 解析 AI 返回的 JSON
+            const analysisData = JSON.parse(result.choices[0].message.content.trim());
             
-            console.log("正在使用密钥执行解析：", apiKey);
-            // 这里编写针对 SiliconFlow 的 Fetch 请求逻辑
+            // 5. 保存结果并通知 UI
+            // 假设你有一个逻辑将解析结果存入 analysis_{id}.json 或本地存储
+            console.log("AI 解析完成：", analysisData);
+            displayAIAnalysis(analysisData, jpLines); // 调用显示函数
         }
+        
+    } catch (error) {
+        console.error("AI 魔法失效了：", error);
+        alert("调用失败，请检查 API Key 或网络状况。");
+    } finally {
+        btn.disabled = false;
+        btn.innerText = "✨ AI 深度解析";
+        setTimeout(() => progContainer.classList.add('hidden'), 2000);
+    }
+}
+
+/**
+ * 辅助函数：在右侧栏展示 AI 解析结果
+ */
+function displayAIAnalysis(data, originalJpLines) {
+    const aside = document.getElementById('aside-content');
+    aside.innerHTML = `<h4 class="font-bold text-purple-600 mb-2">AI 语法分析报告</h4>`;
+    
+    data.forEach((item, index) => {
+        const section = document.createElement('div');
+        section.className = "mb-4 p-2 bg-white/50 rounded-lg text-xs border-l-4 border-pink-300";
+        section.innerHTML = `
+            <div class="font-bold text-gray-700">${originalJpLines[index] || ''}</div>
+            <div class="text-pink-500 mt-1">译：${item.t}</div>
+            <div class="text-gray-500 mt-1">点：${item.e}</div>
+        `;
+        aside.appendChild(section);
+    });
+}
 
         async function fetchGrammar() {
             const list = document.getElementById('grammar-list');
