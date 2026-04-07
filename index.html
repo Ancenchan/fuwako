@@ -363,7 +363,7 @@
 
     const jpLines = currentLyrics.text.filter(line => /[ぁ-んァ-ヶ]/.test(line));
     // 强化 Prompt：明确要求不要废话
-    const promptText = `请解析以下日语，仅返回一个 JSON 数组，格式为 [{"t": "翻译", "e": "语法解析"}]。严禁包含任何说明文字、Markdown 格式或换行符。内容：\n${jpLines.join('\n')}`;
+    const promptText = `请解析以下日语，仅返回一个 JSON 数组，格式为 [{"t": "翻译", "e": "语法句式解析"}]。严禁包含任何说明文字、Markdown 格式或换行符。（特别要求：解析内容中如果需要使用引号，请务必使用单引号 ' 代替双引号 "，以防 JSON 解析错误）内容：\n${jpLines.join('\n')}`;
 
     try {
         const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
