@@ -8,59 +8,110 @@
     <script src="https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/build/kuromoji.js"></script>
     
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Kosugi+Maru&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Kosugi+Maru&family=Noto+Sans+SC:wght@400;700&display=swap');
 
-    :root {
-        --fuwari-pink: #fff0f5;
-        --fuwari-blue: #f0f7ff;
-        --fuwari-purple: #f5f3ff;
-        --accent-star: #ffe08a;
-    }
+        :root {
+            --f-bg: #fffcfd; 
+            --f-accent: #ffb1c1; 
+            --f-accent-soft: #ffe4e9;
+            --f-glass: rgba(255, 255, 255, 0.85); 
+            --f-text-main: #5a5a5a; 
+            --f-shadow: rgba(255, 177, 193, 0.15);
+        }
 
-    body {
-        /* 背景色更浅，增加呼吸感 */
-        background: linear-gradient(135deg, var(--fuwari-pink), var(--fuwari-blue), var(--fuwari-purple));
-        font-family: 'Kosugi Maru', "PingFang SC", sans-serif;
-        color: #666;
-        min-height: 100vh;
-        letter-spacing: 0.02em;
-    }
+        body {
+            background-color: var(--f-bg);
+            background-image: url('https://www.transparenttextures.com/patterns/sakura.png');
+            background-attachment: fixed;
+            color: var(--f-text-main);
+            font-family: 'Kosugi Maru', 'Noto Sans SC', sans-serif;
+            margin: 0;
+            overflow-x: hidden;
+            cursor: url('https://cur.cursors-4u.net/anime/ani-12/ani1159.cur'), auto !important;
+        }
+.glass {
+    background: var(--f-glass);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    border-radius: 28px;
+    box-shadow: 0 8px 30px var(--f-shadow);
+}
 
-    /* 更加通透的毛玻璃 */
-    .glass {
-        background: rgba(255, 255, 255, 0.35);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.7);
-        border-radius: 24px;
-        box-shadow: 0 10px 30px -10px rgba(255, 182, 193, 0.15);
-    }
+/* 2. 核心切换逻辑：强制覆盖 */
+.tab-content { 
+    display: none !important; 
+}
 
-    .bubbly-btn {
-        transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-    }
-    
-    .bubbly-btn:hover {
-        transform: translateY(-2px);
-        background: rgba(255, 255, 255, 0.6);
-        box-shadow: 0 15px 25px -5px rgba(255, 182, 193, 0.3);
-    }
+.tab-content.active { 
+    display: block !important; 
+    animation: fadeIn 0.4s ease forwards;
+}
 
-    /* 语法卡片轻量化 */
-    .grammar-card {
-        border-left: 4px solid #ffdae9;
-        transition: all 0.3s ease;
-    }
-    .grammar-card:hover {
-        border-left-width: 8px;
-        background: white;
-    }
+/* 3. 补充一下缺失的动画声明 */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+        /* 精致毛玻璃卡片 */
+        .f-card {
+            background: var(--f-glass);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            border-radius: 28px;
+            box-shadow: 0 8px 30px var(--f-shadow);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .f-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px var(--f-shadow); }
 
-    #ai-progress-bar {
-        height: 4px;
-        background: linear-gradient(90deg, #ffc1cc, #a1c4fd);
-    }
-</style>
+        /* 选项卡按钮 */
+        .nav-btn {
+            padding: 8px 24px;
+            border-radius: 18px;
+            font-weight: 700;
+            transition: 0.3s;
+            background: white;
+            border: 1px solid var(--f-accent-soft);
+            color: var(--f-accent);
+        }
+        .nav-btn.active {
+            background: var(--f-accent);
+            color: white;
+            box-shadow: 0 5px 15px var(--f-shadow);
+        }
+
+        /* 隐藏滚动条 */
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: var(--f-accent-soft); border-radius: 10px; }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.4s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* 词块着色 */
+        .token-verb { color: #ff8fa3; font-weight: bold; border-bottom: 2px dashed #ffdae0; }
+        .token-particle { color: #89cff0; }
+        .token-noun { color: #a29bfe; }
+
+        /* 看板娘 Ancen */
+        #pet-container { position: fixed; bottom: 20px; right: 20px; z-index: 99; }
+        #pet-img { width: 85px; animation: softFloat 4s ease-in-out infinite; filter: drop-shadow(0 5px 10px var(--f-shadow)); }
+        @keyframes softFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        
+        #pet-bubble {
+            position: absolute; bottom: 110%; right: 0; background: white; padding: 8px 12px;
+            border-radius: 15px; font-size: 11px; border: 1px solid var(--f-accent-soft);
+            box-shadow: 0 5px 15px var(--f-shadow); opacity: 0; transition: 0.3s; white-space: nowrap;
+        }
+        #pet-container:hover #pet-bubble { opacity: 1; }
+
+        /* 加载遮罩 */
+        #loading-mask {
+            background: #fffcfd; position: fixed; inset: 0; z-index: 1000;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+    </style>
 </head>
 <body class="p-4 md:p-8 relative">
 
