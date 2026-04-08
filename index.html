@@ -7,77 +7,60 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/build/kuromoji.js"></script>
     
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Kosugi+Maru&display=swap');
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Kosugi+Maru&display=swap');
 
-        :root {
-            --fuwari-pink: #ffdae9;
-            --fuwari-blue: #d0e7ff;
-            --fuwari-mint: #e1f7f2;
-            --fuwari-purple: #ede7f6;
-            --accent-star: #ffcf40;
-        }
+    :root {
+        --fuwari-pink: #fff0f5;
+        --fuwari-blue: #f0f7ff;
+        --fuwari-purple: #f5f3ff;
+        --accent-star: #ffe08a;
+    }
 
-        body {
-            background: linear-gradient(160deg, var(--fuwari-pink), var(--fuwari-blue), var(--fuwari-purple));
-            font-family: 'Kosugi Maru', "PingFang SC", "Microsoft YaHei", sans-serif;
-            color: #5a5a5a;
-            min-height: 100vh;
-            cursor: url('https://cur.cursors-4u.net/anime/ani-12/ani1159.cur'), auto; /* 既然要可爱，加个自定义光标（可选） */
-        }
+    body {
+        /* 背景色更浅，增加呼吸感 */
+        background: linear-gradient(135deg, var(--fuwari-pink), var(--fuwari-blue), var(--fuwari-purple));
+        font-family: 'Kosugi Maru', "PingFang SC", sans-serif;
+        color: #666;
+        min-height: 100vh;
+        letter-spacing: 0.02em;
+    }
 
-        /* 中二可爱风格：毛玻璃 + 软糖质感 */
-        .glass {
-            background: rgba(255, 255, 255, 0.45);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            border: 2px solid rgba(255, 255, 255, 0.6);
-            border-radius: 30px;
-            box-shadow: 0 8px 32px rgba(255, 182, 193, 0.2);
-        }
+    /* 更加通透的毛玻璃 */
+    .glass {
+        background: rgba(255, 255, 255, 0.35);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        border-radius: 24px;
+        box-shadow: 0 10px 30px -10px rgba(255, 182, 193, 0.15);
+    }
 
-        /* 呼吸灯效果的按钮 */
-        .bubbly-btn {
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            box-shadow: 0 4px 0 rgba(0,0,0,0.05);
-        }
-        .bubbly-btn:hover {
-            transform: scale(1.05) rotate(1deg);
-            box-shadow: 0 8px 15px rgba(255, 182, 193, 0.4);
-        }
-        .bubbly-btn:active { transform: scale(0.95); }
+    .bubbly-btn {
+        transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+    }
+    
+    .bubbly-btn:hover {
+        transform: translateY(-2px);
+        background: rgba(255, 255, 255, 0.6);
+        box-shadow: 0 15px 25px -5px rgba(255, 182, 193, 0.3);
+    }
 
-        /* 词块着色 - 更加明亮中二 */
-        .token-verb { color: #ff5d8f; font-weight: 800; text-shadow: 0 0 5px rgba(255,93,143,0.2); }
-        .token-particle { color: #3a86ff; font-weight: 600; }
-        .token-noun { color: #6d597a; }
+    /* 语法卡片轻量化 */
+    .grammar-card {
+        border-left: 4px solid #ffdae9;
+        transition: all 0.3s ease;
+    }
+    .grammar-card:hover {
+        border-left-width: 8px;
+        background: white;
+    }
 
-        /* 魔法进度条 */
-        #ai-progress-bar {
-            height: 6px;
-            background: linear-gradient(90deg, #ff9a9e, #fad0c4, #a1c4fd);
-            box-shadow: 0 0 10px rgba(255, 154, 158, 0.5);
-        }
-
-        /* 隐藏滚动条 */
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .tab-content { display: none; animation: fadeIn 0.4s ease-out; }
-        .tab-content.active { display: block; }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* 装饰用的小星星 */
-        .star-decor {
-            position: absolute;
-            pointer-events: none;
-            color: var(--accent-star);
-            animation: twinkle 2s infinite;
-        }
-        @keyframes twinkle { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
-    </style>
+    #ai-progress-bar {
+        height: 4px;
+        background: linear-gradient(90deg, #ffc1cc, #a1c4fd);
+    }
+</style>
 </head>
 <body class="p-4 md:p-8 relative">
 
@@ -193,17 +176,16 @@
     </div>
 
     <script>
-        // --- 初始化状态 ---
-        let tokenizer = null;
-        let lyricsData = JSON.parse(localStorage.getItem('fuwako_local_lyrics')) || [];
-        let currentLyrics = null;
+let tokenizer = null;
+    let lyricsData = JSON.parse(localStorage.getItem('fuwako_local_lyrics')) || [];
+    let currentLyrics = null;
+    let currentAnalysisResult = [];
 
-        window.onload = () => {
-            initKuromoji();
-            renderLyricsList();
-            fetchGrammar();
-        };
-
+    window.onload = () => {
+        initKuromoji();
+        renderLyricsList();
+        fetchGrammar();
+    };
         // --- 核心逻辑 ---
 
         function initKuromoji() {
@@ -239,24 +221,27 @@
             toggleModal('lyrics-modal');
         }
 
-        function saveNewLyrics() {
-            const title = document.getElementById('new-lyrics-title').value;
-            const content = document.getElementById('new-lyrics-content').value;
-            if (!title || !content) return alert("标题和内容不能是空的哦！");
+ async function saveNewLyrics() {
+        const title = document.getElementById('new-lyrics-title').value;
+        const content = document.getElementById('new-lyrics-content').value;
+        if (!title || !content) return alert("标题和内容不能是空的哦！");
 
-            const entry = {
-                id: Date.now(),
-                title: title,
-                text: content.split('\n'),
-                timestamp: Date.now()
-            };
+        const entry = {
+            id: Date.now(),
+            title: title,
+            text: content.split('\n'),
+            timestamp: Date.now()
+        };
 
-            lyricsData.unshift(entry);
-            localStorage.setItem('fuwako_local_lyrics', JSON.stringify(lyricsData));
-            renderLyricsList();
-            toggleModal('lyrics-modal');
-            // 此处调用你的 GitHub 推送逻辑
-        }
+        lyricsData.unshift(entry);
+        localStorage.setItem('fuwako_local_lyrics', JSON.stringify(lyricsData));
+        
+        renderLyricsList();
+        toggleModal('lyrics-modal');
+        
+        // 执行同步
+        await pushToGitHub(lyricsData);
+    }
 
         function renderLyricsList() {
             const container = document.getElementById('lyrics-container');
@@ -506,22 +491,76 @@ function showSingleLineDetail(index, originalText) {
         </div>
     `;
 }
-        async function fetchGrammar() {
-            const list = document.getElementById('grammar-list');
-            try {
-                const res = await fetch('grammar.json');
-                const data = await res.json();
-                list.innerHTML = '';
-                data.forEach(g => {
-                    const item = document.createElement('div');
-                    item.className = "p-4 glass hover:scale-[1.02] transition-transform";
-                    item.innerHTML = `<h4 class="font-black text-pink-500">${g.title}</h4><p class="text-sm mt-2">${g.description}</p>`;
-                    list.appendChild(item);
-                });
-            } catch(e) {
-                list.innerHTML = '<p class="opacity-50">根目录未发现 grammar.json</p>';
-            }
+async function fetchGrammar() {
+        const list = document.getElementById('grammar-list');
+        try {
+            // 注意：请确保 grammar.json 在 index.html 同级目录
+            const res = await fetch('grammar.json');
+            if (!res.ok) throw new Error('File not found');
+            const data = await res.json();
+            
+            list.innerHTML = '';
+            data.forEach(g => {
+                const item = document.createElement('div');
+                item.className = "p-5 glass grammar-card group";
+                // 对应你提供的 JSON 格式：t(标题), c(内容), l(例句)
+                item.innerHTML = `
+                    <h4 class="font-black text-pink-400 text-lg group-hover:text-pink-500">${g.t}</h4>
+                    <p class="text-sm mt-2 text-gray-500 leading-relaxed">${g.c}</p>
+                    <div class="mt-3 p-2 bg-pink-50/50 rounded-lg text-xs italic text-gray-400">
+                        ${g.l}
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+        } catch(e) {
+            console.error("Grammar Load Error:", e);
+            list.innerHTML = `
+                <div class="col-span-full py-10 text-center opacity-40">
+                    <p>尚未发现魔导书 (grammar.json)</p>
+                    <p class="text-xs mt-2">请确认文件编码为 UTF-8 且格式正确</p>
+                </div>`;
         }
+    }
+        async function pushToGitHub(updatedData) {
+        const token = localStorage.getItem('fuwako_gh_token');
+        const username = "Ancenchan"; // 【需修改】
+        const repo = "fuwako"; // 【需修改】
+        const path = "lyrics_data.json";
+
+        if (!token) return console.warn("未配置 Token，仅本地保存");
+
+        try {
+            // 获取当前文件 SHA (更新文件必须)
+            const getUrl = `https://api.github.com/repos/${username}/${repo}/contents/${path}`;
+            const fileRes = await fetch(getUrl, {
+                headers: { 'Authorization': `token ${token}` }
+            });
+            
+            let sha = "";
+            if (fileRes.ok) {
+                const fileData = await fileRes.json();
+                sha = fileData.sha;
+            }
+
+            // 上传新内容
+            await fetch(getUrl, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `token ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: "Magic update: sync lyrics",
+                    content: btoa(unescape(encodeURIComponent(JSON.stringify(updatedData, null, 2)))),
+                    sha: sha
+                })
+            });
+            console.log("云端同步完成！⭐");
+        } catch (err) {
+            console.error("GitHub Sync Failed:", err);
+        }
+    }
     </script>
 </body>
 </html>
