@@ -8,7 +8,17 @@
       "椅子を近付けて"
     ],
     "timestamp": 1775751471916,
-    "analysis": []
+    "analysis": [
+      {
+        "translation": "merely candidly",
+        "grammar": "ただ: adverb (ただ / just / merely); 素直に: adverb (素直に / straightforwardly / candidly). Phrase meaning 'just straightforwardly' or 'merely candidly'. No connectives."
+      },
+      null,
+      {
+        "translation": "bring the chair near",
+        "grammar": "椅子: noun (椅子 / chair); を: particle (object marker); 近付けて: verb in te-form (近付ける -> 近付けて / to bring near / approach). The structure is noun + object marker + verb in te-form."
+      }
+    ]
   },
   {
     "id": 1775745129328,
