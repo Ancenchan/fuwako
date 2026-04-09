@@ -413,8 +413,12 @@ async function addLyrics() {
         }
 
 async function startAIProcess() {
+    // 1. 获取 API Key
     const key = document.getElementById('cfg-ai-key').value || localStorage.getItem('fuwako_ai_key');
-    if (!key) return;
+    if (!key) {
+        document.getElementById('ai-modal').classList.remove('hidden');
+        return;
+    }
     localStorage.setItem('fuwako_ai_key', key);
     document.getElementById('ai-modal').classList.add('hidden');
 
@@ -422,44 +426,51 @@ async function startAIProcess() {
     const barWrap = document.getElementById('ai-progress-wrap');
     const bar = document.getElementById('ai-progress-bar');
     
-    // 计算日语行数用于进度
+    // 计算日语行数，用于精确进度条
     const jpLines = item.text.filter(l => /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]/.test(l));
     const totalLines = jpLines.length;
 
     barWrap.classList.remove('hidden');
-    bar.style.width = '10%'; // 初始进度
+    bar.style.width = '10%';
 
     try {
-        const response = await fetch("[https://openrouter.ai/api/v1/chat/completions](https://openrouter.ai/api/v1/chat/completions)", {
+        // 使用 OpenRouter 接口地址
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
             method: "POST",
             headers: { 
                 "Authorization": `Bearer ${key}`, 
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "HTTP-Referer": window.location.origin, // OpenRouter 建议携带
+                "X-Title": "Fuwako Web App"
             },
             body: JSON.stringify({
-                model: "z-ai/glm-4.5-air:free", 
+                model: "nvidia/nemotron-nano-9b-v2:free", // 切换为 Nemotron 模型
                 messages: [{
                     role: "system",
-                    content: `你是一个日语老师。针对输入的歌词返回JSON数组：[{"t":"翻译","e":"语法点解析"}]。如果是翻译行或非日语返回null。严禁输出Markdown，严禁换行，严禁任何额外文字。`
+                    content: `你是一个专业的日语老师。解析以下日语歌词并返回一个 JSON 数组。
+                    格式要求：[{"t":"中文翻译","e":"语法解析"}]。
+                    如果是空行或非日语行返回 null。
+                    注意：强制返回纯 JSON 数组，严禁包含 Markdown 标签（如 \`\`\`json）、换行符或任何解释性文字。`
                 }, {
                     role: "user",
                     content: item.text.join('\n')
                 }],
-                stream: true // 开启流式，否则进度条无意义
+                stream: true // 必须开启流式传输，否则进度条会卡死
             })
         });
 
-        if (!response.ok) throw new Error("API请求失败");
+        if (!response.ok) throw new Error(`API 请求失败: ${response.status}`);
 
+        // 浏览器端处理流式数据
         const reader = response.body.getReader();
-        const decoder = new TextDecoder();
+        const decoder = new TextDecoder("utf-8");
         let fullText = "";
 
         while (true) {
             const { done, value } = await reader.read();
             if (done) break;
 
-            const chunk = decoder.decode(value);
+            const chunk = decoder.decode(value, { stream: true });
             const lines = chunk.split('\n');
             
             for (const line of lines) {
@@ -468,18 +479,42 @@ async function startAIProcess() {
                     if (dataStr === "[DONE]") break;
                     try {
                         const json = JSON.parse(dataStr);
-                        const delta = json.choices[0]?.delta?.content || "";
-                        fullText += delta;
+                        const content = json.choices[0]?.delta?.content || "";
+                        fullText += content;
 
-                        // 进度计算：扫描闭合大括号 } 的数量
-                        const processedCount = (fullText.match(/\}/g) || []).length;
-                        const progress = Math.min(95, (processedCount / totalLines) * 100);
-                        bar.style.width = `${progress}%`;
-                    } catch (e) {}
+                        // 进度计算：每当检测到一个对象结束符 "}"，进度增加
+                        const matches = fullText.match(/\}/g);
+                        if (matches) {
+                            const progress = Math.min(95, (matches.length / totalLines) * 100);
+                            bar.style.width = `${progress}%`;
+                        }
+                    } catch (e) {
+                        // 忽略流传输过程中的片段解析错误
+                    }
                 }
             }
         }
 
+        // 最终清理并解析 JSON
+        const finalJsonString = fullText.replace(/```json|```/g, '').trim();
+        item.analysis = JSON.parse(finalJsonString);
+        
+        // 更新 UI 和存储
+        bar.style.width = '100%';
+        localStorage.setItem('fuwako_lyrics', JSON.stringify(lyricsData));
+        pushToCloud(); // 静默同步
+        
+        setTimeout(() => { 
+            barWrap.classList.add('hidden');
+            showDetail(currentId); // 刷新详情页展示结果
+        }, 800);
+
+    } catch(e) {
+        console.error("AI Analysis Error:", e);
+        alert("解析出错啦，请检查 API Key 或稍后再试。");
+        barWrap.classList.add('hidden');
+    }
+}
         // 最终解析并存入数据
         const cleanContent = fullText.replace(/```json|```/g, '').trim();
         item.analysis = JSON.parse(cleanContent);
