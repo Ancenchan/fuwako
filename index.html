@@ -386,18 +386,27 @@ async function addLyrics() {
             document.getElementById('dict-result').innerHTML = `<b class="text-pink-500">${word}</b><br>${res}`;
         }
 
-        function showAnalysis(idx) {
-            const item = lyricsData.find(l => l.id === currentId);
-            const ana = item.analysis && item.analysis[idx];
-            if (ana) {
-                document.getElementById('ai-result').innerHTML = `
-                    <div class="text-pink-500 font-bold mb-1">译：${ana.t}</div>
-                    <div>${ana.e}</div>
-                `;
-            } else {
-                document.getElementById('ai-result').innerText = "暂无该行解析，请先点击上方“AI语法解析”";
-            }
-        }
+function showAnalysis(idx) {
+    const item = lyricsData.find(l => l.id === currentId);
+    // 获取对应行的解析对象
+    const ana = item.analysis && item.analysis[idx];
+    
+    // 增加调试点：如果你还是看不到内容，可以在这里取消注释查看控制台
+    // console.log("当前行解析数据:", ana);
+
+    if (ana && typeof ana === 'object') {
+        // 将旧版的 ana.t 改为 ana.translation，ana.e 改为 ana.grammar
+        document.getElementById('ai-result').innerHTML = `
+            <div class="text-pink-500 font-bold mb-1">译：${ana.translation || '（无翻译）'}</div>
+            <div class="text-[11px] leading-5 text-gray-600">${ana.grammar || '（无语法解析）'}</div>
+        `;
+    } else {
+        // 如果该行是 null 或者没有解析数据
+        document.getElementById('ai-result').innerHTML = `
+            <div class="text-gray-400 italic text-[10px]">该行无需解析或暂无数据</div>
+        `;
+    }
+}
 
         function triggerAI() {
             const key = localStorage.getItem('fuwako_ai_key');
