@@ -122,10 +122,6 @@
                     <label class="text-[10px] font-bold opacity-40 ml-1">ACCESS TOKEN</label>
                     <input id="cfg-token" type="password" class="w-full mt-1 p-2 rounded-lg bg-white/80 text-xs shadow-inner">
                 </div>
-                <div>
-                    <label class="text-[10px] font-bold opacity-40 ml-1">REPOSITORY</label>
-                    <input id="cfg-repo" type="text" placeholder="Ancenchan/fuwako" class="w-full mt-1 p-2 rounded-lg bg-white/80 text-xs shadow-inner">
-                </div>
                 <button onclick="saveConfig()" class="w-full py-2.5 bg-pink-400 text-white rounded-xl font-bold text-xs shadow-md hover:bg-pink-500 transition-all">保存并连接</button>
                 <div id="conn-status" class="text-center text-[10px] text-green-500 hidden font-bold">● 已成功连接</div>
             </div>
@@ -547,7 +543,7 @@ async function startAIProcess() {
         function getCfg() {
             return {
                 token: localStorage.getItem('fuwako_github_token'),
-                repo: localStorage.getItem('fuwako_github_repo')
+                repo: localStorage.getItem('Ancenchan/fuwako')
             };
         }
         function saveConfig() {
