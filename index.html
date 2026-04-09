@@ -441,16 +441,7 @@ async function startAIProcess() {
                 messages: [{
                     role: "system",
                     content: `用中文回答不要包含英文。你是一个专业的日语老师。解析以下日语歌词，强制返回单句翻译和语法点(含每个单词的性质和翻译/用法/是否变形/连接词作用/句式)，如不是日文歌词就显示null，json格式类似 
-[{
-"translation": "单句翻译",
-"grammar": "语法点(含每个单词的性质和翻译/用法/是否变形/连接词作用/句式)"
-},
-null,
-{
-"translation": "",
-"grammar": ""
-}
-]
+[{"translation": "单句翻译","grammar": "语法点(含每个单词的性质和翻译/用法/是否变形/连接词作用/句式)"},null,{"translation": "","grammar": ""}]`
                 }, {
                     role: "user",
                     content: item.text.join('\n')
