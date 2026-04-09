@@ -232,35 +232,91 @@
             `).join('');
         }
 
-        async function addLyrics() {
-            const title = document.getElementById('new-lyric-title').value.trim();
-            const textRaw = document.getElementById('new-lyric-text').value.trim();
-            
-            if (!title || !textRaw) {
-                alert("请填写标题和内容哦~");
-                return;
-            }
+async function addLyrics() {
+    // 1. 获取配置并进行硬性校验
+    const cfg = getCfg();
+    if (!cfg.token || !cfg.repo) {
+        alert("❌ 错误：未检测到 GitHub 配置！\n请点击右上角图标输入 Token 和 仓库名后再试。");
+        // 自动弹出配置框引导用户
+        toggleConfig(); 
+        return;
+    }
 
-            const newItem = {
-                id: Date.now(),
-                title: title,
-                text: textRaw.split('\n').filter(s => s.trim()),
-                timestamp: Date.now(),
-                analysis: []
-            };
+    // 2. 获取输入内容
+    const title = document.getElementById('new-lyric-title').value.trim();
+    const textRaw = document.getElementById('new-lyric-text').value.trim();
+    
+    if (!title || !textRaw) {
+        alert("请输入歌曲标题和歌词内容~");
+        return;
+    }
 
-            lyricsData.unshift(newItem);
-            renderLyricsList();
+    // 3. 构建新歌词对象
+    const newItem = {
+        id: Date.now(),
+        title: title,
+        text: textRaw.split('\n').filter(s => s.trim()),
+        timestamp: Date.now(),
+        analysis: []
+    };
+
+    // 4. 先发起云端同步（只有同步成功才更新本地 UI，确保数据一致性）
+    // 如果你希望用户感知到“正在上传”，可以在这里加一个 Loading
+    const btn = event.target; // 自动获取点击的按钮
+    const originalText = btn.innerText;
+    btn.innerText = "正在存入云端...";
+    btn.disabled = true;
+
+    try {
+        // 先把新数据加进内存中的临时列表用于上传
+        const tempLyricsData = [newItem, ...lyricsData];
+        
+        let sha = null;
+        const r = await fetch(`https://api.github.com/repos/${cfg.repo}/contents/lyrics_data.json`, {
+            headers: { 'Authorization': `token ${cfg.token}` }
+        });
+        
+        if (r.ok) {
+            const json = await r.json();
+            sha = json.sha;
+        }
+
+        const pushRes = await fetch(`https://api.github.com/repos/${cfg.repo}/contents/lyrics_data.json`, {
+            method: 'PUT',
+            headers: { 
+                'Authorization': `token ${cfg.token}`, 
+                'Content-Type': 'application/json' 
+            },
+            body: JSON.stringify({
+                message: `Add new lyrics: ${title}`,
+                content: utoa(JSON.stringify(tempLyricsData, null, 2)),
+                sha: sha
+            })
+        });
+
+        if (pushRes.ok) {
+            // 只有 GitHub 返回 200/201 成功后，才更新本地显示
+            lyricsData = tempLyricsData;
             localStorage.setItem('fuwako_lyrics', JSON.stringify(lyricsData));
-
+            renderLyricsList();
+            
             // 清空输入
             document.getElementById('new-lyric-title').value = "";
             document.getElementById('new-lyric-text').value = "";
-
-            // 静默同步云端
-            pushToCloud();
+            alert("✅ 成功同步至 GitHub！");
+        } else {
+            const errData = await pushRes.json();
+            throw new Error(errData.message || "上传失败");
         }
 
+    } catch(e) {
+        console.error(e);
+        alert("❌ 存入云端失败：" + e.message);
+    } finally {
+        btn.innerText = originalText;
+        btn.disabled = false;
+    }
+}
         async function pushToCloud() {
             const cfg = getCfg();
             if (!cfg.token || !cfg.repo) return;
