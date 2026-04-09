@@ -157,9 +157,6 @@
             });
 
             // 预设默认仓库
-            if (!localStorage.getItem('fuwako_github_repo')) {
-                localStorage.setItem('fuwako_github_repo', 'Ancenchan/fuwako');
-            }
 
             loadConfig();
             loadGrammar();
@@ -529,7 +526,6 @@ async function startAIProcess() {
         alert("AI解析出错: " + e.message);
         barWrap.classList.add('hidden');
     }
-}
 
         // 基础功能
         function switchTab(tab) {
@@ -546,18 +542,18 @@ async function startAIProcess() {
                 repo: 'Ancenchan/fuwako'
             };
         }
-        function saveConfig() {
-            localStorage.setItem('fuwako_github_token', document.getElementById('cfg-token').value);
-            localStorage.setItem('fuwako_github_repo', document.getElementById('cfg-repo').value);
-            document.getElementById('conn-status').classList.remove('hidden');
-            setTimeout(toggleConfig, 800);
-            loadLyrics();
-        }
-        function loadConfig() {
-            document.getElementById('cfg-token').value = localStorage.getItem('fuwako_github_token') || '';
-            document.getElementById('cfg-repo').value = localStorage.getItem('fuwako_github_repo') || '';
-        }
+function saveConfig() {
+    localStorage.setItem('fuwako_github_token', document.getElementById('cfg-token').value);
+    // 删掉了对 repo 的 setItem
+    document.getElementById('conn-status').classList.remove('hidden');
+    setTimeout(toggleConfig, 800);
+    loadLyrics();
+}
 
+function loadConfig() {
+    document.getElementById('cfg-token').value = localStorage.getItem('fuwako_github_token') || '';
+    // 删掉了对 cfg-repo 的赋值
+}
         init();
     </script>
 </body>
