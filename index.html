@@ -508,25 +508,6 @@ async function startAIProcess() {
         barWrap.classList.add('hidden');
     }
 }
-        // 最终解析并存入数据
-        const cleanContent = fullText.replace(/```json|```/g, '').trim();
-        item.analysis = JSON.parse(cleanContent);
-        
-        bar.style.width = '100%';
-        localStorage.setItem('fuwako_lyrics', JSON.stringify(lyricsData));
-        pushToCloud();
-        
-        setTimeout(() => { 
-            barWrap.classList.add('hidden');
-            showDetail(currentId); // 刷新详情页展示解析
-        }, 800);
-
-    } catch(e) {
-        console.error(e);
-        alert("AI解析出错: " + e.message);
-        barWrap.classList.add('hidden');
-    }
-
         // 基础功能
         function switchTab(tab) {
             document.querySelectorAll('.view-section').forEach(s => s.classList.add('hidden'));
