@@ -10,14 +10,14 @@
     "timestamp": 1775745129328,
     "analysis": [
       {
-        "t": "Just honestly.",
-        "e": "'ただ'.modifies '素直に'(a na-adjective)"
+        "translation": "只是坦率地",
+        "grammar": "ただ(连词,仅仅、仅是); 素直(形容词,形容词表示直率坦率); に(助词,表示方式或工具)"
       },
-      null,
       {
-        "t": "Bring the chair closer.",
-        "e": "'近づけて'(te-form of 近づける)"
-      }
+        "translation": "靠近椅子",
+        "grammar": "椅子(名词,指代家具); を(助词,表示被动对象); 近付け(动词替身形,原动词为近づける的简体使用或误写)"
+      },
+      null
     ]
   },
   {
