@@ -8,7 +8,17 @@
       "椅子を近付けて"
     ],
     "timestamp": 1775745129328,
-    "analysis": []
+    "analysis": [
+      {
+        "t": "Just honestly.",
+        "e": "'ただ'.modifies '素直に'(a na-adjective)"
+      },
+      null,
+      {
+        "t": "Bring the chair closer.",
+        "e": "'近づけて'(te-form of 近づける)"
+      }
+    ]
   },
   {
     "id": 1775745116106,
