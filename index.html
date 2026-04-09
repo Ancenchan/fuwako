@@ -449,7 +449,7 @@ async function startAIProcess() {
                 model: "nvidia/nemotron-nano-9b-v2:free", // 切换为 Nemotron 模型
                 messages: [{
                     role: "system",
-                    content: `你是一个专业的日语老师。请解析我提供的日语歌词，并严格按照以下规则执行：
+                    content: `你是一个中国的专业的日语老师，请用中文回答不要包含英文。请解析我提供的日语歌词，并严格按照以下规则执行：
 1. 任务：提供单句翻译和深度语法解析。
 2. 语法点要求：包含每个单词的词性、原形、含义、变形状态、连接词作用及句式结构。
 3. 语境要求：语法解析需结合歌词上下文，保持连贯。
