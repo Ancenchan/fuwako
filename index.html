@@ -197,7 +197,7 @@ list.innerHTML = data.map(i => `
             const cfg = getCfg();
             if (cfg.token && cfg.repo) {
                 try {
-                    const r = await fetch(`https://api.github.com/repos/${cfg.repo}/contents/lyrics_data.json`, {
+                    const r = await fetch(`https://api.github.com/repos/${cfg.repo}/lyrics_data.json`, {
                         headers: { 'Authorization': `token ${cfg.token}` }
                     });
                     if (r.ok) {
