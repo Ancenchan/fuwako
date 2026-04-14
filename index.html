@@ -418,6 +418,16 @@
                     const chunk = decoder.decode(value, { stream: true }), lines = chunk.split('\n');
                     for (const line of lines) { if (line.startsWith("data: ")) { try { const json = JSON.parse(line.slice(6)); fullText += json.choices[0]?.delta?.content || ""; const matches = fullText.match(/\}/g); if (matches) bar.style.width = `${Math.min(95, (matches.length / jpLines.length) * 100)}%`; } catch (e) {} } }
                 }
+                console.log("AI 原始输出内容:", fullText); 
+
+try {
+    const finalJsonString = fullText.replace(/```json|```/g, '').trim();
+    
+    // 【关键位置】：看看清理掉 Markdown 标签后，准备交给 JSON.parse 的字符串长啥样
+    console.log("清理后的 JSON 字符串:", finalJsonString); 
+
+    const parsedData = JSON.parse(finalJsonString);
+    console.log("解析后的对象结构:", parsedData); // 看看这里是不是出现了嵌套对象
                 item.analysis = JSON.parse(fullText.replace(/```json|```/g, '').trim());
                 bar.style.width = '100%'; localStorage.setItem('fuwako_lyrics', JSON.stringify(lyricsData));
                 await pushToCloud(); setTimeout(() => { barWrap.classList.add('hidden'); showDetail(currentId); }, 800);
