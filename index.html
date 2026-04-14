@@ -400,9 +400,9 @@ async function startAIProcess() {
    - 属性名和字符串必须使用双引号。
    - 严禁在“translation”和“grammar”的内容中使用双引号（可用单引号或括号代替），以防解析失败。
    - 最后提交时检查“translation”和“grammar”，如果内容是英文，需要翻译为中文。
-4. 异常处理：若输入非日语歌词，请仅返回 null。
+4. 异常处理：若输入的那一行非日语歌词，请仅返回 null。
 
-示例格式（严格遵守）：
+示例格式：（第一行日文第二行中文第三行日文的情况）
 [{"translation": "这里的翻译不含双引号", "grammar": "语法点"},null,{"translation": "这里的翻译不含双引号", "grammar": "语法点"}]`
                 }, {
                     role: "user",
