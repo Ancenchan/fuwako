@@ -11,7 +11,53 @@
       "傍にいると忘れないでね"
     ],
     "timestamp": 1776177869302,
-    "analysis": []
+    "analysis": [
+      {
+        "translation": " Spread your wings towards the sky.",
+        "grammar": {
+          "sentence_structure": "Subject-Object-Verb",
+          "subject": "羽 (Wing)",
+          "verb": "広げた (Spread)",
+          "particle": "へと (Towards the sky)",
+          "object": "空 (Sky) - Indirect object via implied movement"
+        }
+      },
+      {
+        "translation": "Love the sound.",
+        "grammar": {
+          "sentence_structure": "Verb-Phrase",
+          "verb": "愛して (Love)",
+          "object": "音 (Sound) - Direct object without particle, implied by context"
+        }
+      },
+      {
+        "translation": "The flowers of dreams overflow.",
+        "grammar": {
+          "sentence_structure": "Nominal (花) + Possessive (夢) + Verb (溢れ出す)",
+          "subject": "花 (Flowers)",
+          "modifier": "夢 (Dreams) - Possessive",
+          "verb": "溢れ出す (Overflow)",
+          "grammatical_notes": "Implied source of flowers (dreams) without explicit article"
+        }
+      },
+      {
+        "translation": "Gracefully and beautifully bloom.",
+        "grammar": {
+          "sentence_structure": "Adverbial Phrase + Verb",
+          "adverb": "気高く綺麗に (Gracefully and beautifully)",
+          "verb": "咲かせる (Bloom)",
+          "grammatical_notes": "Passive voice construction; adverbs placed before verb for emphasis"
+        }
+      },
+      {
+        "translation": "Because it blooms, don't forget, okay?",
+        "grammar": {
+          "sentence_structure": "Cause + Result + Exclamation",
+          "reason": "咲かせるからさ (Blooms, right?) - 'からさ' indicates casual speculation",
+          "instruction": "忘れないでね (Don't forget, okay?) - Polite negative imperative"
+        }
+      }
+    ]
   },
   {
     "id": 1775837926771,
