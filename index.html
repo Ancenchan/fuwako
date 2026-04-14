@@ -431,8 +431,9 @@ try {
                 item.analysis = JSON.parse(fullText.replace(/```json|```/g, '').trim());
                 bar.style.width = '100%'; localStorage.setItem('fuwako_lyrics', JSON.stringify(lyricsData));
                 await pushToCloud(); setTimeout(() => { barWrap.classList.add('hidden'); showDetail(currentId); }, 800);
-            } catch(e) { alert("解析失败"); barWrap.classList.add('hidden'); }
-
+            } catch(e) { alert("解析失败"); barWrap.classList.add('hidden'); 
+                       }
+            }
         function switchTab(tab) {
             document.querySelectorAll('.view-section').forEach(s => s.classList.add('hidden'));
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('tab-btn-active'));
