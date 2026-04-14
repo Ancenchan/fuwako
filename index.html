@@ -200,7 +200,7 @@
                                       .sort((a,b) => b.timestamp - a.timestamp);
                 } else if (cfg.token && cfg.repo) {
                     // 3. 如果公开 fetch 失败且有 Token，尝试 API（备选方案）
-                    const rApi = await fetch(`https://api.github.com/repos/${cfg.repo}/contents/lyrics_data.json`, {
+                    const rApi = await fetch(`https://api.github.com/repos/${cfg.repo}/lyrics_data.json`, {
                         headers: { 'Authorization': `token ${cfg.token}` }
                     });
                     if (rApi.ok) {
@@ -285,7 +285,7 @@
             if (!cfg.token || !cfg.repo) return;
             try {
                 let sha = null;
-                const r = await fetch(`https://api.github.com/repos/${cfg.repo}/contents/lyrics_data.json`, {
+                const r = await fetch(`https://api.github.com/repos/${cfg.repo}/lyrics_data.json`, {
                     headers: { 'Authorization': `token ${cfg.token}` }
                 });
                 if (r.ok) { const json = await r.json(); sha = json.sha; }
@@ -294,7 +294,7 @@
                     content: utoa(JSON.stringify(lyricsData, null, 2)),
                     sha: sha
                 };
-                await fetch(`https://api.github.com/repos/${cfg.repo}/contents/lyrics_data.json`, {
+                await fetch(`https://api.github.com/repos/${cfg.repo}/lyrics_data.json`, {
                     method: 'PUT',
                     headers: { 'Authorization': `token ${cfg.token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify(body)
