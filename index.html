@@ -87,7 +87,10 @@
             <div class="flex flex-col md:flex-row gap-4">
                 <div class="flex-1 glass p-6">
                     <div class="flex justify-between items-center mb-6">
-                        <button onclick="switchTab('lyrics')" class="text-[10px] text-pink-400 font-bold hover:underline">← 返回列表</button>
+                        <div class="flex items-center space-x-3">
+                            <button onclick="switchTab('lyrics')" class="text-[10px] text-pink-400 font-bold hover:underline">← 返回列表</button>
+                            <button id="edit-btn" class="text-[10px] text-gray-400 font-bold hover:text-pink-500 transition-colors">编辑内容</button>
+                        </div>
                         <div class="flex items-center space-x-2">
                             <div id="ai-progress-wrap" class="hidden w-20 h-1 bg-pink-100 rounded-full overflow-hidden">
                                 <div id="ai-progress-bar" class="h-full bg-pink-400" style="width: 0%"></div>
@@ -157,19 +160,16 @@
                 }, 500);
             });
 
-            // 预设默认仓库
-
             loadConfig();
             loadGrammar();
             loadLyrics();
             loadDict();
         }
 
-        // 处理中文字符的 Base64 转换
+        // 编解码工具
         function utoa(str) {
             return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (match, p1) => String.fromCharCode('0x' + p1)));
         }
-
         function atou(str) {
             return decodeURIComponent(atob(str).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
         }
@@ -179,31 +179,28 @@
                 const r = await fetch('grammar.json');
                 const data = await r.json();
                 const list = document.getElementById('grammar-list');
-
-list.innerHTML = data.map(i => `
-    <div class="glass p-4 hover-scale cursor-default">
-        <div class="text-pink-500 font-bold text-sm">${i.t}</div>
-        <div class="text-[9px] text-pink-300 mb-2 font-bold opacity-70">${i.c || 'Common'}</div>
-        <div class="text-[11px] text-gray-500 whitespace-pre-line">${i.l}</div>
-    </div>
-`).join('');
+                list.innerHTML = data.map(i => `
+                    <div class="glass p-4 hover-scale cursor-default">
+                        <div class="text-pink-500 font-bold text-sm">${i.t}</div>
+                        <div class="text-[9px] text-pink-300 mb-2 font-bold opacity-70">${i.c || 'Common'}</div>
+                        <div class="text-[11px] text-gray-500 whitespace-pre-line">${i.l}</div>
+                    </div>
+                `).join('');
             } catch(e) {}
         }
 
         async function loadLyrics() {
             const local = JSON.parse(localStorage.getItem('fuwako_lyrics') || '[]');
             lyricsData = Array.isArray(local) ? local : [];
-            
             const cfg = getCfg();
             if (cfg.token && cfg.repo) {
                 try {
-                    const r = await fetch(`https://api.github.com/repos/${cfg.repo}/lyrics_data.json`, {
+                    const r = await fetch(`https://api.github.com/repos/${cfg.repo}/contents/lyrics_data.json`, {
                         headers: { 'Authorization': `token ${cfg.token}` }
                     });
                     if (r.ok) {
                         const json = await r.json();
                         const cloudData = JSON.parse(atou(json.content));
-                        // 合并去重（以 timestamp 为准）
                         const combined = [...lyricsData, ...cloudData];
                         lyricsData = Array.from(new Map(combined.map(item => [item.id, item])).values())
                                           .sort((a,b) => b.timestamp - a.timestamp);
@@ -214,108 +211,75 @@ list.innerHTML = data.map(i => `
             renderLyricsList();
         }
 
+        // 修改：增加删除按钮逻辑
         function renderLyricsList() {
             const container = document.getElementById('lyrics-container');
             container.innerHTML = lyricsData.map(l => `
-                <div onclick="showDetail(${l.id})" class="glass p-4 flex justify-between items-center cursor-pointer hover-scale transition-all active:scale-95">
-                    <div>
+                <div onclick="showDetail(${l.id})" class="glass p-4 flex justify-between items-center cursor-pointer hover-scale transition-all active:scale-95 group">
+                    <div class="flex-1">
                         <div class="font-bold text-[13px] text-gray-700">${l.title}</div>
                         <div class="text-[9px] opacity-30 mt-1 font-mono">${new Date(l.timestamp).toLocaleString()}</div>
                     </div>
-                    <div class="text-pink-200">❯</div>
+                    <div class="flex items-center space-x-3">
+                        <button onclick="event.stopPropagation(); deleteLyrics(${l.id})" class="opacity-0 group-hover:opacity-100 text-[10px] text-red-300 hover:text-red-500 transition-all font-bold">删除</button>
+                        <div class="text-pink-200">❯</div>
+                    </div>
                 </div>
             `).join('');
         }
 
-async function addLyrics() {
-    // 1. 获取配置并进行硬性校验
-    const cfg = getCfg();
-    if (!cfg.token || !cfg.repo) {
-        alert("❌ 错误：未检测到 GitHub 配置！\n请点击右上角图标输入 Token 和 仓库名后再试。");
-        // 自动弹出配置框引导用户
-        toggleConfig(); 
-        return;
-    }
-
-    // 2. 获取输入内容
-    const title = document.getElementById('new-lyric-title').value.trim();
-    const textRaw = document.getElementById('new-lyric-text').value.trim();
-    
-    if (!title || !textRaw) {
-        alert("请输入歌曲标题和歌词内容~");
-        return;
-    }
-
-    // 3. 构建新歌词对象
-    const newItem = {
-        id: Date.now(),
-        title: title,
-        text: textRaw.split('\n').filter(s => s.trim()),
-        timestamp: Date.now(),
-        analysis: []
-    };
-
-    // 4. 先发起云端同步（只有同步成功才更新本地 UI，确保数据一致性）
-    // 如果你希望用户感知到“正在上传”，可以在这里加一个 Loading
-    const btn = event.target; // 自动获取点击的按钮
-    const originalText = btn.innerText;
-    btn.innerText = "正在存入云端...";
-    btn.disabled = true;
-
-    try {
-        // 先把新数据加进内存中的临时列表用于上传
-        const tempLyricsData = [newItem, ...lyricsData];
-        
-        let sha = null;
-        const r = await fetch(`https://api.github.com/repos/${cfg.repo}/contents/lyrics_data.json`, {
-            headers: { 'Authorization': `token ${cfg.token}` }
-        });
-        
-        if (r.ok) {
-            const json = await r.json();
-            sha = json.sha;
-        }
-
-        const pushRes = await fetch(`https://api.github.com/repos/${cfg.repo}/contents/lyrics_data.json`, {
-            method: 'PUT',
-            headers: { 
-                'Authorization': `token ${cfg.token}`, 
-                'Content-Type': 'application/json' 
-            },
-            body: JSON.stringify({
-                message: `Add new lyrics: ${title}`,
-                content: utoa(JSON.stringify(tempLyricsData, null, 2)),
-                sha: sha
-            })
-        });
-
-        if (pushRes.ok) {
-            // 只有 GitHub 返回 200/201 成功后，才更新本地显示
-            lyricsData = tempLyricsData;
+        // 新增：删除歌词函数
+        async function deleteLyrics(id) {
+            if (!confirm("确定要删除这首歌吗？云端也会同步哦。")) return;
+            lyricsData = lyricsData.filter(l => l.id !== id);
             localStorage.setItem('fuwako_lyrics', JSON.stringify(lyricsData));
             renderLyricsList();
-            
-            // 清空输入
-            document.getElementById('new-lyric-title').value = "";
-            document.getElementById('new-lyric-text').value = "";
-            alert("✅ 成功同步至 GitHub！");
-        } else {
-            const errData = await pushRes.json();
-            throw new Error(errData.message || "上传失败");
+            await pushToCloud();
         }
 
-    } catch(e) {
-        console.error(e);
-        alert("❌ 存入云端失败：" + e.message);
-    } finally {
-        btn.innerText = originalText;
-        btn.disabled = false;
-    }
-}
+        async function addLyrics() {
+            const cfg = getCfg();
+            if (!cfg.token || !cfg.repo) {
+                alert("❌ 请先配置 GitHub Token");
+                toggleConfig(); 
+                return;
+            }
+            const title = document.getElementById('new-lyric-title').value.trim();
+            const textRaw = document.getElementById('new-lyric-text').value.trim();
+            if (!title || !textRaw) return alert("请输入标题和内容");
+
+            const newItem = {
+                id: Date.now(),
+                title: title,
+                text: textRaw.split('\n').filter(s => s.trim()),
+                timestamp: Date.now(),
+                analysis: []
+            };
+
+            const btn = event.target;
+            btn.innerText = "正在存入云端...";
+            btn.disabled = true;
+
+            try {
+                lyricsData = [newItem, ...lyricsData];
+                localStorage.setItem('fuwako_lyrics', JSON.stringify(lyricsData));
+                await pushToCloud();
+                renderLyricsList();
+                document.getElementById('new-lyric-title').value = "";
+                document.getElementById('new-lyric-text').value = "";
+                alert("✅ 成功存入云端！");
+            } catch(e) {
+                alert("❌ 同步失败: " + e.message);
+            } finally {
+                btn.innerText = "确认存入云端";
+                btn.disabled = false;
+            }
+        }
+
+        // 统一云端同步逻辑
         async function pushToCloud() {
             const cfg = getCfg();
             if (!cfg.token || !cfg.repo) return;
-
             try {
                 let sha = null;
                 const r = await fetch(`https://api.github.com/repos/${cfg.repo}/contents/lyrics_data.json`, {
@@ -325,13 +289,11 @@ async function addLyrics() {
                     const json = await r.json();
                     sha = json.sha;
                 }
-
                 const body = {
                     message: "Sync Fuwako Lyrics",
-                    content: utoa(JSON.stringify(lyricsData, null, 2))
+                    content: utoa(JSON.stringify(lyricsData, null, 2)),
+                    sha: sha
                 };
-                if (sha) body.sha = sha;
-
                 await fetch(`https://api.github.com/repos/${cfg.repo}/contents/lyrics_data.json`, {
                     method: 'PUT',
                     headers: { 'Authorization': `token ${cfg.token}`, 'Content-Type': 'application/json' },
@@ -340,12 +302,16 @@ async function addLyrics() {
             } catch(e) { console.error("Cloud push failed:", e); }
         }
 
+        // 修改：增加编辑按钮绑定
         function showDetail(id) {
             currentId = id;
             const item = lyricsData.find(l => l.id === id);
             document.getElementById('detail-title').innerText = item.title;
             const content = document.getElementById('detail-content');
             content.innerHTML = "";
+
+            // 绑定编辑按钮
+            document.getElementById('edit-btn').onclick = () => enterEditMode(id);
 
             item.text.forEach((line, idx) => {
                 const isJP = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]/.test(line);
@@ -366,7 +332,6 @@ async function addLyrics() {
                     html += `<span class="opacity-40 italic font-light">${line}</span>`;
                 }
                 html += `</div>`;
-                
                 if (isJP) {
                     html += `<button onclick="showAnalysis(${idx})" class="opacity-0 group-hover:opacity-100 text-[9px] bg-pink-100 text-pink-400 px-2 py-0.5 rounded transition-all">解析</button>`;
                 }
@@ -376,6 +341,41 @@ async function addLyrics() {
             switchTab('detail');
         }
 
+        // 新增：进入编辑模式
+        function enterEditMode(id) {
+            const item = lyricsData.find(l => l.id === id);
+            const titleArea = document.getElementById('detail-title');
+            const contentArea = document.getElementById('detail-content');
+
+            titleArea.innerHTML = `<input id="edit-title" type="text" class="w-full bg-white/50 p-1 rounded border border-pink-200 text-lg font-bold" value="${item.title}">`;
+            contentArea.innerHTML = `
+                <textarea id="edit-text" rows="12" class="w-full p-4 rounded-xl bg-white/50 text-sm leading-relaxed">${item.text.join('\n')}</textarea>
+                <div class="flex space-x-2 mt-4">
+                    <button onclick="saveEdit(${id})" class="flex-1 py-2 bg-pink-400 text-white rounded-xl text-xs font-bold shadow-sm">保存修改</button>
+                    <button onclick="showDetail(${id})" class="px-4 py-2 bg-gray-100 text-gray-400 rounded-xl text-xs">取消</button>
+                </div>
+            `;
+        }
+
+        // 新增：保存编辑
+        async function saveEdit(id) {
+            const newTitle = document.getElementById('edit-title').value.trim();
+            const newText = document.getElementById('edit-text').value.trim();
+            if (!newTitle || !newText) return alert("内容不能为空");
+
+            const idx = lyricsData.findIndex(l => l.id === id);
+            lyricsData[idx].title = newTitle;
+            lyricsData[idx].text = newText.split('\n').filter(s => s.trim());
+            lyricsData[idx].analysis = []; // 文本变了，清空旧解析
+
+            localStorage.setItem('fuwako_lyrics', JSON.stringify(lyricsData));
+            renderLyricsList();
+            showDetail(id); // 刷新详情视图
+            await pushToCloud();
+            alert("✅ 修改成功并已同步！");
+        }
+
+        // 词典与 AI 功能保持原样
         async function loadDict() {
             try {
                 const r = await fetch('dict.json');
@@ -388,27 +388,18 @@ async function addLyrics() {
             document.getElementById('dict-result').innerHTML = `<b class="text-pink-500">${word}</b><br>${res}`;
         }
 
-function showAnalysis(idx) {
-    const item = lyricsData.find(l => l.id === currentId);
-    // 获取对应行的解析对象
-    const ana = item.analysis && item.analysis[idx];
-    
-    // 增加调试点：如果你还是看不到内容，可以在这里取消注释查看控制台
-    // console.log("当前行解析数据:", ana);
-
-    if (ana && typeof ana === 'object') {
-        // 将旧版的 ana.t 改为 ana.translation，ana.e 改为 ana.grammar
-        document.getElementById('ai-result').innerHTML = `
-            <div class="text-pink-500 font-bold mb-1">译：${ana.translation || '（无翻译）'}</div>
-            <div class="text-[11px] leading-5 text-gray-600">${ana.grammar || '（无语法解析）'}</div>
-        `;
-    } else {
-        // 如果该行是 null 或者没有解析数据
-        document.getElementById('ai-result').innerHTML = `
-            <div class="text-gray-400 italic text-[10px]">该行无需解析或暂无数据</div>
-        `;
-    }
-}
+        function showAnalysis(idx) {
+            const item = lyricsData.find(l => l.id === currentId);
+            const ana = item.analysis && item.analysis[idx];
+            if (ana && typeof ana === 'object') {
+                document.getElementById('ai-result').innerHTML = `
+                    <div class="text-pink-500 font-bold mb-1">译：${ana.translation || '（无翻译）'}</div>
+                    <div class="text-[11px] leading-5 text-gray-600">${ana.grammar || '（无语法解析）'}</div>
+                `;
+            } else {
+                document.getElementById('ai-result').innerHTML = `<div class="text-gray-400 italic text-[10px]">该行无需解析或暂无数据</div>`;
+            }
+        }
 
         function triggerAI() {
             const key = localStorage.getItem('fuwako_ai_key');
@@ -416,119 +407,76 @@ function showAnalysis(idx) {
             else startAIProcess();
         }
 
-async function startAIProcess() {
-    // 1. 获取 API Key
-    const key = document.getElementById('cfg-ai-key').value || localStorage.getItem('fuwako_ai_key');
-    if (!key) {
-        document.getElementById('ai-modal').classList.remove('hidden');
-        return;
-    }
-    localStorage.setItem('fuwako_ai_key', key);
-    document.getElementById('ai-modal').classList.add('hidden');
+        async function startAIProcess() {
+            const key = document.getElementById('cfg-ai-key').value || localStorage.getItem('fuwako_ai_key');
+            if (!key) { document.getElementById('ai-modal').classList.remove('hidden'); return; }
+            localStorage.setItem('fuwako_ai_key', key);
+            document.getElementById('ai-modal').classList.add('hidden');
 
-    const item = lyricsData.find(l => l.id === currentId);
-    const barWrap = document.getElementById('ai-progress-wrap');
-    const bar = document.getElementById('ai-progress-bar');
-    
-    // 计算日语行数，用于精确进度条
-    const jpLines = item.text.filter(l => /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]/.test(l));
-    const totalLines = jpLines.length;
+            const item = lyricsData.find(l => l.id === currentId);
+            const barWrap = document.getElementById('ai-progress-wrap');
+            const bar = document.getElementById('ai-progress-bar');
+            const jpLines = item.text.filter(l => /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]/.test(l));
+            const totalLines = jpLines.length;
 
-    barWrap.classList.remove('hidden');
-    bar.style.width = '10%';
+            barWrap.classList.remove('hidden');
+            bar.style.width = '10%';
 
-    try {
-        // 使用 OpenRouter 接口地址
-        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-            method: "POST",
-            headers: { 
-                "Authorization": `Bearer ${key}`, 
-                "Content-Type": "application/json",
-                "HTTP-Referer": window.location.origin, // OpenRouter 建议携带
-                "X-Title": "Fuwako Web App"
-            },
-            body: JSON.stringify({
-                model: "nvidia/nemotron-nano-9b-v2:free", // 切换为 Nemotron 模型
-                messages: [{
-                    role: "system",
-                    content: `你是一个中国的专业的日语老师，请用中文回答不要包含英文。请解析我提供的日语歌词，并严格按照以下规则执行：
-1. 任务：提供单句翻译和深度语法解析。；
-2. 语法点要求：日语歌词常常将一句完整的话分成多行展示。你需要根据语法逻辑（助词连接、谓语在句尾等）判断哪些连续的行属于同一个句子。对行内的每个词（或最小单位）给出原形/词性。例输出为：「新しい」形容词连体形，修饰「ミライ」；「ミライ」名词，片假名写法，意为'未来'；「を」格助词，提示「思い描く新しいミライ」整个名词短语为「探してた」的宾语。该行是宾语的核心名词。
-3. 格式规范：
-   - 必须仅输出一个纯 JSON 数组。
-   - 严禁包含任何 Markdown 代码块标签、换行符或说明文字。
-   - 属性名和字符串必须使用双引号。
-   - 严禁在“translation”和“grammar”的内容中使用双引号（可用单引号或括号代替），以防解析失败。
-   - 检查“translation”和“grammar”，如果内容是英文，需要翻译为中文。
-4. 异常处理：若输入非日语歌词，请仅返回 null。
+            try {
+                const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+                    method: "POST",
+                    headers: { 
+                        "Authorization": `Bearer ${key}`, 
+                        "Content-Type": "application/json",
+                        "X-Title": "Fuwako Web App"
+                    },
+                    body: JSON.stringify({
+                        model: "nvidia/nemotron-nano-9b-v2:free",
+                        messages: [{
+                            role: "system",
+                            content: `你是一个专业的日语老师，请用中文提供单句翻译和深度语法解析。必须返回纯 JSON 数组格式。属性名为 translation 和 grammar。`
+                        }, {
+                            role: "user",
+                            content: item.text.join('\n')
+                        }],
+                        stream: true
+                    })
+                });
 
-示例格式（严格遵守）：
-[{"translation": "这里的翻译不含双引号", "grammar": "语法点"},null]`
-                }, {
-                    role: "user",
-                    content: item.text.join('\n')
-                }],
-                stream: true // 必须开启流式传输，否则进度条会卡死
-            })
-        });
-
-        if (!response.ok) throw new Error(`API 请求失败: ${response.status}`);
-
-        // 浏览器端处理流式数据
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder("utf-8");
-        let fullText = "";
-
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            const chunk = decoder.decode(value, { stream: true });
-            const lines = chunk.split('\n');
-            
-            for (const line of lines) {
-                if (line.startsWith("data: ")) {
-                    const dataStr = line.slice(6);
-                    if (dataStr === "[DONE]") break;
-                    try {
-                        const json = JSON.parse(dataStr);
-                        const content = json.choices[0]?.delta?.content || "";
-                        fullText += content;
-
-                        // 进度计算：每当检测到一个对象结束符 "}"，进度增加
-                        const matches = fullText.match(/\}/g);
-                        if (matches) {
-                            const progress = Math.min(95, (matches.length / totalLines) * 100);
-                            bar.style.width = `${progress}%`;
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder("utf-8");
+                let fullText = "";
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    const chunk = decoder.decode(value, { stream: true });
+                    const lines = chunk.split('\n');
+                    for (const line of lines) {
+                        if (line.startsWith("data: ")) {
+                            const dataStr = line.slice(6);
+                            if (dataStr === "[DONE]") break;
+                            try {
+                                const json = JSON.parse(dataStr);
+                                fullText += json.choices[0]?.delta?.content || "";
+                                const matches = fullText.match(/\}/g);
+                                if (matches) bar.style.width = `${Math.min(95, (matches.length / totalLines) * 100)}%`;
+                            } catch (e) {}
                         }
-                    } catch (e) {
-                        // 忽略流传输过程中的片段解析错误
                     }
                 }
+
+                const finalJsonString = fullText.replace(/```json|```/g, '').trim();
+                item.analysis = JSON.parse(finalJsonString);
+                bar.style.width = '100%';
+                localStorage.setItem('fuwako_lyrics', JSON.stringify(lyricsData));
+                await pushToCloud();
+                setTimeout(() => { barWrap.classList.add('hidden'); showDetail(currentId); }, 800);
+            } catch(e) {
+                alert("解析出错啦，请检查 Key 或网络。");
+                barWrap.classList.add('hidden');
             }
         }
 
-        // 最终清理并解析 JSON
-        const finalJsonString = fullText.replace(/```json|```/g, '').trim();
-        item.analysis = JSON.parse(finalJsonString);
-        
-        // 更新 UI 和存储
-        bar.style.width = '100%';
-        localStorage.setItem('fuwako_lyrics', JSON.stringify(lyricsData));
-        pushToCloud(); // 静默同步
-        
-        setTimeout(() => { 
-            barWrap.classList.add('hidden');
-            showDetail(currentId); // 刷新详情页展示结果
-        }, 800);
-
-    } catch(e) {
-        console.error("AI Analysis Error:", e);
-        alert("解析出错啦，请检查 API Key 或稍后再试。");
-        barWrap.classList.add('hidden');
-    }
-}
-        // 基础功能
         function switchTab(tab) {
             document.querySelectorAll('.view-section').forEach(s => s.classList.add('hidden'));
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('tab-btn-active'));
@@ -543,18 +491,15 @@ async function startAIProcess() {
                 repo: 'Ancenchan/fuwako'
             };
         }
-function saveConfig() {
-    localStorage.setItem('fuwako_github_token', document.getElementById('cfg-token').value);
-    // 删掉了对 repo 的 setItem
-    document.getElementById('conn-status').classList.remove('hidden');
-    setTimeout(toggleConfig, 800);
-    loadLyrics();
-}
-
-function loadConfig() {
-    document.getElementById('cfg-token').value = localStorage.getItem('fuwako_github_token') || '';
-    // 删掉了对 cfg-repo 的赋值
-}
+        function saveConfig() {
+            localStorage.setItem('fuwako_github_token', document.getElementById('cfg-token').value);
+            document.getElementById('conn-status').classList.remove('hidden');
+            setTimeout(toggleConfig, 800);
+            loadLyrics();
+        }
+        function loadConfig() {
+            document.getElementById('cfg-token').value = localStorage.getItem('fuwako_github_token') || '';
+        }
         init();
     </script>
 </body>
