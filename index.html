@@ -195,7 +195,7 @@
             const cfg = getCfg();
             if (cfg.token && cfg.repo) {
                 try {
-                    const r = await fetch(`https://api.github.com/repos/${cfg.repo}/contents/lyrics_data.json`, {
+                    const r = await fetch(`https://api.github.com/repos/${cfg.repo}/lyrics_data.json`, {
                         headers: { 'Authorization': `token ${cfg.token}` }
                     });
                     if (r.ok) {
@@ -282,7 +282,7 @@
             if (!cfg.token || !cfg.repo) return;
             try {
                 let sha = null;
-                const r = await fetch(`https://api.github.com/repos/${cfg.repo}/contents/lyrics_data.json`, {
+                const r = await fetch(`https://api.github.com/repos/${cfg.repo}/lyrics_data.json`, {
                     headers: { 'Authorization': `token ${cfg.token}` }
                 });
                 if (r.ok) {
@@ -294,7 +294,7 @@
                     content: utoa(JSON.stringify(lyricsData, null, 2)),
                     sha: sha
                 };
-                await fetch(`https://api.github.com/repos/${cfg.repo}/contents/lyrics_data.json`, {
+                await fetch(`https://api.github.com/repos/${cfg.repo}/lyrics_data.json`, {
                     method: 'PUT',
                     headers: { 'Authorization': `token ${cfg.token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify(body)
