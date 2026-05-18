@@ -35,12 +35,54 @@
         .pos-adj { color: #fcc419; }
         #loading-mask {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--fuwari-bg); z-index: 10000;
+            background: rgba(255, 249, 251, 0.92); z-index: 10000;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 0.35s ease, visibility 0.35s ease;
         }
+        #loading-mask.loading-mask-hidden { opacity: 0; visibility: hidden; }
+        .word-token { margin: 0 1px; padding: 1px 2px; border-radius: 6px; transition: background 0.2s ease, transform 0.2s ease; }
+        .word-token:hover { background: rgba(255,255,255,0.8); transform: translateY(-1px); }
         .tab-btn-active { background-color: var(--fuwari-accent) !important; color: white !important; }
         input, textarea { border: none !important; outline: none !important; }
     </style>
+    <script>
+        // Tiny fallback handlers are defined before the header buttons render so
+        // inline clicks never throw while the deferred app bundle or Kuromoji CDN
+        // are still loading. js/app.js replaces these with the full handlers.
+        (function () {
+            function byId(id) { return document.getElementById(id); }
+
+            window.switchTab = window.switchTab || function (tab) {
+                document.querySelectorAll('.view-section').forEach(function (section) {
+                    section.classList.add('hidden');
+                });
+                document.querySelectorAll('.tab-btn').forEach(function (button) {
+                    button.classList.remove('tab-btn-active');
+                });
+
+                var target = byId('view-' + tab);
+                if (target) target.classList.remove('hidden');
+
+                var active = byId('tab-' + tab);
+                if (active) active.classList.add('tab-btn-active');
+            };
+
+            window.toggleConfig = window.toggleConfig || function () {
+                var modal = byId('config-modal');
+                if (modal) modal.classList.toggle('hidden');
+            };
+
+            window.saveConfig = window.saveConfig || function () {
+                alert('页面脚本仍在加载，请稍后再试。');
+            };
+            window.addLyrics = window.addLyrics || function () {
+                alert('歌词功能仍在加载，请稍后再试。');
+            };
+            window.triggerAI = window.triggerAI || function () {
+                alert('AI 解析功能仍在加载，请稍后再试。');
+            };
+        })();
+    </script>
 </head>
 <body>
 
@@ -57,11 +99,11 @@
         <div class="flex items-center space-x-4">
             <span class="text-lg font-bold tracking-tighter text-pink-500">Fuwako</span>
             <nav class="flex space-x-1">
-                <button onclick="switchTab('grammar')" id="tab-grammar" class="tab-btn px-4 py-1 rounded-full text-[11px] font-bold transition-all hover:bg-white/50 tab-btn-active">语法库</button>
-                <button onclick="switchTab('lyrics')" id="tab-lyrics" class="tab-btn px-4 py-1 rounded-full text-[11px] font-bold transition-all hover:bg-white/50">歌词解析</button>
+                <button type="button" onclick="switchTab('grammar')" id="tab-grammar" class="tab-btn px-4 py-1 rounded-full text-[11px] font-bold transition-all hover:bg-white/50 tab-btn-active">语法库</button>
+                <button type="button" onclick="switchTab('lyrics')" id="tab-lyrics" class="tab-btn px-4 py-1 rounded-full text-[11px] font-bold transition-all hover:bg-white/50">歌词解析</button>
             </nav>
         </div>
-        <button onclick="toggleConfig()" class="hover-scale">
+        <button type="button" onclick="toggleConfig()" class="hover-scale">
             <img src="7.png" class="w-8 h-8 rounded-full border-2 border-white shadow-sm" onerror="this.src='https://api.iconify.design/fluent-emoji-flat:cherry-blossom.svg'">
         </button>
     </div>
@@ -89,14 +131,14 @@
             <div class="flex-1 glass p-6">
                 <div class="flex justify-between items-center mb-6">
                     <div class="flex items-center space-x-3">
-                        <button onclick="switchTab('lyrics')" class="text-[10px] text-pink-400 font-bold hover:underline">← 返回列表</button>
+                        <button type="button" onclick="switchTab('lyrics')" class="text-[10px] text-pink-400 font-bold hover:underline">← 返回列表</button>
                         <button id="edit-btn" class="text-[10px] text-gray-400 font-bold hover:text-pink-500 transition-colors hidden">编辑内容</button>
                     </div>
                     <div class="flex items-center space-x-2">
                         <div id="ai-progress-wrap" class="hidden w-20 h-1 bg-pink-100 rounded-full overflow-hidden">
                             <div id="ai-progress-bar" class="h-full bg-pink-400" style="width: 0%"></div>
                         </div>
-                        <button onclick="triggerAI()" class="px-3 py-1 bg-pink-500 text-white rounded-full text-[10px] font-bold hover:bg-pink-600 transition-all">AI 语法解析</button>
+                        <button type="button" onclick="triggerAI()" class="px-3 py-1 bg-pink-500 text-white rounded-full text-[10px] font-bold hover:bg-pink-600 transition-all">AI 语法解析</button>
                     </div>
                 </div>
                 <h2 id="detail-title" class="text-lg font-bold mb-4 text-gray-700"></h2>
