@@ -118,9 +118,42 @@
     </section>
 </main>
 
-<!-- 配置 GitHub Token -->
+<!-- 配置 GitHub Token 弹窗 -->
 <div id="config-modal" class="fixed inset-0 z-[100] flex items-center justify-center hidden">
     <div class="absolute inset-0 bg-white/20 backdrop-blur-md" onclick="toggleConfig()"></div>
-    <div class="glass p-8 w-72 relative shadow-2xl">
-        <h3 class="font-bold mb-5 text-center text-pink-500">GitHub 设置</h3>
-        <div class="space-y-
+    <div class="glass p-6 w-80 relative shadow-2xl mx-4">
+        <h3 class="font-bold mb-4 text-center text-pink-500 tracking-wider text-sm">🌸 GitHub 同步设置</h3>
+        
+        <div class="space-y-4">
+            <div>
+                <label class="text-[10px] font-bold text-gray-400 block mb-1 uppercase tracking-widest">GitHub Token</label>
+                <input id="gh-token" type="password" placeholder="ghp_xxxxxxxxxxxx" class="w-full p-3 rounded-xl bg-white/50 text-xs text-gray-700 shadow-inner">
+            </div>
+            <div>
+                <label class="text-[10px] font-bold text-gray-400 block mb-1 uppercase tracking-widest">仓库路径 (Repo)</label>
+                <input id="gh-repo" type="text" placeholder="用户名/仓库名" class="w-full p-3 rounded-xl bg-white/50 text-xs text-gray-700 shadow-inner">
+            </div>
+            <div>
+                <label class="text-[10px] font-bold text-gray-400 block mb-1 uppercase tracking-widest">分支 (Branch)</label>
+                <input id="gh-branch" type="text" placeholder="main" class="w-full p-3 rounded-xl bg-white/50 text-xs text-gray-700 shadow-inner">
+            </div>
+        </div>
+
+        <button type="button" onclick="saveConfig()" class="mt-5 w-full py-2.5 bg-pink-400 text-white rounded-xl text-xs font-bold hover:bg-pink-500 transition-all shadow-sm">
+            保存配置
+        </button>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- 底部核心脚本引入（请确保顺序不要颠倒） -->
+<!-- ========================================== -->
+
+<!-- 1. 先引入 kuromoji 官方分词库 -->
+<script src="https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/build/kuromoji.js"></script>
+
+<!-- 2. 再引入你自己的核心业务逻辑 -->
+<script src="js/app.js"></script>
+
+</body>
+</html>
