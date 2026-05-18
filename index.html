@@ -5,86 +5,123 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fuwako - 日本語学習</title>
     <link rel="shortcut icon" href="7.png" type="image/x-icon">
-    <link rel="stylesheet" href="css/style.css">
+    <script src="./js/kuromoji.js"></script> <!-- 本地 kuromoji.js -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/build/kuromoji.js"></script>
+    <style>
+        :root {
+            --fuwari-pink: #ffe4e9;
+            --fuwari-purple: #f3e5f5;
+            --fuwari-accent: #ff85a2;
+            --fuwari-bg: #fff9fb;
+        }
+        body {
+            font-family: "Helvetica Neue", "Helvetica", "Heiti SC", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(135deg, var(--fuwari-pink) 0%, var(--fuwari-purple) 100%);
+            min-height: 100vh;
+            color: #4a4a4a;
+            margin: 0;
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.65);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 20px;
+        }
+        .hover-scale { transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .hover-scale:hover { transform: scale(1.02); }
+        .pos-noun { color: #5c7cfa; font-weight: 500; }
+        .pos-verb { color: #f06595; font-weight: 500; }
+        .pos-particle { color: #845ef7; }
+        .pos-adj { color: #fcc419; }
+        #loading-mask {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--fuwari-bg); z-index: 10000;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .tab-btn-active { background-color: var(--fuwari-accent) !important; color: white !important; }
+        input, textarea { border: none !important; outline: none !important; }
+    </style>
 </head>
 <body>
-    <div id="loading-mask">
-        <div class="text-4xl mb-4">🌸</div>
-        <div id="loading-text" class="text-xs text-pink-400 font-light">正在加载词典... 0%</div>
-        <div class="w-48 h-1 bg-pink-100 rounded-full mt-4 overflow-hidden">
-            <div id="loading-bar" class="h-full bg-pink-400 transition-all duration-300" style="width: 0%"></div>
-        </div>
+
+<div id="loading-mask">
+    <div class="text-4xl mb-4">🌸</div>
+    <div id="loading-text" class="text-xs text-pink-400 font-light">正在加载词典... 0%</div>
+    <div class="w-48 h-1 bg-pink-100 rounded-full mt-4 overflow-hidden">
+        <div id="loading-bar" class="h-full bg-pink-400 transition-all duration-300" style="width: 0%"></div>
     </div>
+</div>
 
-    <header class="fixed top-4 left-0 right-0 z-50 px-4">
-        <div class="max-w-4xl mx-auto flex justify-between items-center glass p-3 shadow-sm">
-            <div class="flex items-center space-x-4">
-                <span class="text-lg font-bold tracking-tighter text-pink-500">Fuwako</span>
-                <nav class="flex space-x-1">
-                    <button onclick="switchTab('grammar')" id="tab-grammar" class="tab-btn px-4 py-1 rounded-full text-[11px] font-bold transition-all hover:bg-white/50 tab-btn-active">语法库</button>
-                    <button onclick="switchTab('lyrics')" id="tab-lyrics" class="tab-btn px-4 py-1 rounded-full text-[11px] font-bold transition-all hover:bg-white/50">歌词解析</button>
-                </nav>
-            </div>
-            <button onclick="toggleConfig()" class="hover-scale">
-                <img src="7.png" class="w-8 h-8 rounded-full border-2 border-white shadow-sm" onerror="this.src='https://api.iconify.design/fluent-emoji-flat:cherry-blossom.svg'">
-            </button>
+<header class="fixed top-4 left-0 right-0 z-50 px-4">
+    <div class="max-w-4xl mx-auto flex justify-between items-center glass p-3 shadow-sm">
+        <div class="flex items-center space-x-4">
+            <span class="text-lg font-bold tracking-tighter text-pink-500">Fuwako</span>
+            <nav class="flex space-x-1">
+                <button onclick="switchTab('grammar')" id="tab-grammar" class="tab-btn px-4 py-1 rounded-full text-[11px] font-bold transition-all hover:bg-white/50 tab-btn-active">语法库</button>
+                <button onclick="switchTab('lyrics')" id="tab-lyrics" class="tab-btn px-4 py-1 rounded-full text-[11px] font-bold transition-all hover:bg-white/50">歌词解析</button>
+            </nav>
         </div>
-    </header>
+        <button onclick="toggleConfig()" class="hover-scale">
+            <img src="7.png" class="w-8 h-8 rounded-full border-2 border-white shadow-sm" onerror="this.src='https://api.iconify.design/fluent-emoji-flat:cherry-blossom.svg'">
+        </button>
+    </div>
+</header>
 
-    <main class="pt-24 pb-12 px-4 max-w-4xl mx-auto">
-        <section id="view-grammar" class="view-section">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="grammar-list"></div>
-        </section>
+<main class="pt-24 pb-12 px-4 max-w-4xl mx-auto">
+    <!-- 保留原来的 grammar, lyrics, detail 结构 -->
+    <section id="view-grammar" class="view-section">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="grammar-list"></div>
+    </section>
 
-        <section id="view-lyrics" class="view-section hidden">
-            <div id="admin-add-area" class="glass p-5 mb-6 hidden">
-                <h3 class="text-[10px] font-bold mb-3 opacity-40 uppercase tracking-widest">新增歌词数据</h3>
-                <input id="new-lyric-title" type="text" placeholder="歌曲标题..." class="w-full mb-3 p-3 rounded-xl bg-white/40 text-sm">
-                <textarea id="new-lyric-text" rows="3" placeholder="输入日语歌词（可包含翻译行）..." class="w-full p-3 rounded-xl bg-white/40 text-sm"></textarea>
-                <button type="button" onclick="addLyrics()" class="mt-2 w-full py-2 bg-pink-400 text-white rounded-xl text-xs font-bold hover:bg-pink-500 transition-all shadow-sm">确认存入云端</button>
-            </div>
-            <div id="lyrics-container" class="space-y-3"></div>
-        </section>
+    <section id="view-lyrics" class="view-section hidden">
+        <div id="admin-add-area" class="glass p-5 mb-6 hidden">
+            <h3 class="text-[10px] font-bold mb-3 opacity-40 uppercase tracking-widest">新增歌词数据</h3>
+            <input id="new-lyric-title" type="text" placeholder="歌曲标题..." class="w-full mb-3 p-3 rounded-xl bg-white/40 text-sm">
+            <textarea id="new-lyric-text" rows="3" placeholder="输入日语歌词（可包含翻译行）..." class="w-full p-3 rounded-xl bg-white/40 text-sm"></textarea>
+            <button type="button" onclick="addLyrics()" class="mt-2 w-full py-2 bg-pink-400 text-white rounded-xl text-xs font-bold hover:bg-pink-500 transition-all shadow-sm">确认存入云端</button>
+        </div>
+        <div id="lyrics-container" class="space-y-3"></div>
+    </section>
 
-        <section id="view-detail" class="view-section hidden">
-            <div class="flex flex-col md:flex-row gap-4">
-                <div class="flex-1 glass p-6">
-                    <div class="flex justify-between items-center mb-6">
-                        <div class="flex items-center space-x-3">
-                            <button onclick="switchTab('lyrics')" class="text-[10px] text-pink-400 font-bold hover:underline">← 返回列表</button>
-                            <button id="edit-btn" class="text-[10px] text-gray-400 font-bold hover:text-pink-500 transition-colors hidden">编辑内容</button>
-                        </div>
-                        <div class="flex items-center space-x-2">
-                            <div id="ai-progress-wrap" class="hidden w-20 h-1 bg-pink-100 rounded-full overflow-hidden">
-                                <div id="ai-progress-bar" class="h-full bg-pink-400" style="width: 0%"></div>
-                            </div>
-                            <button onclick="triggerAI()" class="px-3 py-1 bg-pink-500 text-white rounded-full text-[10px] font-bold hover:bg-pink-600 transition-all">AI 语法解析</button>
-                        </div>
+    <section id="view-detail" class="view-section hidden">
+        <!-- 保留原来的 detail 结构 -->
+        <div class="flex flex-col md:flex-row gap-4">
+            <div class="flex-1 glass p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <div class="flex items-center space-x-3">
+                        <button onclick="switchTab('lyrics')" class="text-[10px] text-pink-400 font-bold hover:underline">← 返回列表</button>
+                        <button id="edit-btn" class="text-[10px] text-gray-400 font-bold hover:text-pink-500 transition-colors hidden">编辑内容</button>
                     </div>
-                    <h2 id="detail-title" class="text-lg font-bold mb-4 text-gray-700"></h2>
-                    <div id="detail-content" class="space-y-4 text-sm leading-relaxed"></div>
+                    <div class="flex items-center space-x-2">
+                        <div id="ai-progress-wrap" class="hidden w-20 h-1 bg-pink-100 rounded-full overflow-hidden">
+                            <div id="ai-progress-bar" class="h-full bg-pink-400" style="width: 0%"></div>
+                        </div>
+                        <button onclick="triggerAI()" class="px-3 py-1 bg-pink-500 text-white rounded-full text-[10px] font-bold hover:bg-pink-600 transition-all">AI 语法解析</button>
+                    </div>
                 </div>
-                <aside class="w-full md:w-60">
-                    <div class="glass p-5 sticky top-24 space-y-6">
-                        <div>
-                            <h4 class="text-[10px] font-bold text-pink-400 mb-2 uppercase tracking-widest">单词释义</h4>
-                            <div id="dict-result" class="text-xs text-gray-500 italic">点击词块查看...</div>
-                        </div>
-                        <div class="pt-4 border-t border-white/40">
-                            <h4 class="text-[10px] font-bold text-pink-400 mb-2 uppercase tracking-widest">AI 解析内容</h4>
-                            <div id="ai-result" class="text-[11px] leading-5 text-gray-600">点击行旁“解析”获取</div>
-                        </div>
-                    </div>
-                </aside>
+                <h2 id="detail-title" class="text-lg font-bold mb-4 text-gray-700"></h2>
+                <div id="detail-content" class="space-y-4 text-sm leading-relaxed"></div>
             </div>
-        </section>
-    </main>
+            <aside class="w-full md:w-60">
+                <div class="glass p-5 sticky top-24 space-y-6">
+                    <div>
+                        <h4 class="text-[10px] font-bold text-pink-400 mb-2 uppercase tracking-widest">单词释义</h4>
+                        <div id="dict-result" class="text-xs text-gray-500 italic">点击词块查看...</div>
+                    </div>
+                    <div class="pt-4 border-t border-white/40">
+                        <h4 class="text-[10px] font-bold text-pink-400 mb-2 uppercase tracking-widest">AI 解析内容</h4>
+                        <div id="ai-result" class="text-[11px] leading-5 text-gray-600">点击行旁“解析”获取</div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </section>
+</main>
 
-    <div id="config-modal" class="fixed inset-0 z-[100] flex items-center justify-center hidden"></div>
-    <div id="ai-modal" class="fixed inset-0 z-[100] flex items-center justify-center hidden"></div>
-
-    <script src="js/app.js"></script>
-</body>
-</html>
+<!-- 配置 GitHub Token -->
+<div id="config-modal" class="fixed inset-0 z-[100] flex items-center justify-center hidden">
+    <div class="absolute inset-0 bg-white/20 backdrop-blur-md" onclick="toggleConfig()"></div>
+    <div class="glass p-8 w-72 relative shadow-2xl">
+        <h3 class="font-bold mb-5 text-center text-pink-500">GitHub 设置</h3>
+        <div class="space-y-
