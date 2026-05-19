@@ -349,10 +349,10 @@ function refreshAdminState() {
         button.classList.toggle("cursor-not-allowed", !hasToken);
     }
     if (aiButton) {
-        aiButton.disabled = !hasToken;
-        aiButton.classList.toggle("opacity-50", !hasToken);
-        aiButton.classList.toggle("cursor-not-allowed", !hasToken);
-        aiButton.title = hasToken ? "" : "请先在右上角配置 GitHub Token";
+        aiButton.disabled = false;
+        aiButton.classList.toggle("opacity-80", !hasToken);
+        aiButton.classList.remove("cursor-not-allowed");
+        aiButton.title = hasToken ? "" : "游客模式可查看已有解析；AI 语法解析需先配置 GitHub Token";
     }
 }
 
@@ -449,7 +449,7 @@ async function triggerAI() {
     $("ai-progress-bar").style.width = "15%";
     try {
         const linesForAI = lyric.text.map((line) => isJapanese(line) ? line : null);
-        const promptText = `你是一个专业的日语老师，解析以下日语歌词，必须使用中文。强制返回单句翻译和语法点(含每个单词的性质和翻译/是否有变形/连接词作用/句式)，格式 [{"translation":"单句翻译","grammar":"语法点"},null]。严禁包含任何说明文字、Markdown格式或换行符。必须使用双引号包裹属性和字符串，解析内容中如需引号请使用单引号。非日文行必须返回null。待解析数组：${JSON.stringify(linesForAI)}`;
+        const promptText = `你是一个专业的日语老师。解析以下日语歌词，强制返回单句翻译和语法点(含每个单词的性质和翻译/是否有变形/连接词作用/句式)，格式 [{"translation":"单句翻译","grammar":"语法点"},null]。严禁包含任何说明文字、Markdown格式或换行符。必须使用双引号包裹属性和字符串，解析内容中如需引号请使用单引号。非日文行必须返回null。待解析数组：${JSON.stringify(linesForAI)}`;
         const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
             method: "POST",
             headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
