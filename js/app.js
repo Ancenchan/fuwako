@@ -241,7 +241,7 @@ function renderDetail(id) {
     content.innerHTML = lyric.text.map((line, index) => {
         const japanese = isJapanese(line);
         const tokens = japanese ? tokenizeLine(line) : escapeHTML(line);
-        const button = japanese ? `<button type="button" onclick="showLineAnalysis(${index})" class="ml-2 align-middle px-2 py-0.5 rounded-full bg-white/60 text-[10px] text-pink-500 font-bold hover:bg-pink-100">查看解析</button>` : "";
+        const button = japanese ? `<button type="button" onclick="showLineAnalysis(${index})" class="ml-2 align-middle px-2 py-0.5 rounded-full bg-white/60 text-[10px] text-pink-500 font-bold hover:bg-pink-100">解析</button>` : "";
         return `<div class="rounded-2xl bg-white/35 p-3"><div>${tokens}${button}</div></div>`;
     }).join("");
 }
@@ -282,28 +282,7 @@ function showLineAnalysis(index) {
     const item = lyric.analysis && lyric.analysis[index];
     $("ai-result").innerHTML = item
         ? `<p class="font-bold text-gray-700 mb-2">${escapeHTML(item.translation || "")}</p><p>${escapeHTML(item.grammar || "")}</p>`
-        : "<span class='italic text-gray-400'>这一句还没有 AI 解析，可点击顶部 AI 语法解析生成。</span>";
-}
-
-
-function bindUIActions() {
-    const saveBtn = document.querySelector('[data-action="save-config"]');
-    if (saveBtn && !saveBtn.dataset.bound) {
-        saveBtn.dataset.bound = "1";
-        saveBtn.addEventListener("click", (event) => {
-            event.preventDefault();
-            saveConfig();
-        });
-    }
-
-    const configBtn = document.querySelector('[data-action="toggle-config"]');
-    if (configBtn && !configBtn.dataset.bound) {
-        configBtn.dataset.bound = "1";
-        configBtn.addEventListener("click", (event) => {
-            event.preventDefault();
-            toggleConfig();
-        });
-    }
+        : "<span class='italic text-gray-400'>这一句还没有 AI 解析，请先点击顶部 AI 语法解析。</span>";
 }
 
 
@@ -449,7 +428,7 @@ async function triggerAI() {
     if (!lyric) return;
     const token = (localStorage.getItem(STORAGE_KEYS.token) || "").trim();
     if (!token) {
-        alert("当前是游客模式：可点击每句右侧【查看解析】查看已有内容；如需重新生成 AI 语法解析，请先配置 GitHub Token。");
+        alert("请先配置 GitHub Token 后再使用 AI 语法解析。");
         return;
     }
     if ((lyric.analysis || []).some((item, index) => isJapanese(lyric.text[index]) && item)) {
@@ -491,7 +470,7 @@ async function triggerAI() {
         writeLocalLyrics();
         $("ai-progress-bar").style.width = "100%";
         if (localStorage.getItem(STORAGE_KEYS.token)) syncLyricsToGitHub().catch((error) => console.warn("AI 解析静默推送失败:", error));
-        alert("AI 解析完成，请点击行旁“查看解析”查看。保存配置后会同步到 GitHub。 ");
+        alert("AI 解析完成，请点击行旁“解析”查看。保存配置后会同步到 GitHub。 ");
     } catch (error) {
         console.error(error);
         alert(`AI 解析失败：${error.message}`);
