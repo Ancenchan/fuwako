@@ -71,6 +71,7 @@ async function init() {
     renderGrammar();
     renderLyrics();
     refreshAdminState();
+    bindUIActions();
     switchTab("grammar");
     initKuromoji();
 }
@@ -273,10 +274,36 @@ function showWord(encodedWord) {
 function showLineAnalysis(index) {
     const lyric = state.currentLyric;
     if (!lyric) return;
+    const token = (localStorage.getItem(STORAGE_KEYS.token) || "").trim();
+    if (!token) {
+        alert("请先配置 GitHub Token 后再使用 AI 语法解析。");
+        return;
+    }
     const item = lyric.analysis && lyric.analysis[index];
     $("ai-result").innerHTML = item
         ? `<p class="font-bold text-gray-700 mb-2">${escapeHTML(item.translation || "")}</p><p>${escapeHTML(item.grammar || "")}</p>`
         : "<span class='italic text-gray-400'>这一句还没有 AI 解析，请先点击顶部 AI 语法解析。</span>";
+}
+
+
+function bindUIActions() {
+    const saveBtn = document.querySelector('[data-action="save-config"]');
+    if (saveBtn && !saveBtn.dataset.bound) {
+        saveBtn.dataset.bound = "1";
+        saveBtn.addEventListener("click", (event) => {
+            event.preventDefault();
+            saveConfig();
+        });
+    }
+
+    const configBtn = document.querySelector('[data-action="toggle-config"]');
+    if (configBtn && !configBtn.dataset.bound) {
+        configBtn.dataset.bound = "1";
+        configBtn.addEventListener("click", (event) => {
+            event.preventDefault();
+            toggleConfig();
+        });
+    }
 }
 
 function toggleConfig() {
@@ -291,16 +318,22 @@ function loadSavedConfig() {
 }
 
 function saveConfig() {
-    localStorage.setItem(STORAGE_KEYS.token, $("gh-token").value.trim());
+    const tokenInput = $("gh-token");
+    if (!tokenInput) {
+        alert("未找到 Token 输入框，请刷新页面后重试。");
+        return;
+    }
+    localStorage.setItem(STORAGE_KEYS.token, tokenInput.value.trim());
     refreshAdminState();
     toggleConfig();
-    alert(localStorage.getItem(STORAGE_KEYS.token) ? "已连接 GitHub，可上传歌词。" : "未填写 Token，将以游客模式浏览。");
+    alert(localStorage.getItem(STORAGE_KEYS.token) ? "配置已保存：已连接 GitHub，可上传歌词。" : "配置已保存：未填写 Token，将以游客模式浏览。");
 }
 
 function refreshAdminState() {
     const area = $("admin-add-area");
     const hint = $("token-hint");
     const button = $("add-lyrics-btn");
+    const aiButton = $("trigger-ai-btn");
     if (area) area.classList.remove("hidden");
 
     const hasToken = Boolean((localStorage.getItem(STORAGE_KEYS.token) || "").trim());
@@ -314,6 +347,12 @@ function refreshAdminState() {
         button.disabled = !hasToken;
         button.classList.toggle("opacity-50", !hasToken);
         button.classList.toggle("cursor-not-allowed", !hasToken);
+    }
+    if (aiButton) {
+        aiButton.disabled = !hasToken;
+        aiButton.classList.toggle("opacity-50", !hasToken);
+        aiButton.classList.toggle("cursor-not-allowed", !hasToken);
+        aiButton.title = hasToken ? "" : "请先在右上角配置 GitHub Token";
     }
 }
 
@@ -387,6 +426,11 @@ async function pullLyricsFromGitHub(fallbackLyrics = state.lyrics) {
 async function triggerAI() {
     const lyric = state.currentLyric;
     if (!lyric) return;
+    const token = (localStorage.getItem(STORAGE_KEYS.token) || "").trim();
+    if (!token) {
+        alert("请先配置 GitHub Token 后再使用 AI 语法解析。");
+        return;
+    }
     if ((lyric.analysis || []).some((item, index) => isJapanese(lyric.text[index]) && item)) {
         alert("已存在解析结果，可直接点击每行旁边的“解析”。");
         return;
@@ -405,7 +449,7 @@ async function triggerAI() {
     $("ai-progress-bar").style.width = "15%";
     try {
         const linesForAI = lyric.text.map((line) => isJapanese(line) ? line : null);
-        const promptText = `你是一个专业的日语老师。解析以下日语歌词，强制返回单句翻译和语法点(含每个单词的性质和翻译/是否有变形/连接词作用/句式)，格式 [{"translation":"单句翻译","grammar":"语法点"},null]。严禁包含任何说明文字、Markdown格式或换行符。必须使用双引号包裹属性和字符串，解析内容中如需引号请使用单引号。非日文行必须返回null。待解析数组：${JSON.stringify(linesForAI)}`;
+        const promptText = `你是一个专业的日语老师，解析以下日语歌词，必须使用中文。强制返回单句翻译和语法点(含每个单词的性质和翻译/是否有变形/连接词作用/句式)，格式 [{"translation":"单句翻译","grammar":"语法点"},null]。严禁包含任何说明文字、Markdown格式或换行符。必须使用双引号包裹属性和字符串，解析内容中如需引号请使用单引号。非日文行必须返回null。待解析数组：${JSON.stringify(linesForAI)}`;
         const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
             method: "POST",
             headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
