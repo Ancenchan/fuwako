@@ -141,11 +141,12 @@
     </section>
 
     <section id="view-lyrics" class="view-section hidden">
-        <div id="admin-add-area" class="glass p-5 mb-6 hidden">
+        <div id="admin-add-area" class="glass p-5 mb-6">
             <h3 class="text-[10px] font-bold mb-3 opacity-40 uppercase tracking-widest">新增歌词数据</h3>
             <input id="new-lyric-title" type="text" placeholder="歌曲标题..." class="w-full mb-3 p-3 rounded-xl bg-white/40 text-sm">
             <textarea id="new-lyric-text" rows="3" placeholder="输入日语歌词（可包含翻译行）..." class="w-full p-3 rounded-xl bg-white/40 text-sm"></textarea>
-            <button type="button" data-action="add-lyrics" class="mt-2 w-full py-2 bg-pink-400 text-white rounded-xl text-xs font-bold hover:bg-pink-500 transition-all shadow-sm">确认存入云端</button>
+            <p id="token-hint" class="mt-2 text-[11px] text-amber-500">请先配置 GitHub Token，提交后才会写入云端 lyrics_data.json。</p>
+            <button id="add-lyrics-btn" type="button" data-action="add-lyrics" class="mt-2 w-full py-2 bg-pink-400 text-white rounded-xl text-xs font-bold hover:bg-pink-500 transition-all shadow-sm">确认存入云端</button>
         </div>
         <div id="lyrics-container" class="space-y-3"></div>
     </section>
@@ -163,7 +164,7 @@
                         <div id="ai-progress-wrap" class="hidden w-20 h-1 bg-pink-100 rounded-full overflow-hidden">
                             <div id="ai-progress-bar" class="h-full bg-pink-400" style="width: 0%"></div>
                         </div>
-                        <button type="button" data-action="trigger-ai" class="px-3 py-1 bg-pink-500 text-white rounded-full text-[10px] font-bold hover:bg-pink-600 transition-all">AI 语法解析</button>
+                        <button id="trigger-ai-btn" type="button" data-action="trigger-ai" class="px-3 py-1 bg-pink-500 text-white rounded-full text-[10px] font-bold hover:bg-pink-600 transition-all">AI 语法解析</button>
                     </div>
                 </div>
                 <h2 id="detail-title" class="text-lg font-bold mb-4 text-gray-700"></h2>
@@ -196,14 +197,6 @@
                 <label class="text-[10px] font-bold text-gray-400 block mb-1 uppercase tracking-widest">GitHub Token</label>
                 <input id="gh-token" type="password" placeholder="ghp_xxxxxxxxxxxx" class="w-full p-3 rounded-xl bg-white/50 text-xs text-gray-700 shadow-inner">
             </div>
-            <div>
-                <label class="text-[10px] font-bold text-gray-400 block mb-1 uppercase tracking-widest">仓库路径 (Repo)</label>
-                <input id="gh-repo" type="text" placeholder="用户名/仓库名" class="w-full p-3 rounded-xl bg-white/50 text-xs text-gray-700 shadow-inner">
-            </div>
-            <div>
-                <label class="text-[10px] font-bold text-gray-400 block mb-1 uppercase tracking-widest">分支 (Branch)</label>
-                <input id="gh-branch" type="text" placeholder="main" class="w-full p-3 rounded-xl bg-white/50 text-xs text-gray-700 shadow-inner">
-            </div>
         </div>
 
         <button type="button" data-action="save-config" class="mt-5 w-full py-2.5 bg-pink-400 text-white rounded-xl text-xs font-bold hover:bg-pink-500 transition-all shadow-sm">
@@ -217,7 +210,7 @@
 <!-- ========================================== -->
 
 <!-- 1. 先引入自己的核心业务逻辑，确保 JSON 渲染与页签切换不被 CDN 阻塞 -->
-<script src="js/app.js"></script>
+<script src="js/app.js?v=20260519-1"></script>
 
 <!-- 2. Kuromoji 后台加载；加载完成后再启用分词，不阻塞页面切换和 JSON 展示 -->
 <script async src="https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/build/kuromoji.js" onload="window.fuwakoInitKuromoji && window.fuwakoInitKuromoji()" onerror="document.getElementById('loading-mask') && document.getElementById('loading-mask').classList.add('loading-mask-hidden')"></script>
