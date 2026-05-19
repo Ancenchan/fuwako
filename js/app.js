@@ -1,7 +1,5 @@
 const STORAGE_KEYS = {
     token: "fuwako.githubToken",
-    repo: "fuwako.githubRepo",
-    branch: "fuwako.githubBranch",
     lyrics: "fuwako.lyricsData",
 };
 
@@ -13,6 +11,7 @@ const state = {
     dict: {},
     currentLyric: null,
     aiPending: new Set(),
+    aiLastTriggeredAt: 0,
     initialized: false,
     kuromojiLoading: false,
 };
@@ -68,11 +67,13 @@ async function init() {
     state.words = wordsData && typeof wordsData === "object" && !Array.isArray(wordsData) ? wordsData : {};
     state.dict = dictData && typeof dictData === "object" && !Array.isArray(dictData) ? dictData : {};
     state.lyrics = mergeLyrics(readLocalLyrics(), normalizeArray(lyricsData));
+    state.lyrics = await pullLyricsFromGitHub(state.lyrics);
     writeLocalLyrics();
 
     renderGrammar();
     renderLyrics();
     refreshAdminState();
+    bindUIActions();
     switchTab("grammar");
     initKuromoji();
 }
@@ -290,10 +291,36 @@ function showWord(encodedWord) {
 function showLineAnalysis(index) {
     const lyric = state.currentLyric;
     if (!lyric) return;
+    const token = (localStorage.getItem(STORAGE_KEYS.token) || "").trim();
+    if (!token) {
+        alert("请先配置 GitHub Token 后再使用 AI 语法解析。");
+        return;
+    }
     const item = lyric.analysis && lyric.analysis[index];
     $("ai-result").innerHTML = item
         ? `<p class="font-bold text-gray-700 mb-2">${escapeHTML(item.translation || "")}</p><p>${escapeHTML(item.grammar || "")}</p>`
         : "<span class='italic text-gray-400'>这一句还没有 AI 解析，请先点击顶部 AI 语法解析。</span>";
+}
+
+
+function bindUIActions() {
+    const saveBtn = document.querySelector('[data-action="save-config"]');
+    if (saveBtn && !saveBtn.dataset.bound) {
+        saveBtn.dataset.bound = "1";
+        saveBtn.addEventListener("click", (event) => {
+            event.preventDefault();
+            saveConfig();
+        });
+    }
+
+    const configBtn = document.querySelector('[data-action="toggle-config"]');
+    if (configBtn && !configBtn.dataset.bound) {
+        configBtn.dataset.bound = "1";
+        configBtn.addEventListener("click", (event) => {
+            event.preventDefault();
+            toggleConfig();
+        });
+    }
 }
 
 function toggleConfig() {
@@ -304,26 +331,46 @@ function toggleConfig() {
 
 function loadSavedConfig() {
     const token = localStorage.getItem(STORAGE_KEYS.token) || "";
-    const repo = localStorage.getItem(STORAGE_KEYS.repo) || "Ancenchan/fuwako";
-    const branch = localStorage.getItem(STORAGE_KEYS.branch) || "main";
     if ($("gh-token")) $("gh-token").value = token;
-    if ($("gh-repo")) $("gh-repo").value = repo;
-    if ($("gh-branch")) $("gh-branch").value = branch;
 }
 
 function saveConfig() {
-    localStorage.setItem(STORAGE_KEYS.token, $("gh-token").value.trim());
-    localStorage.setItem(STORAGE_KEYS.repo, $("gh-repo").value.trim() || "Ancenchan/fuwako");
-    localStorage.setItem(STORAGE_KEYS.branch, $("gh-branch").value.trim() || "main");
+    const tokenInput = $("gh-token");
+    if (!tokenInput) {
+        alert("未找到 Token 输入框，请刷新页面后重试。");
+        return;
+    }
+    localStorage.setItem(STORAGE_KEYS.token, tokenInput.value.trim());
     refreshAdminState();
     toggleConfig();
-    alert(localStorage.getItem(STORAGE_KEYS.token) ? "已连接 GitHub，可上传歌词。" : "未填写 Token，将以游客模式浏览。");
+    alert(localStorage.getItem(STORAGE_KEYS.token) ? "配置已保存：已连接 GitHub，可上传歌词。" : "配置已保存：未填写 Token，将以游客模式浏览。");
 }
 
 function refreshAdminState() {
     const area = $("admin-add-area");
-    if (!area) return;
-    area.classList.toggle("hidden", !localStorage.getItem(STORAGE_KEYS.token));
+    const hint = $("token-hint");
+    const button = $("add-lyrics-btn");
+    const aiButton = $("trigger-ai-btn");
+    if (area) area.classList.remove("hidden");
+
+    const hasToken = Boolean((localStorage.getItem(STORAGE_KEYS.token) || "").trim());
+    if (hint) {
+        hint.className = hasToken ? "mt-2 text-[11px] text-emerald-500" : "mt-2 text-[11px] text-amber-500";
+        hint.innerText = hasToken
+            ? "已检测到 GitHub Token，提交后会静默同步至云端 lyrics_data.json。"
+            : "请先配置 GitHub Token，提交后才会写入云端 lyrics_data.json。";
+    }
+    if (button) {
+        button.disabled = !hasToken;
+        button.classList.toggle("opacity-50", !hasToken);
+        button.classList.toggle("cursor-not-allowed", !hasToken);
+    }
+    if (aiButton) {
+        aiButton.disabled = !hasToken;
+        aiButton.classList.toggle("opacity-50", !hasToken);
+        aiButton.classList.toggle("cursor-not-allowed", !hasToken);
+        aiButton.title = hasToken ? "" : "请先在右上角配置 GitHub Token";
+    }
 }
 
 function addLyrics() {
@@ -350,8 +397,8 @@ function addLyrics() {
 
 async function syncLyricsToGitHub() {
     const token = localStorage.getItem(STORAGE_KEYS.token);
-    const repo = localStorage.getItem(STORAGE_KEYS.repo) || "Ancenchan/fuwako";
-    const branch = localStorage.getItem(STORAGE_KEYS.branch) || "main";
+    const repo = "Ancenchan/fuwako";
+    const branch = "main";
     if (!token) throw new Error("缺少 GitHub Token");
 
     const url = `https://api.github.com/repos/${repo}/contents/lyrics_data.json?ref=${encodeURIComponent(branch)}`;
@@ -372,14 +419,45 @@ async function syncLyricsToGitHub() {
     if (!response.ok) throw new Error(`更新云端歌词失败: ${response.status}`);
 }
 
+
+async function pullLyricsFromGitHub(fallbackLyrics = state.lyrics) {
+    const token = localStorage.getItem(STORAGE_KEYS.token);
+    if (!token) return fallbackLyrics;
+    try {
+        const repo = "Ancenchan/fuwako";
+        const branch = "main";
+        const response = await fetch(`https://api.github.com/repos/${repo}/contents/lyrics_data.json?ref=${encodeURIComponent(branch)}`, {
+            headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" },
+        });
+        if (!response.ok) throw new Error(`读取云端歌词失败: ${response.status}`);
+        const meta = await response.json();
+        const decoded = decodeURIComponent(escape(atob((meta.content || "").replace(/\n/g, ""))));
+        const cloudLyrics = normalizeArray(JSON.parse(decoded || "[]"));
+        return mergeLyrics(fallbackLyrics, cloudLyrics);
+    } catch (error) {
+        console.warn("拉取云端歌词失败:", error);
+        return fallbackLyrics;
+    }
+}
+
 async function triggerAI() {
     const lyric = state.currentLyric;
     if (!lyric) return;
+    const token = (localStorage.getItem(STORAGE_KEYS.token) || "").trim();
+    if (!token) {
+        alert("请先配置 GitHub Token 后再使用 AI 语法解析。");
+        return;
+    }
     if ((lyric.analysis || []).some((item, index) => isJapanese(lyric.text[index]) && item)) {
         alert("已存在解析结果，可直接点击每行旁边的“解析”。");
         return;
     }
     if (state.aiPending.has(lyric.id)) return;
+    const now = Date.now();
+    if (now - state.aiLastTriggeredAt < 60000) {
+        alert("AI 讲解一分钟只能触发一次，请稍后再试。");
+        return;
+    }
     const apiKey = prompt("请输入 OpenRouter API Key");
     if (!apiKey) return;
 
@@ -387,7 +465,8 @@ async function triggerAI() {
     $("ai-progress-wrap").classList.remove("hidden");
     $("ai-progress-bar").style.width = "15%";
     try {
-        const promptText = `你是一个专业的日语老师。解析以下日语歌词，强制返回单句翻译和语法点(含每个单词的性质和翻译/是否有变形/连接词作用/句式)，格式 [{"translation":"单句翻译","grammar":"语法点"},null]。非日文行返回null。严禁包含任何说明文字、Markdown格式或换行符。必须使用双引号包裹属性和字符串，解析内容中如需引号请使用单引号。歌词：${JSON.stringify(lyric.text)}`;
+        const linesForAI = lyric.text.map((line) => isJapanese(line) ? line : null);
+        const promptText = `你是一个专业的日语老师。解析以下日语歌词，强制返回单句翻译和语法点(含每个单词的性质和翻译/是否有变形/连接词作用/句式)，格式 [{"translation":"单句翻译","grammar":"语法点"},null]。严禁包含任何说明文字、Markdown格式或换行符。必须使用双引号包裹属性和字符串，解析内容中如需引号请使用单引号。非日文行必须返回null。待解析数组：${JSON.stringify(linesForAI)}`;
         const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
             method: "POST",
             headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
@@ -402,6 +481,7 @@ async function triggerAI() {
         const data = await response.json();
         const content = data.choices?.[0]?.message?.content || "[]";
         lyric.analysis = JSON.parse(content).map((item, index) => isJapanese(lyric.text[index]) ? item : null);
+        state.aiLastTriggeredAt = Date.now();
         lyric.timestamp = Date.now();
         state.lyrics = mergeLyrics([lyric], state.lyrics);
         writeLocalLyrics();
