@@ -241,7 +241,7 @@ function renderDetail(id) {
     content.innerHTML = lyric.text.map((line, index) => {
         const japanese = isJapanese(line);
         const tokens = japanese ? tokenizeLine(line) : escapeHTML(line);
-        const button = japanese ? `<button type="button" onclick="showLineAnalysis(${index})" class="ml-2 align-middle px-2 py-0.5 rounded-full bg-white/60 text-[10px] text-pink-500 font-bold hover:bg-pink-100">查看解析</button>` : "";
+        const button = japanese ? `<button type="button" data-line-analysis="${index}" class="ml-2 align-middle px-2 py-0.5 rounded-full bg-white/60 text-[10px] text-pink-500 font-bold hover:bg-pink-100">查看解析</button>` : "";
         return `<div class="rounded-2xl bg-white/35 p-3"><div>${tokens}${button}</div></div>`;
     }).join("");
 }
@@ -297,27 +297,28 @@ function bindUIActions() {
     }
 
     const configBtn = document.querySelector('[data-action="toggle-config"]');
-    if (configBtn && !configBtn.dataset.bound) {
-        configBtn.dataset.bound = "1";
-        configBtn.addEventListener("click", (event) => {
+    const aiBtn = document.querySelector('[data-action="trigger-ai"]');
+    if (aiBtn && !aiBtn.dataset.bound) {
+        aiBtn.dataset.bound = "1";
+        aiBtn.addEventListener("click", (event) => {
             event.preventDefault();
-            toggleConfig();
-        });
-    }
-}
-
-
-function bindUIActions() {
-    const saveBtn = document.querySelector('[data-action="save-config"]');
-    if (saveBtn && !saveBtn.dataset.bound) {
-        saveBtn.dataset.bound = "1";
-        saveBtn.addEventListener("click", (event) => {
-            event.preventDefault();
-            saveConfig();
+            triggerAI();
         });
     }
 
-    const configBtn = document.querySelector('[data-action="toggle-config"]');
+    const detailContent = $("detail-content");
+    if (detailContent && !detailContent.dataset.bound) {
+        detailContent.dataset.bound = "1";
+        detailContent.addEventListener("click", (event) => {
+            const target = event.target.closest('[data-line-analysis]');
+            if (!target) return;
+            event.preventDefault();
+            const index = Number(target.getAttribute("data-line-analysis"));
+            if (Number.isNaN(index)) return;
+            showLineAnalysis(index);
+        });
+    }
+
     if (configBtn && !configBtn.dataset.bound) {
         configBtn.dataset.bound = "1";
         configBtn.addEventListener("click", (event) => {
