@@ -81,31 +81,6 @@
             window.triggerAI = window.triggerAI || function () {
                 alert('AI 解析功能仍在加载，请稍后再试。');
             };
-
-            document.addEventListener('click', function (event) {
-                var tabTrigger = event.target.closest('[data-tab]');
-                if (tabTrigger) {
-                    event.preventDefault();
-                    window.switchTab(tabTrigger.getAttribute('data-tab'));
-                    return;
-                }
-
-                var actionTrigger = event.target.closest('[data-action]');
-                if (!actionTrigger) return;
-
-                var action = actionTrigger.getAttribute('data-action');
-                var actions = {
-                    'toggle-config': window.toggleConfig,
-                    'save-config': window.saveConfig,
-                    'add-lyrics': window.addLyrics,
-                    'trigger-ai': window.triggerAI,
-                };
-
-                if (actions[action]) {
-                    event.preventDefault();
-                    actions[action]();
-                }
-            });
         })();
     </script>
 </head>
@@ -124,11 +99,11 @@
         <div class="flex items-center space-x-4">
             <span class="text-lg font-bold tracking-tighter text-pink-500">Fuwako</span>
             <nav class="flex space-x-1">
-                <button type="button" data-tab="grammar" id="tab-grammar" class="tab-btn px-4 py-1 rounded-full text-[11px] font-bold transition-all hover:bg-white/50 tab-btn-active">语法库</button>
-                <button type="button" data-tab="lyrics" id="tab-lyrics" class="tab-btn px-4 py-1 rounded-full text-[11px] font-bold transition-all hover:bg-white/50">歌词解析</button>
+                <button type="button" onclick="switchTab('grammar')" id="tab-grammar" class="tab-btn px-4 py-1 rounded-full text-[11px] font-bold transition-all hover:bg-white/50 tab-btn-active">语法库</button>
+                <button type="button" onclick="switchTab('lyrics')" id="tab-lyrics" class="tab-btn px-4 py-1 rounded-full text-[11px] font-bold transition-all hover:bg-white/50">歌词解析</button>
             </nav>
         </div>
-        <button type="button" data-action="toggle-config" class="hover-scale">
+        <button type="button" onclick="toggleConfig()" class="hover-scale">
             <img src="7.png" class="w-8 h-8 rounded-full border-2 border-white shadow-sm" onerror="this.src='https://api.iconify.design/fluent-emoji-flat:cherry-blossom.svg'">
         </button>
     </div>
@@ -156,14 +131,14 @@
             <div class="flex-1 glass p-6">
                 <div class="flex justify-between items-center mb-6">
                     <div class="flex items-center space-x-3">
-                        <button type="button" data-tab="lyrics" class="text-[10px] text-pink-400 font-bold hover:underline">← 返回列表</button>
+                        <button type="button" onclick="switchTab('lyrics')" class="text-[10px] text-pink-400 font-bold hover:underline">← 返回列表</button>
                         <button id="edit-btn" class="text-[10px] text-gray-400 font-bold hover:text-pink-500 transition-colors hidden">编辑内容</button>
                     </div>
                     <div class="flex items-center space-x-2">
                         <div id="ai-progress-wrap" class="hidden w-20 h-1 bg-pink-100 rounded-full overflow-hidden">
                             <div id="ai-progress-bar" class="h-full bg-pink-400" style="width: 0%"></div>
                         </div>
-                        <button type="button" data-action="trigger-ai" class="px-3 py-1 bg-pink-500 text-white rounded-full text-[10px] font-bold hover:bg-pink-600 transition-all">AI 语法解析</button>
+                        <button type="button" onclick="triggerAI()" class="px-3 py-1 bg-pink-500 text-white rounded-full text-[10px] font-bold hover:bg-pink-600 transition-all">AI 语法解析</button>
                     </div>
                 </div>
                 <h2 id="detail-title" class="text-lg font-bold mb-4 text-gray-700"></h2>
