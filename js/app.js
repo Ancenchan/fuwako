@@ -53,8 +53,6 @@ async function fetchJSON(path, fallback) {
 }
 
 async function init() {
-    if (state.initialized) return;
-    state.initialized = true;
     loadSavedConfig();
     const [grammarData, wordsData, lyricsData, dictData] = await Promise.all([
         fetchJSON("grammar.json", []),
@@ -79,38 +77,23 @@ async function init() {
 }
 
 function initKuromoji() {
-    if (state.tokenizer || state.kuromojiLoading) return;
-
     const bar = $("loading-bar");
     const text = $("loading-text");
-
-    if (!window.kuromoji) {
-        hideLoadingMask("页面已可使用，分词词典继续后台加载...");
-        return;
-    }
-
-    state.kuromojiLoading = true;
     let percent = 8;
-    let settled = false;
     const timer = setInterval(() => {
         percent = Math.min(92, percent + 7);
         if (bar) bar.style.width = `${percent}%`;
         if (text) text.innerText = `正在加载词典... ${percent}%`;
     }, 180);
-    const failSafe = setTimeout(() => {
-        if (settled) return;
-        settled = true;
-        state.kuromojiLoading = false;
-        clearInterval(timer);
-        hideLoadingMask("词典加载较慢，已先进入页面");
-    }, 8000);
 
-    kuromoji.builder({ dicPath: "dict/" }).build((err, tokenizer) => {
-        if (settled) return;
-        settled = true;
-        state.kuromojiLoading = false;
+    if (!window.kuromoji) {
         clearInterval(timer);
-        clearTimeout(failSafe);
+        hideLoadingMask("未加载 kuromoji，已进入游客模式");
+        return;
+    }
+
+    kuromoji.builder({ dicPath: "dict" }).build((err, tokenizer) => {
+        clearInterval(timer);
         if (err) {
             console.warn("Kuromoji 词典加载失败:", err);
             hideLoadingMask("词典加载失败，基础功能仍可使用");
@@ -291,6 +274,11 @@ function showWord(encodedWord) {
 function showLineAnalysis(index) {
     const lyric = state.currentLyric;
     if (!lyric) return;
+    const token = (localStorage.getItem(STORAGE_KEYS.token) || "").trim();
+    if (!token) {
+        alert("请先配置 GitHub Token 后再使用 AI 语法解析。");
+        return;
+    }
     const item = lyric.analysis && lyric.analysis[index];
     $("ai-result").innerHTML = item
         ? `<p class="font-bold text-gray-700 mb-2">${escapeHTML(item.translation || "")}</p><p>${escapeHTML(item.grammar || "")}</p>`
@@ -522,16 +510,5 @@ window.toggleConfig = toggleConfig;
 window.saveConfig = saveConfig;
 window.addLyrics = addLyrics;
 window.triggerAI = triggerAI;
-window.fuwakoInitKuromoji = initKuromoji;
 
-if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => init().catch((error) => {
-        console.error("Fuwako 初始化失败:", error);
-        hideLoadingMask("初始化失败，请刷新重试");
-    }));
-} else {
-    init().catch((error) => {
-        console.error("Fuwako 初始化失败:", error);
-        hideLoadingMask("初始化失败，请刷新重试");
-    });
-}
+document.addEventListener("DOMContentLoaded", init);
