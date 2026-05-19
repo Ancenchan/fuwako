@@ -53,8 +53,6 @@ async function fetchJSON(path, fallback) {
 }
 
 async function init() {
-    if (state.initialized) return;
-    state.initialized = true;
     loadSavedConfig();
     const [grammarData, wordsData, lyricsData, dictData] = await Promise.all([
         fetchJSON("grammar.json", []),
@@ -79,38 +77,23 @@ async function init() {
 }
 
 function initKuromoji() {
-    if (state.tokenizer || state.kuromojiLoading) return;
-
     const bar = $("loading-bar");
     const text = $("loading-text");
-
-    if (!window.kuromoji) {
-        hideLoadingMask("页面已可使用，分词词典继续后台加载...");
-        return;
-    }
-
-    state.kuromojiLoading = true;
     let percent = 8;
-    let settled = false;
     const timer = setInterval(() => {
         percent = Math.min(92, percent + 7);
         if (bar) bar.style.width = `${percent}%`;
         if (text) text.innerText = `正在加载词典... ${percent}%`;
     }, 180);
-    const failSafe = setTimeout(() => {
-        if (settled) return;
-        settled = true;
-        state.kuromojiLoading = false;
-        clearInterval(timer);
-        hideLoadingMask("词典加载较慢，已先进入页面");
-    }, 8000);
 
-    kuromoji.builder({ dicPath: "dict/" }).build((err, tokenizer) => {
-        if (settled) return;
-        settled = true;
-        state.kuromojiLoading = false;
+    if (!window.kuromoji) {
         clearInterval(timer);
-        clearTimeout(failSafe);
+        hideLoadingMask("未加载 kuromoji，已进入游客模式");
+        return;
+    }
+
+    kuromoji.builder({ dicPath: "dict" }).build((err, tokenizer) => {
+        clearInterval(timer);
         if (err) {
             console.warn("Kuromoji 词典加载失败:", err);
             hideLoadingMask("词典加载失败，基础功能仍可使用");
@@ -466,7 +449,7 @@ async function triggerAI() {
     $("ai-progress-bar").style.width = "15%";
     try {
         const linesForAI = lyric.text.map((line) => isJapanese(line) ? line : null);
-        const promptText = `你是一个专业的日语老师。解析以下日语歌词，强制返回单句翻译和语法点(含每个单词的性质和翻译/是否有变形/连接词作用/句式)，格式 [{"translation":"单句翻译","grammar":"语法点"},null]。严禁包含任何说明文字、Markdown格式或换行符。必须使用双引号包裹属性和字符串，解析内容中如需引号请使用单引号。非日文行必须返回null。待解析数组：${JSON.stringify(linesForAI)}`;
+        const promptText = `你是一个专业的日语老师，解析以下日语歌词，必须使用中文。强制返回单句翻译和语法点(含每个单词的性质和翻译/是否有变形/连接词作用/句式)，格式 [{"translation":"单句翻译","grammar":"语法点"},null]。严禁包含任何说明文字、Markdown格式或换行符。必须使用双引号包裹属性和字符串，解析内容中如需引号请使用单引号。非日文行必须返回null。待解析数组：${JSON.stringify(linesForAI)}`;
         const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
             method: "POST",
             headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
@@ -505,16 +488,5 @@ window.toggleConfig = toggleConfig;
 window.saveConfig = saveConfig;
 window.addLyrics = addLyrics;
 window.triggerAI = triggerAI;
-window.fuwakoInitKuromoji = initKuromoji;
 
-if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => init().catch((error) => {
-        console.error("Fuwako 初始化失败:", error);
-        hideLoadingMask("初始化失败，请刷新重试");
-    }));
-} else {
-    init().catch((error) => {
-        console.error("Fuwako 初始化失败:", error);
-        hideLoadingMask("初始化失败，请刷新重试");
-    });
-}
+document.addEventListener("DOMContentLoaded", init);
