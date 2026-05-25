@@ -274,15 +274,21 @@ function showWord(encodedWord) {
 function showLineAnalysis(index) {
     const lyric = state.currentLyric;
     if (!lyric) return;
-    const token = (localStorage.getItem(STORAGE_KEYS.token) || "").trim();
-    if (!token) {
-        alert("请先配置 GitHub Token 后再使用 AI 语法解析。");
+
+    const result = $("ai-result");
+    if (!result) return;
+
+    const analysisList = Array.isArray(lyric.analysis) ? lyric.analysis : [];
+    const currentItem = analysisList[index];
+    const fallbackItem = analysisList.find((entry) => entry && (entry.translation || entry.grammar));
+    const item = currentItem || fallbackItem;
+
+    if (!item) {
+        result.innerHTML = "<span class='italic text-gray-400'>还没有使用ai解析过哟</span>";
         return;
     }
-    const item = lyric.analysis && lyric.analysis[index];
-    $("ai-result").innerHTML = item
-        ? `<p class="font-bold text-gray-700 mb-2">${escapeHTML(item.translation || "")}</p><p>${escapeHTML(item.grammar || "")}</p>`
-        : "<span class='italic text-gray-400'>这一句还没有 AI 解析，可点击顶部 AI 语法解析生成。</span>";
+
+    result.innerHTML = `<p class="font-bold text-gray-700 mb-2">${escapeHTML(item.translation || "")}</p><p>${escapeHTML(item.grammar || "")}</p>`;
 }
 
 
