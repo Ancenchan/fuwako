@@ -375,6 +375,7 @@ function refreshAdminState() {
         button.disabled = !hasToken;
         button.classList.toggle("opacity-50", !hasToken);
         button.classList.toggle("cursor-not-allowed", !hasToken);
+        button.title = hasToken ? "" : "请先配置 GitHub Token";
     }
     if (aiButton) {
         aiButton.disabled = false;
@@ -385,9 +386,9 @@ function refreshAdminState() {
 }
 
 function addLyrics() {
-    const token = localStorage.getItem(STORAGE_KEYS.token);
+    const token = (localStorage.getItem(STORAGE_KEYS.token) || "").trim();
     if (!token) {
-        alert("请先点击右上角 7.png 图标配置 GitHub Token，游客模式不能上传。");
+        alert("请先点击右上角 7.png 图标配置 GitHub Token，未配置时不可提交。");
         return;
     }
     const title = $("new-lyric-title").value.trim();
@@ -403,7 +404,11 @@ function addLyrics() {
     renderLyrics();
     $("new-lyric-title").value = "";
     $("new-lyric-text").value = "";
-    syncLyricsToGitHub().catch((error) => console.warn("静默推送失败:", error));
+
+    syncLyricsToGitHub().catch((error) => {
+        console.warn("静默推送失败:", error);
+        alert(`已先保存到本地，但推送云端失败，请稍后重试。\n${error.message}`);
+    });
 }
 
 async function syncLyricsToGitHub() {
