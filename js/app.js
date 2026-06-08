@@ -248,11 +248,38 @@ function renderDetail(id) {
 
 function tokenizeLine(line) {
     if (!state.tokenizer) return escapeHTML(line);
-    return state.tokenizer.tokenize(line).map((token) => {
-        const surface = token.surface_form;
+
+    const tokens = state.tokenizer.tokenize(line);
+    const html = [];
+
+    for (let i = 0; i < tokens.length; i++) {
+        let token = tokens[i];
+
+        let surface = token.surface_form;
+        let basic = token.basic_form || surface;
+
+        // 动词 + た
+        if (
+            token.pos === "動詞" &&
+            tokens[i + 1] &&
+            tokens[i + 1].surface_form === "た"
+        ) {
+            surface += "た";
+            i++;
+        }
+
         const className = posClass(token.pos);
-        return `<button type="button" onclick="showWord('${encodeURIComponent(surface)}')" class="word-token ${className}">${escapeHTML(surface)}</button>`;
-    }).join("");
+
+        html.push(`
+            <button type="button"
+                onclick="showWord('${encodeURIComponent(surface)}','${encodeURIComponent(basic)}')"
+                class="word-token ${className}">
+                ${escapeHTML(surface)}
+            </button>
+        `);
+    }
+
+    return html.join("");
 }
 
 function posClass(pos) {
@@ -263,17 +290,131 @@ function posClass(pos) {
     return "";
 }
 
-function showWord(encodedWord) {
+function showWord(encodedWord, encodedBaseWord) {
     const word = decodeURIComponent(encodedWord);
 
-    const item = state.words[word];
+    const baseWord = encodedBaseWord
+        ? decodeURIComponent(encodedBaseWord)
+        : word;
+
+    let item =
+        state.words[word] ||
+        state.words[baseWord];
+
+    let matchedWord = word;
+
+    // 精确匹配失败时尝试模糊匹配
     if (!item) {
+        const matches = Object.keys(state.words)
+            .filter(k => k.includes(baseWord));
+
+        if (matches.length === 1) {
+            matchedWord = matches[0];
+            item = state.words[matchedWord];
+        }
+    }
+
+    if (!item) {
+        const matches = Object.keys(state.words)
+            .filter(k => k.includes(baseWord))
+            .slice(0, 10);
+
         $("dict-result").innerHTML = `
-            <div class="font-bold text-gray-700 mb-1">${escapeHTML(word)}</div>
-            <div class="italic text-gray-400">未收录</div>
+            <div class="font-bold text-gray-700 mb-1">
+                ${escapeHTML(word)}
+            </div>
+
+            ${
+                word !== baseWord
+                ? `<div class="italic text-gray-400 mb-2">
+                    原型：${escapeHTML(baseWord)}
+                   </div>`
+                : ""
+            }
+
+            ${
+                matches.length
+                ? `
+                <div class="text-sm text-gray-500 mb-2">
+                    可能是：
+                </div>
+
+                <div class="flex flex-wrap gap-2">
+                    ${matches.map(match => `
+                        <button
+                            type="button"
+                            onclick="showWord('${encodeURIComponent(match)}','${encodeURIComponent(match)}')"
+                            class="px-2 py-1 rounded bg-pink-100 hover:bg-pink-200 text-pink-600 text-xs">
+                            ${escapeHTML(match)}
+                        </button>
+                    `).join("")}
+                </div>
+                `
+                : `<div class="italic text-gray-400">未收录</div>`
+            }
         `;
         return;
     }
+
+    const reading = item["读音"] || "";
+    const romaji = item["罗马音"] || "";
+    const pos = item["词性"] || "";
+
+    const meanings = [];
+
+    for (let i = 1; i <= 10; i++) {
+        const meaning = item[`释义${i}`];
+        if (meaning) meanings.push(meaning);
+    }
+
+    $("dict-result").innerHTML = `
+        <div class="space-y-2">
+
+            ${
+                word !== matchedWord
+                ? `<div class="italic text-gray-400">
+                    原型：${escapeHTML(matchedWord)}
+                   </div>`
+                : ""
+            }
+
+            <div class="font-bold text-xl text-gray-800">
+                ${escapeHTML(item["词汇"] || matchedWord)}
+            </div>
+
+            ${reading ? `
+                <div class="text-sm text-gray-500">
+                    读音：${escapeHTML(reading)}
+                </div>
+            ` : ""}
+
+            ${romaji ? `
+                <div class="text-sm text-gray-500">
+                    罗马音：${escapeHTML(romaji)}
+                </div>
+            ` : ""}
+
+            ${pos ? `
+                <div class="inline-block px-2 py-1 text-xs rounded bg-blue-100 text-blue-700">
+                    ${escapeHTML(pos)}
+                </div>
+            ` : ""}
+
+            <div class="border-t pt-2">
+                ${
+                    meanings.length
+                    ? meanings.map((m, i) => `
+                        <div class="mb-1">
+                            <span class="font-semibold">${i + 1}.</span>
+                            ${escapeHTML(m)}
+                        </div>
+                    `).join("")
+                    : '<div class="italic text-gray-400">暂无释义</div>'
+                }
+            </div>
+        </div>
+    `;
+}
 
     const reading = item["读音"] || "";
     const romaji = item["罗马音"] || "";
@@ -287,7 +428,15 @@ function showWord(encodedWord) {
     }
 
     $("dict-result").innerHTML = `
-        <div class="space-y-2">
+    <div class="space-y-2">
+
+        ${
+            word !== baseWord
+            ? `<div class="italic text-gray-400">
+                   原型：${escapeHTML(baseWord)}
+               </div>`
+            : ""
+        }
             <div class="font-bold text-xl text-gray-800">
                 ${escapeHTML(item["词汇"])}
             </div>
