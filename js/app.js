@@ -265,10 +265,65 @@ function posClass(pos) {
 
 function showWord(encodedWord) {
     const word = decodeURIComponent(encodedWord);
-    const meaning = state.dict[word] || state.words[word];
-    $("dict-result").innerHTML = meaning
-        ? `<div class="font-bold text-gray-700 mb-1">${escapeHTML(word)}</div><div>${escapeHTML(meaning)}</div>`
-        : `<div class="font-bold text-gray-700 mb-1">${escapeHTML(word)}</div><div class="italic text-gray-400">未收录</div>`;
+
+    const item = state.words[word];
+    if (!item) {
+        $("dict-result").innerHTML = `
+            <div class="font-bold text-gray-700 mb-1">${escapeHTML(word)}</div>
+            <div class="italic text-gray-400">未收录</div>
+        `;
+        return;
+    }
+
+    const reading = item["读音"] || "";
+    const romaji = item["罗马音"] || "";
+    const pos = item["词性"] || "";
+
+    // 提取所有释义
+    const meanings = [];
+    for (let i = 1; i <= 10; i++) {
+        const meaning = item[`释义${i}`];
+        if (meaning) meanings.push(meaning);
+    }
+
+    $("dict-result").innerHTML = `
+        <div class="space-y-2">
+            <div class="font-bold text-xl text-gray-800">
+                ${escapeHTML(item["词汇"])}
+            </div>
+
+            ${reading ? `
+                <div class="text-sm text-gray-500">
+                    读音：${escapeHTML(reading)}
+                </div>
+            ` : ""}
+
+            ${romaji ? `
+                <div class="text-sm text-gray-500">
+                    罗马音：${escapeHTML(romaji)}
+                </div>
+            ` : ""}
+
+            ${pos ? `
+                <div class="inline-block px-2 py-1 text-xs rounded bg-blue-100 text-blue-700">
+                    ${escapeHTML(pos)}
+                </div>
+            ` : ""}
+
+            <div class="border-t pt-2">
+                ${
+                    meanings.length
+                        ? meanings.map((m, i) => `
+                            <div class="mb-1">
+                                <span class="font-semibold">${i + 1}.</span>
+                                ${escapeHTML(m)}
+                            </div>
+                        `).join("")
+                        : '<div class="italic text-gray-400">暂无释义</div>'
+                }
+            </div>
+        </div>
+    `;
 }
 
 function showLineAnalysis(index) {
