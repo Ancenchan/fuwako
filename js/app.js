@@ -63,7 +63,7 @@ async function init() {
 
     state.grammar = normalizeArray(grammarData);
     state.words = wordsData && typeof wordsData === "object" && !Array.isArray(wordsData) ? wordsData : {};
-    state.dict = dictData && typeof dictData === "object" && !Array.isArray(dictData) ? dictData : {};
+    state.dict = normalizeArray(dictData);
     state.lyrics = mergeLyrics(readLocalLyrics(), normalizeArray(lyricsData));
     state.lyrics = await pullLyricsFromGitHub(state.lyrics);
     writeLocalLyrics();
@@ -290,6 +290,78 @@ function posClass(pos) {
     return "";
 }
 
+function normalizeSearchTerm(value = "") {
+    return String(value).trim();
+}
+
+function dictSearchText(item) {
+    return [
+        item["词汇"],
+        item["读音"],
+        item["罗马音"],
+        item["辞書形"],
+        item["all_副本"],
+    ].filter(Boolean).join("@");
+}
+
+function getDictMatchScore(item, terms) {
+    const entryWord = normalizeSearchTerm(item["词汇"]);
+    const searchText = dictSearchText(item);
+
+    for (let index = 0; index < terms.length; index++) {
+        const term = terms[index];
+        if (!term) continue;
+
+        const priority = index * 10;
+        if (entryWord === term) return priority;
+        if (searchText.includes(`@${term}@`)) return priority + 1;
+        if (entryWord.startsWith(term)) return priority + 2;
+        if (entryWord.includes(term)) return priority + 3;
+        if (term.includes(entryWord)) return priority + 4;
+        if (searchText.includes(term)) return priority + 5;
+    }
+
+    return Number.POSITIVE_INFINITY;
+}
+
+function buildDictSearchTerms(word, baseWord) {
+    const terms = [word, baseWord].map(normalizeSearchTerm).filter(Boolean);
+    const suffixes = ["ました", "ません", "ます", "ない", "かった", "た", "て"];
+
+    terms.forEach((term) => {
+        suffixes.forEach((suffix) => {
+            if (term.length > suffix.length && term.endsWith(suffix)) {
+                terms.push(term.slice(0, -suffix.length));
+            }
+        });
+    });
+
+    return [...new Set(terms)];
+}
+
+function findDictMatches(word, baseWord, limit = 10) {
+    const terms = buildDictSearchTerms(word, baseWord);
+    if (!terms.length || !Array.isArray(state.dict)) return [];
+
+    return state.dict
+        .map((item, index) => ({
+            item,
+            index,
+            score: getDictMatchScore(item, terms),
+            wordLength: normalizeSearchTerm(item["词汇"]).length,
+        }))
+        .filter((entry) => Number.isFinite(entry.score))
+        .sort((a, b) => a.score - b.score || a.wordLength - b.wordLength || a.index - b.index)
+        .slice(0, limit)
+        .map((entry) => entry.item);
+}
+
+function getWordFallbackMatches(baseWord, limit = 10) {
+    return Object.keys(state.words)
+        .filter((key) => key.includes(baseWord))
+        .slice(0, limit);
+}
+
 function renderDictResult(item, word, baseWord, matchedWord = baseWord) {
     const reading = item["读音"] || "";
     const romaji = item["罗马音"] || "";
@@ -360,66 +432,68 @@ function showWord(encodedWord, encodedBaseWord) {
         ? decodeURIComponent(encodedBaseWord)
         : word;
 
-    let item =
-        state.words[word] ||
-        state.words[baseWord];
+    const dictMatches = findDictMatches(word, baseWord);
+    const item = dictMatches[0];
 
-    let matchedWord = word;
-
-    // 精确匹配失败时尝试模糊匹配
-    if (!item) {
-        const matches = Object.keys(state.words)
-            .filter(k => k.includes(baseWord));
-
-        if (matches.length === 1) {
-            matchedWord = matches[0];
-            item = state.words[matchedWord];
-        }
-    }
-
-    if (!item) {
-        const matches = Object.keys(state.words)
-            .filter(k => k.includes(baseWord))
-            .slice(0, 10);
-
-        $("dict-result").innerHTML = `
-            <div class="font-bold text-gray-700 mb-1">
-                ${escapeHTML(word)}
-            </div>
-
-            ${
-                word !== baseWord
-                ? `<div class="italic text-gray-400 mb-2">
-                    原型：${escapeHTML(baseWord)}
-                   </div>`
-                : ""
-            }
-
-            ${
-                matches.length
-                ? `
-                <div class="text-sm text-gray-500 mb-2">
-                    可能是：
-                </div>
-
-                <div class="flex flex-wrap gap-2">
-                    ${matches.map(match => `
-                        <button
-                            type="button"
-                            onclick="showWord('${encodeURIComponent(match)}','${encodeURIComponent(match)}')"
-                            class="px-2 py-1 rounded bg-pink-100 hover:bg-pink-200 text-pink-600 text-xs">
-                            ${escapeHTML(match)}
-                        </button>
-                    `).join("")}
-                </div>
-                `
-                : `<div class="italic text-gray-400">未收录</div>`
-            }
-        `;
+    if (item) {
+        renderDictResult(item, word, baseWord, item["词汇"] || baseWord);
         return;
     }
 
-    renderDictResult(item, word, baseWord, matchedWord);
+    const wordFallback = state.words[word] || state.words[baseWord];
+    if (wordFallback) {
+        renderDictResult({
+            "词汇": baseWord,
+            "释义1": wordFallback,
+        }, word, baseWord, baseWord);
+        return;
+    }
+
+    const dictSuggestions = dictMatches.slice(1);
+    const wordSuggestions = getWordFallbackMatches(baseWord);
+
+    $("dict-result").innerHTML = `
+        <div class="font-bold text-gray-700 mb-1">
+            ${escapeHTML(word)}
+        </div>
+
+        ${
+            word !== baseWord
+            ? `<div class="italic text-gray-400 mb-2">
+                原型：${escapeHTML(baseWord)}
+               </div>`
+            : ""
+        }
+
+        ${
+            dictSuggestions.length || wordSuggestions.length
+            ? `
+            <div class="text-sm text-gray-500 mb-2">
+                可能是：
+            </div>
+
+            <div class="flex flex-wrap gap-2">
+                ${dictSuggestions.map((match) => `
+                    <button
+                        type="button"
+                        onclick="showWord('${encodeURIComponent(match["词汇"])}','${encodeURIComponent(match["词汇"])}')"
+                        class="px-2 py-1 rounded bg-pink-100 hover:bg-pink-200 text-pink-600 text-xs">
+                        ${escapeHTML(match["词汇"])}
+                    </button>
+                `).join("")}
+                ${wordSuggestions.map((match) => `
+                    <button
+                        type="button"
+                        onclick="showWord('${encodeURIComponent(match)}','${encodeURIComponent(match)}')"
+                        class="px-2 py-1 rounded bg-pink-100 hover:bg-pink-200 text-pink-600 text-xs">
+                        ${escapeHTML(match)}
+                    </button>
+                `).join("")}
+            </div>
+            `
+            : `<div class="italic text-gray-400">未收录</div>`
+        }
+    `;
 }
 
 
