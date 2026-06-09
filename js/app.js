@@ -272,7 +272,7 @@ function tokenizeLine(line) {
 
         html.push(`
             <button type="button"
-                onclick="showWord('${encodeURIComponent(surface)}','${encodeURIComponent(basic)}')"
+                onclick="showWord('${encodeURIComponent(surface)}','${encodeURIComponent(basic)}','${encodeURIComponent(token.pos || "")}')"
                 class="word-token ${className}">
                 ${escapeHTML(surface)}
             </button>
@@ -288,6 +288,21 @@ function posClass(pos) {
     if (pos === "形容詞" || pos === "形容動詞語幹") return "pos-adj";
     if (pos === "名詞") return "pos-noun";
     return "";
+}
+
+function shouldSkipFuzzyLookup(pos) {
+    return ["助詞", "助動詞", "記号", "フィラー"].includes(pos);
+}
+
+function renderSkippedLookup(word, pos) {
+    $("dict-result").innerHTML = `
+        <div class="font-bold text-gray-700 mb-1">
+            ${escapeHTML(word)}
+        </div>
+        <div class="italic text-gray-400">
+            ${escapeHTML(pos || "该词")}通常没有独立词义，不进行模糊查询
+        </div>
+    `;
 }
 
 function normalizeSearchTerm(value = "") {
@@ -425,12 +440,18 @@ function renderDictResult(item, word, baseWord, matchedWord = baseWord) {
     `;
 }
 
-function showWord(encodedWord, encodedBaseWord) {
+function showWord(encodedWord, encodedBaseWord, encodedPos = "") {
     const word = decodeURIComponent(encodedWord);
 
     const baseWord = encodedBaseWord
         ? decodeURIComponent(encodedBaseWord)
         : word;
+
+    const pos = encodedPos ? decodeURIComponent(encodedPos) : "";
+    if (shouldSkipFuzzyLookup(pos)) {
+        renderSkippedLookup(word, pos);
+        return;
+    }
 
     const dictMatches = findDictMatches(word, baseWord);
     const item = dictMatches[0];
@@ -695,7 +716,7 @@ async function triggerAI() {
         alert("AI 讲解一分钟只能触发一次，请稍后再试。");
         return;
     }
-    const apiKey = prompt("请输入 OpenRouter API Key");
+    const apiKey = prompt("请输入 Google Gemini API Key");
     if (!apiKey) return;
 
     state.aiPending.add(lyric.id);
@@ -704,19 +725,28 @@ async function triggerAI() {
     try {
         const linesForAI = lyric.text.map((line) => isJapanese(line) ? line : null);
         const promptText = `你是一个专业的日语老师。解析以下日语歌词，强制返回单句翻译和语法点(含每个单词的性质和翻译/是否有变形/连接词作用/句式)，格式 [{"translation":"单句翻译","grammar":"语法点"},null]。严禁包含任何说明文字、Markdown格式或换行符。必须使用双引号包裹属性和字符串，解析内容中如需引号请使用单引号。非日文行必须返回null。待解析数组：${JSON.stringify(linesForAI)}`;
-        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        const model = "gemini-2.5-flash";
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
             method: "POST",
-            headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+            headers: {
+                "x-goog-api-key": apiKey,
+                "Content-Type": "application/json",
+            },
             body: JSON.stringify({
-                model: "z-ai/glm-4.5-air:free",
-                messages: [{ role: "user", content: promptText }],
-                temperature: 0.2,
+                contents: [{
+                    role: "user",
+                    parts: [{ text: promptText }],
+                }],
+                generationConfig: {
+                    temperature: 0.2,
+                    responseMimeType: "application/json",
+                },
             }),
         });
         $("ai-progress-bar").style.width = "70%";
-        if (!response.ok) throw new Error(`OpenRouter ${response.status}`);
+        if (!response.ok) throw new Error(`Gemini ${response.status}`);
         const data = await response.json();
-        const content = data.choices?.[0]?.message?.content || "[]";
+        const content = data.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
         lyric.analysis = JSON.parse(content).map((item, index) => isJapanese(lyric.text[index]) ? item : null);
         state.aiLastTriggeredAt = Date.now();
         lyric.timestamp = Date.now();
