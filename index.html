@@ -83,6 +83,8 @@
             };
 
             document.addEventListener('click', function (event) {
+                if (event.defaultPrevented) return;
+
                 var tabTrigger = event.target.closest('[data-tab]');
                 if (tabTrigger) {
                     event.preventDefault();
