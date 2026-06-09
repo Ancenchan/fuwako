@@ -47,8 +47,8 @@
     </style>
     <script>
         // Tiny fallback handlers are defined before the header buttons render so
-        // inline clicks never throw while the deferred app bundle or Kuromoji CDN
-        // are still loading. js/app.js replaces these with the full handlers.
+        // inline clicks never throw while the deferred app bundle is still loading.
+        // js/app.js replaces these with the full handlers.
         (function () {
             function byId(id) { return document.getElementById(id); }
 
@@ -115,9 +115,9 @@
 
 <div id="loading-mask">
     <div class="text-4xl mb-4">🌸</div>
-    <div id="loading-text" class="text-xs text-pink-400 font-light">正在加载词典... 0%</div>
+    <div id="loading-text" class="text-xs text-pink-400 font-light">正在初始化分词器...</div>
     <div class="w-48 h-1 bg-pink-100 rounded-full mt-4 overflow-hidden">
-        <div id="loading-bar" class="h-full bg-pink-400 transition-all duration-300" style="width: 0%"></div>
+        <div id="loading-bar" class="h-full bg-pink-400 transition-all duration-300" style="width: 50%"></div>
     </div>
 </div>
 
@@ -211,11 +211,11 @@
 <!-- 底部核心脚本引入（请确保顺序不要颠倒） -->
 <!-- ========================================== -->
 
-<!-- 1. 先引入自己的核心业务逻辑，确保 JSON 渲染与页签切换不被 CDN 阻塞 -->
-<script src="js/app.js?v=20260519-1"></script>
+<!-- 1. TinySegmenter 分词器（纯 JS，无外部词典依赖，即时可用） -->
+<script src="js/tiny_segmenter.js"></script>
 
-<!-- 2. Kuromoji 后台加载；加载完成后再启用分词，不阻塞页面切换和 JSON 展示 -->
-<script async src="https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/build/kuromoji.js" onload="window.fuwakoInitKuromoji && window.fuwakoInitKuromoji()" onerror="document.getElementById('loading-mask') && document.getElementById('loading-mask').classList.add('loading-mask-hidden')"></script>
+<!-- 2. 核心业务逻辑 -->
+<script src="js/app.js?v=20260610-1"></script>
 
 </body>
 </html>

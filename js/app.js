@@ -4,7 +4,7 @@ const STORAGE_KEYS = {
 };
 
 const state = {
-    tokenizer: null,
+    segmenter: null,
     grammar: [],
     words: {},
     lyrics: [],
@@ -13,7 +13,6 @@ const state = {
     aiPending: new Set(),
     aiLastTriggeredAt: 0,
     initialized: false,
-    kuromojiLoading: false,
 };
 
 const $ = (id) => document.getElementById(id);
@@ -65,7 +64,11 @@ async function init() {
     state.words = wordsData && typeof wordsData === "object" && !Array.isArray(wordsData) ? wordsData : {};
     state.dict = normalizeArray(dictData);
     state.lyrics = mergeLyrics(readLocalLyrics(), normalizeArray(lyricsData));
-    state.lyrics = await pullLyricsFromGitHub(state.lyrics);
+    try {
+        state.lyrics = await pullLyricsFromGitHub(state.lyrics);
+    } catch (error) {
+        console.warn("拉取云端歌词失败，使用本地数据:", error);
+    }
     writeLocalLyrics();
 
     renderGrammar();
@@ -73,36 +76,23 @@ async function init() {
     refreshAdminState();
     bindUIActions();
     switchTab("grammar");
-    initKuromoji();
+    initTokenizer();
 }
 
-function initKuromoji() {
-    const bar = $("loading-bar");
-    const text = $("loading-text");
-    let percent = 8;
-    const timer = setInterval(() => {
-        percent = Math.min(92, percent + 7);
-        if (bar) bar.style.width = `${percent}%`;
-        if (text) text.innerText = `正在加载词典... ${percent}%`;
-    }, 180);
-
-    if (!window.kuromoji) {
-        clearInterval(timer);
-        hideLoadingMask("未加载 kuromoji，已进入游客模式");
+function initTokenizer() {
+    if (typeof TinySegmenter === "undefined") {
+        hideLoadingMask("未加载 TinySegmenter，已进入游客模式");
         return;
     }
-
-    kuromoji.builder({ dicPath: "dict" }).build((err, tokenizer) => {
-        clearInterval(timer);
-        if (err) {
-            console.warn("Kuromoji 词典加载失败:", err);
-            hideLoadingMask("词典加载失败，基础功能仍可使用");
-            return;
-        }
-        state.tokenizer = tokenizer;
-        hideLoadingMask("词典加载完成！");
-        if (state.currentLyric) renderDetail(state.currentLyric.id);
-    });
+    try {
+        state.segmenter = new TinySegmenter();
+    } catch (error) {
+        console.warn("TinySegmenter 初始化失败:", error);
+        hideLoadingMask("分词器初始化失败，基础功能仍可使用");
+        return;
+    }
+    hideLoadingMask("分词器就绪！");
+    if (state.currentLyric) renderDetail(state.currentLyric.id);
 }
 
 function hideLoadingMask(message) {
@@ -177,13 +167,18 @@ function renderGrammar() {
 function readLocalLyrics() {
     try {
         return normalizeArray(JSON.parse(localStorage.getItem(STORAGE_KEYS.lyrics) || "[]"));
-    } catch {
+    } catch (error) {
+        console.warn("读取本地歌词失败:", error);
         return [];
     }
 }
 
 function writeLocalLyrics() {
-    localStorage.setItem(STORAGE_KEYS.lyrics, JSON.stringify(state.lyrics));
+    try {
+        localStorage.setItem(STORAGE_KEYS.lyrics, JSON.stringify(state.lyrics));
+    } catch (error) {
+        console.warn("写入本地歌词失败 (可能存储已满):", error);
+    }
 }
 
 function mergeLyrics(localItems, remoteItems) {
@@ -236,43 +231,88 @@ function renderDetail(id) {
     const lyric = state.lyrics.find((item) => Number(item.id) === Number(id));
     if (!lyric) return;
     state.currentLyric = lyric;
-    $("detail-title").innerText = lyric.title;
+    const titleEl = $("detail-title");
+    if (titleEl) titleEl.innerText = lyric.title;
     const content = $("detail-content");
-    content.innerHTML = lyric.text.map((line, index) => {
+    if (!content) return;
+    content.innerHTML = (lyric.text || []).map((line, index) => {
         const japanese = isJapanese(line);
         const tokens = japanese ? tokenizeLine(line) : escapeHTML(line);
-        const button = japanese ? `<button type="button" data-line-analysis="${index}" class="ml-2 align-middle px-2 py-0.5 rounded-full bg-white/60 text-[10px] text-pink-500 font-bold hover:bg-pink-100">查看解析</button>` : "";
+        const button = japanese
+            ? `<button type="button" data-line-analysis="${index}" class="ml-2 align-middle px-2 py-0.5 rounded-full bg-white/60 text-[10px] text-pink-500 font-bold hover:bg-pink-100">查看解析</button>`
+            : `<button type="button" data-line-analysis="${index}" data-non-japanese="1" class="ml-2 align-middle px-2 py-0.5 rounded-full bg-white/60 text-[10px] text-gray-400 font-bold hover:bg-gray-100 cursor-default">查看解析</button>`;
         return `<div class="rounded-2xl bg-white/35 p-3"><div>${tokens}${button}</div></div>`;
     }).join("");
 }
 
-function tokenizeLine(line) {
-    if (!state.tokenizer) return escapeHTML(line);
+/**
+ * 基于字符特征推测词性（TinySegmenter 仅分词不标注词性，用启发式规则近似判断）
+ */
+const PARTICLES = new Set([
+    "は","が","を","に","で","と","の","も","へ","や","か","から","まで","より","にて",
+    "だけ","しか","ほど","など","くらい","ぐらい","ころ","ころが","だけど","けど",
+    "けれど","けれども","が","のに","ので","て","で","し","な","ね","よ","さ","なぁ",
+]);
+const AUX_VERBS = new Set([
+    "た","ます","ません","ました","ない","ぬ","ん","れる","られる","せる","させる",
+    "れる","られる","たい","たら","れば","よう","う","まい","そう","です","だ","だった",
+    "でしょう","だろう",
+]);
 
-    const tokens = state.tokenizer.tokenize(line);
+function guessPos(word) {
+    if (!word) return "";
+    // 标点符号
+    if (/^[\s!?！？。、，,\.\.\."]+$/.test(word)) return "記号";
+    // 单字符助词
+    if (word.length === 1 && PARTICLES.has(word)) return "助詞";
+    // 多字符助词
+    if (PARTICLES.has(word)) return "助詞";
+    // 助動詞
+    if (AUX_VERBS.has(word)) return "助動詞";
+    // 纯平假名且以い结尾（非い本身）→ 形容詞
+    if (/^[ぁ-ん]+$/.test(word) && word.endsWith("い") && word.length > 1) return "形容詞";
+    // 纯平假名且以典型动词词尾结尾 → 動詞
+    if (/^[ぁ-ん]+$/.test(word) && /[うくぐすつぬぶむる]$/.test(word) && word.length > 1) return "動詞";
+    // 含汉字 → 名詞
+    if (/[一-龠々〆ヵヶ]/.test(word)) return "名詞";
+    // 片假名单词 → 名詞（外来语）
+    if (/^[ァ-ヴー]+$/.test(word)) return "名詞";
+    return "";
+}
+
+function tokenizeLine(line) {
+    if (!state.segmenter) return escapeHTML(line);
+
+    let tokens;
+    try {
+        tokens = state.segmenter.segment(line);
+    } catch (error) {
+        console.warn("分词失败，回退原文:", error);
+        return escapeHTML(line);
+    }
+
+    if (!Array.isArray(tokens) || tokens.length === 0) return escapeHTML(line);
+
     const html = [];
 
     for (let i = 0; i < tokens.length; i++) {
-        let token = tokens[i];
+        let surface = tokens[i];
+        let pos = guessPos(surface);
 
-        let surface = token.surface_form;
-        let basic = token.basic_form || surface;
-
-        // 动词 + た
+        // 动词 + た → 合并显示
         if (
-            token.pos === "動詞" &&
-            tokens[i + 1] &&
-            tokens[i + 1].surface_form === "た"
+            pos === "動詞" &&
+            tokens[i + 1] === "た"
         ) {
             surface += "た";
             i++;
         }
 
-        const className = posClass(token.pos);
+        const className = posClass(pos);
 
         html.push(`
             <button type="button"
-                onclick="showWord('${encodeURIComponent(surface)}','${encodeURIComponent(basic)}','${encodeURIComponent(token.pos || "")}')"
+                onclick="showWord('${encodeURIComponent(surface)}','${encodeURIComponent(surface)}','${encodeURIComponent(pos)}')"
                 class="word-token ${className}">
                 ${escapeHTML(surface)}
             </button>
@@ -291,11 +331,13 @@ function posClass(pos) {
 }
 
 function shouldSkipFuzzyLookup(pos) {
-    return ["助詞", "助動詞", "記号", "フィラー"].includes(pos);
+    return ["助詞", "助動詞", "記号"].includes(pos);
 }
 
 function renderSkippedLookup(word, pos) {
-    $("dict-result").innerHTML = `
+    const el = $("dict-result");
+    if (!el) return;
+    el.innerHTML = `
         <div class="font-bold text-gray-700 mb-1">
             ${escapeHTML(word)}
         </div>
@@ -378,6 +420,9 @@ function getWordFallbackMatches(baseWord, limit = 10) {
 }
 
 function renderDictResult(item, word, baseWord, matchedWord = baseWord) {
+    const el = $("dict-result");
+    if (!el) return;
+
     const reading = item["读音"] || "";
     const romaji = item["罗马音"] || "";
     const pos = item["词性"] || "";
@@ -392,7 +437,7 @@ function renderDictResult(item, word, baseWord, matchedWord = baseWord) {
     const displayWord = item["词汇"] || matchedWord || baseWord;
     const originalWord = matchedWord !== word ? matchedWord : baseWord;
 
-    $("dict-result").innerHTML = `
+    el.innerHTML = `
     <div class="space-y-2">
 
         ${
@@ -441,13 +486,15 @@ function renderDictResult(item, word, baseWord, matchedWord = baseWord) {
 }
 
 function showWord(encodedWord, encodedBaseWord, encodedPos = "") {
-    const word = decodeURIComponent(encodedWord);
-
-    const baseWord = encodedBaseWord
-        ? decodeURIComponent(encodedBaseWord)
-        : word;
-
-    const pos = encodedPos ? decodeURIComponent(encodedPos) : "";
+    let word, baseWord, pos;
+    try {
+        word = decodeURIComponent(encodedWord);
+        baseWord = encodedBaseWord ? decodeURIComponent(encodedBaseWord) : word;
+        pos = encodedPos ? decodeURIComponent(encodedPos) : "";
+    } catch (error) {
+        console.warn("解码词块参数失败:", error);
+        return;
+    }
     if (shouldSkipFuzzyLookup(pos)) {
         renderSkippedLookup(word, pos);
         return;
@@ -473,7 +520,9 @@ function showWord(encodedWord, encodedBaseWord, encodedPos = "") {
     const dictSuggestions = dictMatches.slice(1);
     const wordSuggestions = getWordFallbackMatches(baseWord);
 
-    $("dict-result").innerHTML = `
+    const dictResult = $("dict-result");
+    if (!dictResult) return;
+    dictResult.innerHTML = `
         <div class="font-bold text-gray-700 mb-1">
             ${escapeHTML(word)}
         </div>
@@ -524,6 +573,12 @@ function showLineAnalysis(index) {
 
     const result = $("ai-result");
     if (!result) return;
+
+    const line = lyric.text[index];
+    if (!isJapanese(line)) {
+        result.innerHTML = "<span class='italic text-gray-400'>【非日语行】</span>";
+        return;
+    }
 
     const analysisList = Array.isArray(lyric.analysis) ? lyric.analysis : [];
     const currentItem = analysisList[index];
@@ -583,13 +638,18 @@ function bindUIActions() {
 
 function toggleConfig() {
     const modal = $("config-modal");
+    if (!modal) return;
     modal.classList.toggle("hidden");
     if (!modal.classList.contains("hidden")) loadSavedConfig();
 }
 
 function loadSavedConfig() {
-    const token = localStorage.getItem(STORAGE_KEYS.token) || "";
-    if ($("gh-token")) $("gh-token").value = token;
+    try {
+        const token = localStorage.getItem(STORAGE_KEYS.token) || "";
+        if ($("gh-token")) $("gh-token").value = token;
+    } catch (error) {
+        console.warn("读取配置失败:", error);
+    }
 }
 
 function saveConfig() {
@@ -598,7 +658,13 @@ function saveConfig() {
         alert("未找到 Token 输入框，请刷新页面后重试。");
         return;
     }
-    localStorage.setItem(STORAGE_KEYS.token, tokenInput.value.trim());
+    try {
+        localStorage.setItem(STORAGE_KEYS.token, tokenInput.value.trim());
+    } catch (error) {
+        alert("保存配置失败 (可能存储空间已满)，请检查浏览器设置。");
+        console.warn("保存 Token 失败:", error);
+        return;
+    }
     refreshAdminState();
     toggleConfig();
     alert(localStorage.getItem(STORAGE_KEYS.token) ? "配置已保存：已连接 GitHub，可上传歌词。" : "配置已保存：未填写 Token，将以游客模式浏览。");
@@ -611,7 +677,12 @@ function refreshAdminState() {
     const aiButton = $("trigger-ai-btn");
     if (area) area.classList.remove("hidden");
 
-    const hasToken = Boolean((localStorage.getItem(STORAGE_KEYS.token) || "").trim());
+    let hasToken = false;
+    try {
+        hasToken = Boolean((localStorage.getItem(STORAGE_KEYS.token) || "").trim());
+    } catch (error) {
+        console.warn("读取 Token 状态失败:", error);
+    }
     if (hint) {
         hint.className = hasToken ? "mt-2 text-[11px] text-emerald-500" : "mt-2 text-[11px] text-amber-500";
         hint.innerText = hasToken
@@ -637,8 +708,14 @@ function addLyrics() {
         alert("请先点击右上角 7.png 图标配置 GitHub Token，游客模式不能上传。");
         return;
     }
-    const title = $("new-lyric-title").value.trim();
-    const text = $("new-lyric-text").value.split("\n").map((line) => line.trim()).filter(Boolean);
+    const titleInput = $("new-lyric-title");
+    const textInput = $("new-lyric-text");
+    if (!titleInput || !textInput) {
+        alert("页面元素未就绪，请刷新后重试。");
+        return;
+    }
+    const title = titleInput.value.trim();
+    const text = textInput.value.split("\n").map((line) => line.trim()).filter(Boolean);
     if (!title || !text.length) {
         alert("请填写歌曲标题和歌词内容。");
         return;
@@ -648,8 +725,8 @@ function addLyrics() {
     state.lyrics = mergeLyrics([lyric], state.lyrics);
     writeLocalLyrics();
     renderLyrics();
-    $("new-lyric-title").value = "";
-    $("new-lyric-text").value = "";
+    titleInput.value = "";
+    textInput.value = "";
     syncLyricsToGitHub().catch((error) => console.warn("静默推送失败:", error));
 }
 
@@ -663,9 +740,15 @@ async function syncLyricsToGitHub() {
     const current = await fetch(url, { headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" } });
     if (!current.ok) throw new Error(`读取云端歌词失败: ${current.status}`);
     const meta = await current.json();
+    let encodedContent;
+    try {
+        encodedContent = btoa(unescape(encodeURIComponent(JSON.stringify(state.lyrics, null, 2))));
+    } catch (error) {
+        throw new Error(`歌词内容编码失败: ${error.message}`);
+    }
     const body = {
         message: "Update lyrics data from Fuwako",
-        content: btoa(unescape(encodeURIComponent(JSON.stringify(state.lyrics, null, 2)))),
+        content: encodedContent,
         sha: meta.sha,
         branch,
     };
@@ -689,7 +772,13 @@ async function pullLyricsFromGitHub(fallbackLyrics = state.lyrics) {
         });
         if (!response.ok) throw new Error(`读取云端歌词失败: ${response.status}`);
         const meta = await response.json();
-        const decoded = decodeURIComponent(escape(atob((meta.content || "").replace(/\n/g, ""))));
+        let decoded;
+        try {
+            decoded = decodeURIComponent(escape(atob((meta.content || "").replace(/\n/g, ""))));
+        } catch (decodeError) {
+            console.warn("云端歌词内容解码失败:", decodeError);
+            return fallbackLyrics;
+        }
         const cloudLyrics = normalizeArray(JSON.parse(decoded || "[]"));
         return mergeLyrics(fallbackLyrics, cloudLyrics);
     } catch (error) {
@@ -707,7 +796,7 @@ async function triggerAI() {
         return;
     }
     if ((lyric.analysis || []).some((item, index) => isJapanese(lyric.text[index]) && item)) {
-        alert("已存在解析结果，可直接点击每行旁边的“解析”。");
+        alert("已存在解析结果，可直接点击每行旁边的解析");
         return;
     }
     if (state.aiPending.has(lyric.id)) return;
@@ -720,8 +809,10 @@ async function triggerAI() {
     if (!apiKey) return;
 
     state.aiPending.add(lyric.id);
-    $("ai-progress-wrap").classList.remove("hidden");
-    $("ai-progress-bar").style.width = "15%";
+    const progressWrap = $("ai-progress-wrap");
+    const progressBar = $("ai-progress-bar");
+    if (progressWrap) progressWrap.classList.remove("hidden");
+    if (progressBar) progressBar.style.width = "15%";
     try {
         const linesForAI = lyric.text.map((line) => isJapanese(line) ? line : null);
         const promptText = `你是一个专业的日语老师。解析以下日语歌词，强制返回单句翻译和语法点(含每个单词的性质和翻译/是否有变形/连接词作用/句式)，格式 [{"translation":"单句翻译","grammar":"语法点"},null]。严禁包含任何说明文字、Markdown格式或换行符。必须使用双引号包裹属性和字符串，解析内容中如需引号请使用单引号。非日文行必须返回null。待解析数组：${JSON.stringify(linesForAI)}`;
@@ -743,24 +834,32 @@ async function triggerAI() {
                 },
             }),
         });
-        $("ai-progress-bar").style.width = "70%";
+        if (progressBar) progressBar.style.width = "70%";
         if (!response.ok) throw new Error(`Gemini ${response.status}`);
         const data = await response.json();
         const content = data.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
-        lyric.analysis = JSON.parse(content).map((item, index) => isJapanese(lyric.text[index]) ? item : null);
+        let parsed;
+        try {
+            parsed = JSON.parse(content);
+        } catch (parseError) {
+            throw new Error(`AI 返回内容解析失败: ${parseError.message}`);
+        }
+        if (!Array.isArray(parsed)) throw new Error("AI 返回格式异常: 期望数组");
+        lyric.analysis = parsed.map((item, index) => isJapanese(lyric.text[index]) ? item : null);
         state.aiLastTriggeredAt = Date.now();
         lyric.timestamp = Date.now();
         state.lyrics = mergeLyrics([lyric], state.lyrics);
         writeLocalLyrics();
-        $("ai-progress-bar").style.width = "100%";
+        if (progressBar) progressBar.style.width = "100%";
         if (localStorage.getItem(STORAGE_KEYS.token)) syncLyricsToGitHub().catch((error) => console.warn("AI 解析静默推送失败:", error));
-        alert("AI 解析完成，请点击行旁“查看解析”查看。保存配置后会同步到 GitHub。 ");
+        alert("AI 解析完成，请点击行旁的'查看解析'查看。保存配置后会同步到 GitHub。 ");
     } catch (error) {
         console.error(error);
         alert(`AI 解析失败：${error.message}`);
     } finally {
         state.aiPending.delete(lyric.id);
-        setTimeout(() => $("ai-progress-wrap").classList.add("hidden"), 800);
+        const wrap = $("ai-progress-wrap");
+        if (wrap) setTimeout(() => wrap.classList.add("hidden"), 800);
     }
 }
 
